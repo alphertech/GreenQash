@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GreenQash</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #4CAF50;
+            --primary-dark: #388E3C;
+            --secondary-color: #8BC34A;
+            --accent-color: #FFC107;
+            --text-color: #333;
+            --light-gray: #f5f5f5;
+            --medium-gray: #e0e0e0;
+            --dark-gray: #757575;
+            --error-color: #f44336;
+            --success-color: #4CAF50;
+            --google-red: #DB4437;
+            --github-black: #24292E;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        body {
+            background-color: var(--light-gray);
+            color: var(--text-color);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .auth-container {
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 450px;
+            padding: 40px;
+        }
+
+        .logo-container {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .logo-container h1 {
+            font-size: 1.5rem;
+            color: var(--primary-color);
+            margin-top: 10px;
+            font-weight: 600;
+        }
+
+        .auth-toggle {
+            display: flex;
+            margin-bottom: 25px;
+            border-bottom: 1px solid var(--medium-gray);
+        }
+
+        .auth-toggle button {
+            flex: 1;
+            padding: 12px;
+            background: none;
+            border: none;
+            font-size: 1rem;
+            font-weight: 500;
+            color: var(--dark-gray);
+            cursor: pointer;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .auth-toggle button.active {
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+
+        .auth-toggle button.active::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background-color: var(--primary-color);
+        }
+
+        .auth-form {
+            display: none;
+            animation: fadeIn 0.3s ease forwards;
+        }
+
+        .auth-form.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .auth-form h2 {
+            font-size: 1.8rem;
+            margin-bottom: 5px;
+            color: var(--text-color);
+        }
+
+        .subtitle {
+            color: var(--dark-gray);
+            margin-bottom: 25px;
+            font-size: 0.9rem;
+        }
+
+        .input-group {
+            position: relative;
+            margin-bottom: 20px;
+        }
+
+        .input-group i {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--dark-gray);
+        }
+
+        .input-group .toggle-password {
+            left: auto;
+            right: 15px;
+            cursor: pointer;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 15px 15px 15px 45px;
+            border: 1px solid var(--medium-gray);
+            border-radius: 8px;
+            font-size: 0.95rem;
+            transition: border 0.3s ease;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
+        }
+
+        .auth-btn {
+            width: 100%;
+            padding: 15px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            margin-top: 10px;
+        }
+
+        .auth-btn:hover {
+            background-color: var(--primary-dark);
+        }
+
+        .auth-links {
+            text-align: center;
+            margin: 20px 0;
+            font-size: 0.9rem;
+        }
+
+        .auth-links a {
+            color: var(--primary-color);
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .auth-links a:hover {
+            text-decoration: underline;
+        }
+
+        .terms {
+            display: flex;
+            align-items: center;
+            margin: 15px 0;
+            font-size: 0.85rem;
+        }
+
+        .terms input {
+            margin-right: 10px;
+        }
+
+        .terms a {
+            color: var(--primary-color);
+            text-decoration: none;
+        }
+
+        .terms a:hover {
+            text-decoration: underline;
+        }
+
+        .divider {
+            display: flex;
+            align-items: center;
+            margin: 25px 0;
+            color: var(--dark-gray);
+            font-size: 0.9rem;
+        }
+
+        .divider::before,
+        .divider::after {
+            content: '';
+            flex: 1;
+            border-bottom: 1px solid var(--medium-gray);
+        }
+
+        .divider::before {
+            margin-right: 10px;
+        }
+
+        .divider::after {
+            margin-left: 10px;
+        }
+
+        .social-login {
+            text-align: center;
+        }
+
+        .social-login p {
+            margin-bottom: 15px;
+            color: var(--dark-gray);
+            font-size: 0.9rem;
+        }
+
+        .social-icons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .social-btn {
+            flex: 1;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid var(--medium-gray);
+            background-color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .social-btn.google {
+            color: var(--google-red);
+            border-color: var(--google-red);
+        }
+
+        .social-btn.google:hover {
+            background-color: rgba(219, 68, 55, 0.1);
+        }
+
+        .social-btn.github {
+            color: var(--github-black);
+            border-color: var(--github-black);
+        }
+
+        .social-btn.github:hover {
+            background-color: rgba(36, 41, 46, 0.1);
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 25px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 500;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            transform: translateX(150%);
+            transition: transform 0.3s ease;
+            z-index: 1000;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification.success {
+            background-color: var(--success-color);
+        }
+
+        .notification.error {
+            background-color: var(--error-color);
+        }
+
+        @media (max-width: 480px) {
+            .auth-container {
+                padding: 30px 20px;
+            }
+
+            .social-icons {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="auth-container">
+        <div class="logo-container">
+            <img src="https://via.placeholder.com/150x50?text=GreenQash" alt="GreenQash" class="logo">
+            <h1>Hi, Welcome</h1>
+        </div>
+
+        <div class="auth-toggle">
+            <button class="active" id="showLogin">Login</button>
+            <button id="showRegister">Register</button>
+        </div>
+
+        <form class="auth-form active" id="loginForm">
+            <h2>Welcome Back</h2>
+            <p class="subtitle">Continue your sustainable finance journey</p>
+
+            <div class="input-group">
+                <i class="fas fa-envelope"></i>
+                <input type="email" id="loginEmail" placeholder="Email" required>
+            </div>
+
+            <div class="input-group">
+                <i class="fas fa-lock"></i>
+                <input type="password" id="loginPassword" placeholder="Password" required>
+                <i class="fas fa-eye toggle-password"></i>
+            </div>
+
+            <button type="submit" class="auth-btn">Login</button>
+
+            <div class="auth-links">
+                <a href="#" id="forgotPassword">Forgot password?</a>
+            </div>
+
+            <div class="divider">
+                <span>or</span>
+            </div>
+
+            <div class="social-login">
+                <p>Continue with</p>
+                <div class="social-icons">
+                    <button type="button" class="social-btn google" id="googleLogin">
+                        <i class="fab fa-google"></i> Google
+                    </button>
+                </div>
+            </div>
+        </form>
+
+        <form class="auth-form" id="registerForm">
+            <h2>Create Account</h2>
+            <p class="subtitle">Start your sustainable finance journey</p>
+
+            <div class="input-group">
+                <i class="fas fa-user"></i>
+                <input type="text" id="registerUsername" placeholder="Username" required>
+            </div>
+
+            <div class="input-group">
+                <i class="fas fa-envelope"></i>
+                <input type="email" id="registerEmail" placeholder="Email" required>
+            </div>
+            <div class="input-group">
+                <input type="text" id="phone" placeholder="Phone Number" required>
+            </div>
+
+            <div class="input-group">
+                <i class="fas fa-lock"></i>
+                <input type="password" id="registerPassword" placeholder="Password (min 6 characters)" required
+                    minlength="6">
+                <i class="fas fa-eye toggle-password"></i>
+            </div>
+
+            <div class="input-group">
+                <i class="fas fa-lock"></i>
+                <input type="password" id="registerConfirmPassword" placeholder="Confirm Password" required>
+                <i class="fas fa-eye toggle-password"></i>
+            </div>
+
+            <div class="terms">
+                <input type="checkbox" id="agreeTerms" required>
+                <label for="agreeTerms">I agree to the <a href="#">Terms</a> and <a href="#">Privacy Policy</a></label>
+            </div>
+
+            <button type="submit" class="auth-btn">Create Account</button>
+
+            <div class="auth-links">
+                <span>Already have an account? <a href="#" id="showLoginLink">Login here</a></span>
+            </div>
+        </form>
+    </div>
+
+    <div class="notification" id="notification"></div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Form toggle functionality
+            const showLoginBtn = document.getElementById('showLogin');
+            const showRegisterBtn = document.getElementById('showRegister');
+            const loginForm = document.getElementById('loginForm');
+            const registerForm = document.getElementById('registerForm');
+            const showLoginLink = document.getElementById('showLoginLink');
+            const forgotPassword = document.getElementById('forgotPassword');
+
+            // Toggle forms
+            function toggleForms(showLogin) {
+                if (showLogin) {
+                    showLoginBtn.classList.add('active');
+                    showRegisterBtn.classList.remove('active');
+                    loginForm.classList.add('active');
+                    registerForm.classList.remove('active');
+                } else {
+                    showLoginBtn.classList.remove('active');
+                    showRegisterBtn.classList.add('active');
+                    loginForm.classList.remove('active');
+                    registerForm.classList.add('active');
+                }
+            }
+
+            // Event listeners
+            showLoginBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                toggleForms(true);
+            });
+
+            showRegisterBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                toggleForms(false);
+            });
+
+            showLoginLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                toggleForms(true);
+            });
+
+            // Password toggle functionality
+            document.querySelectorAll('.toggle-password').forEach(icon => {
+                icon.addEventListener('click', function () {
+                    const input = this.previousElementSibling;
+                    const type = input.getAttribute('type') === 'password' ? 'text' : 'password';
+                    input.setAttribute('type', type);
+                    this.classList.toggle('fa-eye-slash');
+                });
+            });
+
+            // Form submission (placeholder functionality)
+            loginForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                showNotification('Please Wait!', 'success');
+            });
+
+            registerForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                showNotification('Creating Account, Please Wait!', 'success');
+            });
+
+            // Forgot password
+            forgotPassword.addEventListener('click', (e) => {
+                e.preventDefault();
+                showNotification('Password reset link sent!', 'success');
+            });
+
+            // Social login buttons
+            document.getElementById('googleLogin').addEventListener('click', () => {
+                showNotification('Google login clicked', 'success');
+            });
+
+            document.getElementById('githubLogin').addEventListener('click', () => {
+                showNotification('Feature not available', 'success');
+            });
+
+            // Notification function
+            function showNotification(message, type) {
+                const notification = document.getElementById('notification');
+                notification.textContent = message;
+                notification.className = 'notification show ' + type;
+
+                setTimeout(() => {
+                    notification.classList.remove('show');
+                }, 3000);
+            }
+        });
+    </script>
+    <script src="https://esm.sh/@supabase/supabase-js@2"></script>
+    <script src="auth.js"></script>
+</body>
+
+</html>
