@@ -1,6 +1,6 @@
 // Initialize Supabase
-const supabaseUrl = 'YOUR_SUPABASE_URL';
-const supabaseKey = 'YOUR_SUPABASE_ANON_KEY';
+const supabaseUrl = 'https://xfbvdpidpfqynlurgvsj.supabase.co';
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhmYnZkcGlkcGZxeW5sdXJndnNqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ0Nzg5NDAsImV4cCI6MjA3MDA1NDk0MH0.oFZjb5dbMHuymL8GUlPPFsnR50uQeE668KHzXw4RcC8';
 const supabase = supabase.createClient(supabaseUrl, supabaseKey);
 
 // Registration form submission
@@ -74,3 +74,4 @@ function showNotification(message, type = 'info') {
     notification.style.display = 'none';
   }, 5000);
 }
+
