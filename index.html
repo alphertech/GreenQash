@@ -4,36 +4,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GreenQash</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
-        rel="stylesheet">
+    <title>GreenQash - Sustainable Finance</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        :root {
-            --primary-color: #4CAF50;
-            --primary-dark: #388E3C;
-            --secondary-color: #8BC34A;
-            --accent-color: #FFC107;
-            --text-color: #333;
-            --light-gray: #f5f5f5;
-            --medium-gray: #e0e0e0;
-            --dark-gray: #757575;
-            --error-color: #f44336;
-            --success-color: #4CAF50;
-            --google-red: #DB4437;
-            --github-black: #24292E;
-        }
-
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Poppins', sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
 
         body {
-            background-color: var(--light-gray);
-            color: var(--text-color);
+            /* background: linear-gradient(135deg, #1a2a3a, #1a535c); */
+            color: #333;
             min-height: 100vh;
             display: flex;
             justify-content: center;
@@ -44,88 +27,69 @@
         .auth-container {
             background-color: white;
             border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
             width: 100%;
             max-width: 450px;
-            padding: 40px;
+            overflow: hidden;
         }
 
         .logo-container {
+            background: linear-gradient(to right, #2a9d8f, #1a535c);
+            color: white;
+            padding: 30px 20px;
             text-align: center;
-            margin-bottom: 30px;
+        }
+
+        .logo {
+            height: 50px;
+            margin-bottom: 15px;
         }
 
         .logo-container h1 {
-            font-size: 1.5rem;
-            color: var(--primary-color);
-            margin-top: 10px;
-            font-weight: 600;
+            font-weight: 500;
+            font-size: 1.8rem;
         }
 
         .auth-toggle {
             display: flex;
-            margin-bottom: 25px;
-            border-bottom: 1px solid var(--medium-gray);
+            border-bottom: 1px solid #eee;
         }
 
         .auth-toggle button {
             flex: 1;
-            padding: 12px;
+            padding: 16px;
             background: none;
             border: none;
             font-size: 1rem;
             font-weight: 500;
-            color: var(--dark-gray);
             cursor: pointer;
-            position: relative;
-            transition: all 0.3s ease;
+            transition: all 0.3s;
+            color: #777;
         }
 
         .auth-toggle button.active {
-            color: var(--primary-color);
-            font-weight: 600;
-        }
-
-        .auth-toggle button.active::after {
-            content: '';
-            position: absolute;
-            bottom: -1px;
-            left: 0;
-            width: 100%;
-            height: 3px;
-            background-color: var(--primary-color);
+            color: #2a9d8f;
+            border-bottom: 3px solid #2a9d8f;
         }
 
         .auth-form {
             display: none;
-            animation: fadeIn 0.3s ease forwards;
+            padding: 25px;
         }
 
         .auth-form.active {
             display: block;
         }
 
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(10px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
         .auth-form h2 {
-            font-size: 1.8rem;
-            margin-bottom: 5px;
-            color: var(--text-color);
+            color: #1a535c;
+            margin-bottom: 8px;
+            font-size: 1.5rem;
         }
 
         .subtitle {
-            color: var(--dark-gray);
-            margin-bottom: 25px;
+            color: #777;
+            margin-bottom: 20px;
             font-size: 0.9rem;
         }
 
@@ -139,81 +103,59 @@
             left: 15px;
             top: 50%;
             transform: translateY(-50%);
-            color: var(--dark-gray);
-        }
-
-        .input-group .toggle-password {
-            left: auto;
-            right: 15px;
-            cursor: pointer;
+            color: #999;
         }
 
         .input-group input {
             width: 100%;
             padding: 15px 15px 15px 45px;
-            border: 1px solid var(--medium-gray);
+            border: 1px solid #ddd;
             border-radius: 8px;
-            font-size: 0.95rem;
-            transition: border 0.3s ease;
+            font-size: 1rem;
+            transition: border 0.3s;
         }
 
         .input-group input:focus {
+            border-color: #2a9d8f;
             outline: none;
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
+        }
+
+        .toggle-password {
+            left: auto !important;
+            right: 15px;
+            cursor: pointer;
         }
 
         .auth-btn {
             width: 100%;
             padding: 15px;
-            background-color: var(--primary-color);
+            background: linear-gradient(to right, #2a9d8f, #1a535c);
             color: white;
             border: none;
             border-radius: 8px;
             font-size: 1rem;
             font-weight: 500;
             cursor: pointer;
-            transition: background-color 0.3s ease;
-            margin-top: 10px;
+            transition: all 0.3s;
         }
 
         .auth-btn:hover {
-            background-color: var(--primary-dark);
+            opacity: 0.9;
+            transform: translateY(-2px);
         }
 
         .auth-links {
             text-align: center;
             margin: 20px 0;
-            font-size: 0.9rem;
         }
 
         .auth-links a {
-            color: var(--primary-color);
+            color: #2a9d8f;
             text-decoration: none;
-            font-weight: 500;
+            font-size: 0.9rem;
         }
 
         .auth-links a:hover {
-            text-decoration: underline;
-        }
-
-        .terms {
-            display: flex;
-            align-items: center;
-            margin: 15px 0;
-            font-size: 0.85rem;
-        }
-
-        .terms input {
-            margin-right: 10px;
-        }
-
-        .terms a {
-            color: var(--primary-color);
-            text-decoration: none;
-        }
-
-        .terms a:hover {
             text-decoration: underline;
         }
 
@@ -221,23 +163,20 @@
             display: flex;
             align-items: center;
             margin: 25px 0;
-            color: var(--dark-gray);
-            font-size: 0.9rem;
+            color: #777;
         }
 
         .divider::before,
         .divider::after {
-            content: '';
+            content: "";
             flex: 1;
-            border-bottom: 1px solid var(--medium-gray);
+            height: 1px;
+            background-color: #ddd;
         }
 
-        .divider::before {
-            margin-right: 10px;
-        }
-
-        .divider::after {
-            margin-left: 10px;
+        .divider span {
+            padding: 0 15px;
+            font-size: 0.9rem;
         }
 
         .social-login {
@@ -246,47 +185,50 @@
 
         .social-login p {
             margin-bottom: 15px;
-            color: var(--dark-gray);
+            color: #777;
             font-size: 0.9rem;
-        }
-
-        .social-icons {
-            display: flex;
-            gap: 10px;
         }
 
         .social-btn {
-            flex: 1;
-            padding: 12px;
-            border-radius: 8px;
-            border: 1px solid var(--medium-gray);
-            background-color: white;
-            display: flex;
+            display: inline-flex;
             align-items: center;
             justify-content: center;
-            gap: 8px;
+            padding: 12px 25px;
+            background-color: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
             font-size: 0.9rem;
-            font-weight: 500;
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: all 0.3s;
         }
 
-        .social-btn.google {
-            color: var(--google-red);
-            border-color: var(--google-red);
+        .social-btn:hover {
+            background-color: #f9f9f9;
         }
 
-        .social-btn.google:hover {
-            background-color: rgba(219, 68, 55, 0.1);
+        .social-btn i {
+            margin-right: 8px;
+            color: #DB4437;
         }
 
-        .social-btn.github {
-            color: var(--github-black);
-            border-color: var(--github-black);
+        .terms {
+            display: flex;
+            align-items: center;
+            margin: 20px 0;
+            font-size: 0.9rem;
         }
 
-        .social-btn.github:hover {
-            background-color: rgba(36, 41, 46, 0.1);
+        .terms input {
+            margin-right: 10px;
+        }
+
+        .terms a {
+            color: #2a9d8f;
+            text-decoration: none;
+        }
+
+        .terms a:hover {
+            text-decoration: underline;
         }
 
         .notification {
@@ -295,11 +237,11 @@
             right: 20px;
             padding: 15px 25px;
             border-radius: 8px;
+            background-color: #2a9d8f;
             color: white;
-            font-weight: 500;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
             transform: translateX(150%);
-            transition: transform 0.3s ease;
+            transition: transform 0.3s;
             z-index: 1000;
         }
 
@@ -307,21 +249,25 @@
             transform: translateX(0);
         }
 
-        .notification.success {
-            background-color: var(--success-color);
-        }
-
         .notification.error {
-            background-color: var(--error-color);
+            background-color: #e76f51;
         }
 
-        @media (max-width: 480px) {
+        @media (max-width: 500px) {
             .auth-container {
-                padding: 30px 20px;
+                border-radius: 8px;
             }
 
-            .social-icons {
-                flex-direction: column;
+            .auth-form {
+                padding: 20px;
+            }
+
+            .logo-container {
+                padding: 20px 15px;
+            }
+
+            .logo-container h1 {
+                font-size: 1.5rem;
             }
         }
     </style>
@@ -387,8 +333,10 @@
                 <i class="fas fa-envelope"></i>
                 <input type="email" id="registerEmail" placeholder="Email" required>
             </div>
+
             <div class="input-group">
-                <input type="text" id="phone" placeholder="Phone Number" required>
+                <i class="fas fa-phone"></i>
+                <input type="tel" id="phone" placeholder="Phone Number" required>
             </div>
 
             <div class="input-group">
@@ -418,99 +366,7 @@
     </div>
 
     <div class="notification" id="notification"></div>
-
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            // Form toggle functionality
-            const showLoginBtn = document.getElementById('showLogin');
-            const showRegisterBtn = document.getElementById('showRegister');
-            const loginForm = document.getElementById('loginForm');
-            const registerForm = document.getElementById('registerForm');
-            const showLoginLink = document.getElementById('showLoginLink');
-            const forgotPassword = document.getElementById('forgotPassword');
-
-            // Toggle forms
-            function toggleForms(showLogin) {
-                if (showLogin) {
-                    showLoginBtn.classList.add('active');
-                    showRegisterBtn.classList.remove('active');
-                    loginForm.classList.add('active');
-                    registerForm.classList.remove('active');
-                } else {
-                    showLoginBtn.classList.remove('active');
-                    showRegisterBtn.classList.add('active');
-                    loginForm.classList.remove('active');
-                    registerForm.classList.add('active');
-                }
-            }
-
-            // Event listeners
-            showLoginBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                toggleForms(true);
-            });
-
-            showRegisterBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                toggleForms(false);
-            });
-
-            showLoginLink.addEventListener('click', (e) => {
-                e.preventDefault();
-                toggleForms(true);
-            });
-
-            // Password toggle functionality
-            document.querySelectorAll('.toggle-password').forEach(icon => {
-                icon.addEventListener('click', function () {
-                    const input = this.previousElementSibling;
-                    const type = input.getAttribute('type') === 'password' ? 'text' : 'password';
-                    input.setAttribute('type', type);
-                    this.classList.toggle('fa-eye-slash');
-                });
-            });
-
-            // Form submission (placeholder functionality)
-            loginForm.addEventListener('submit', (e) => {
-                e.preventDefault();
-                showNotification('Please Wait!', 'success');
-            });
-
-            registerForm.addEventListener('submit', (e) => {
-                e.preventDefault();
-                showNotification('Creating Account, Please Wait!', 'success');
-            });
-
-            // Forgot password
-            forgotPassword.addEventListener('click', (e) => {
-                e.preventDefault();
-                showNotification('Password reset link sent!', 'success');
-            });
-
-            // Social login buttons
-            document.getElementById('googleLogin').addEventListener('click', () => {
-                showNotification('Google login clicked', 'success');
-            });
-
-            document.getElementById('githubLogin').addEventListener('click', () => {
-                showNotification('Feature not available', 'success');
-            });
-
-            // Notification function
-            function showNotification(message, type) {
-                const notification = document.getElementById('notification');
-                notification.textContent = message;
-                notification.className = 'notification show ' + type;
-
-                setTimeout(() => {
-                    notification.classList.remove('show');
-                }, 3000);
-            }
-        });
-    </script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="auth.js"></script>
+    <script type="module" src="auth.js"></script>
 </body>
-
 
 </html>
