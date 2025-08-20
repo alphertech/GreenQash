@@ -176,6 +176,16 @@ async function handleRegistration(e) {
         showNotification('Registration failed: ' + error.message, true)
     }
 }
+ // after successful sign-up
+    const { data: insertData, error: insertError } = await supabase
+        .from('users')         // your own public.users table
+        .insert({
+            id: authData.user.id,        // Use the same UUID that auth provides
+            username: username,
+            email: email,
+            phone: phone
+        })
+}
 
 // Handle Google OAuth login
 async function handleGoogleLogin() {
@@ -227,3 +237,4 @@ export {
     handleGoogleLogin,
     handleForgotPassword
 }
+
