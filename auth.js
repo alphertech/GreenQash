@@ -19,25 +19,18 @@ const forgotPasswordLink = document.getElementById('forgotPassword')
 
 // Initialize the authentication system
 document.addEventListener('DOMContentLoaded', function () {
-    // Check if user is already logged in
     checkCurrentSession()
-
-    // Set up event listeners
     setupEventListeners()
 })
 
-// Check if user already has a valid session
 async function checkCurrentSession() {
     const { data: { session } } = await supabase.auth.getSession()
     if (session) {
-        // User is already logged in, redirect to dashboard
         window.location.href = 'dashboard.html'
     }
 }
 
-// Set up all event listeners
 function setupEventListeners() {
-    // Form toggle functionality
     showLoginBtn.addEventListener('click', () => toggleForms('login'))
     showRegisterBtn.addEventListener('click', () => toggleForms('register'))
     showLoginLink.addEventListener('click', (e) => {
@@ -45,7 +38,6 @@ function setupEventListeners() {
         toggleForms('login')
     })
 
-    // Toggle password visibility
     togglePasswordButtons.forEach(button => {
         button.addEventListener('click', function () {
             const input = this.parentElement.querySelector('input')
@@ -53,18 +45,12 @@ function setupEventListeners() {
         })
     })
 
-    // Form submissions
     loginForm.addEventListener('submit', handleLogin)
     registerForm.addEventListener('submit', handleRegistration)
-
-    // Google login
     googleLoginBtn.addEventListener('click', handleGoogleLogin)
-
-    // Forgot password
     forgotPasswordLink.addEventListener('click', handleForgotPassword)
 }
 
-// Toggle between login and register forms
 function toggleForms(form) {
     if (form === 'login') {
         showLoginBtn.classList.add('active')
@@ -79,7 +65,6 @@ function toggleForms(form) {
     }
 }
 
-// Toggle password visibility
 function togglePasswordVisibility(input, button) {
     if (input.type === 'password') {
         input.type = 'text'
@@ -92,7 +77,6 @@ function togglePasswordVisibility(input, button) {
     }
 }
 
-// Show notification to user
 function showNotification(message, isError = false) {
     notification.textContent = message
     notification.className = 'notification' + (isError ? ' error' : '')
@@ -103,7 +87,7 @@ function showNotification(message, isError = false) {
     }, 5000)
 }
 
-// Handle login form submission
+// ------------------ LOGIN -----------------------
 async function handleLogin(e) {
     e.preventDefault()
 
@@ -119,11 +103,8 @@ async function handleLogin(e) {
         if (error) throw error
 
         showNotification('Login successful! Redirecting to dashboard...')
-
-        // Clear form
         loginForm.reset()
 
-        // Redirect to dashboard after a short delay
         setTimeout(() => {
             window.location.href = 'dashboard.html'
         }, 1500)
@@ -133,7 +114,7 @@ async function handleLogin(e) {
     }
 }
 
-// Handle registration form submission
+// --------------- REGISTRATION --------------------
 async function handleRegistration(e) {
     e.preventDefault()
 
@@ -143,68 +124,52 @@ async function handleRegistration(e) {
     const password = document.getElementById('registerPassword').value
     const confirmPassword = document.getElementById('registerConfirmPassword').value
 
-    // Basic validation
     if (password !== confirmPassword) {
         showNotification('Passwords do not match', true)
         return
     }
 
     try {
-        // Create the auth user
+        // Create auth user
         const { data: authData, error: authError } = await supabase.auth.signUp({
             email: email,
-            password: password,
-            options: {
-                data: {
-                    username: username,
-                    phone: phone
-                }
-            }
+            password: password
         })
-
         if (authError) throw authError
 
-        showNotification('Account created successfully! Please check your email to verify your account.')
+        // Insert user profile into profiles table
+        const { error: profError } = await supabase
+            .from('profiles')
+            .insert({
+                id: authData.user.id,
+                username: username,
+                phone: phone
+            })
+        if (profError) throw profError
 
-        // Clear form
+        showNotification('Account created! Please check your email to verify.')
         registerForm.reset()
-
-        // Switch to login form
         toggleForms('login')
 
     } catch (error) {
         showNotification('Registration failed: ' + error.message, true)
     }
 }
- // after successful sign-up
-    const { data: insertData, error: insertError } = await supabase
-        .from('users')         // your own public.users table
-        .insert({
-            id: authData.user.id,        // Use the same UUID that auth provides
-            username: username,
-            email: email,
-            phone: phone
-        })
-}
 
-// Handle Google OAuth login
+// ------------------ GOOGLE LOGIN -----------------
 async function handleGoogleLogin() {
     try {
-        const { data, error } = await supabase.auth.signInWithOAuth({
+        const { error } = await supabase.auth.signInWithOAuth({
             provider: 'google',
-            options: {
-                redirectTo: window.location.origin + '/dashboard.html'
-            }
+            options: { redirectTo: window.location.origin + '/dashboard.html' }
         })
-
         if (error) throw error
-
     } catch (error) {
         showNotification('Google login failed: ' + error.message, true)
     }
 }
 
-// Handle forgot password flow
+// ------------------ FORGOT PASSWORD ---------------
 async function handleForgotPassword(e) {
     e.preventDefault()
 
@@ -215,20 +180,17 @@ async function handleForgotPassword(e) {
     }
 
     try {
-        const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
             redirectTo: window.location.origin + '/update-password.html',
         })
-
         if (error) throw error
-
         showNotification('Password reset instructions sent to your email')
-
     } catch (error) {
         showNotification('Error sending reset email: ' + error.message, true)
     }
 }
 
-// Export functions for use in other files if needed
+// Export functions if desired
 export {
     supabase,
     checkCurrentSession,
@@ -237,4 +199,3 @@ export {
     handleGoogleLogin,
     handleForgotPassword
 }
-
