@@ -276,50 +276,6 @@
 <body>
     <!-- Load the Supabase client library from CDN -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    
-    <script>
-        // --- CONFIGURATION - YOU MUST CHANGE THESE VALUES ---
-        const supabaseUrl = 'https://xfbvdpidpfqynlurgvsj.supabase.co';
-        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhmYnZkcGlkcGZxeW5sdXJndnNqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ0Nzg5NDAsImV4cCI6MjA3MDA1NDk0MH0.oFZjb5dbMHuymL8GUlPPFsnR50uQeE668KHzXw4RcC8'; // use the "anon" public key
-        // ------------------------------------------------
-
-        // Initialize the Supabase client
-        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
-        console.log("Supabase client initialized!");
-
-        // Simple function to test the connection
-        async function testConnection() {
-            const messageElement = document.getElementById('message');
-            messageElement.textContent = "Testing connection...";
-            messageElement.className = '';
-
-            try {
-                // Try a simple query. Let's assume you have a table called 'countries'
-                // If you don't, change 'countries' to a table you know exists.
-                const { data, error } = await supabase
-                    .from('countries')
-                    .select('*')
-                    .limit(1);
-
-                if (error) {
-                    console.error('Supabase error:', error);
-                    messageElement.textContent = 'Error: ' + error.message;
-                    messageElement.className = 'error';
-                } else {
-                    console.log('Success! Data:', data);
-                    messageElement.textContent = '✅ Connection successful! Check console for data.';
-                    messageElement.className = 'success';
-                }
-            } catch (err) {
-                console.error('General error:', err);
-                messageElement.textContent = 'Failed to run the test: ' + err.message;
-                messageElement.className = 'error';
-            }
-        }
-
-        // Run the test when the page loads
-        testConnection();
-    </script>
     <div class="auth-container">
         <div class="logo-container">
             <img src="https://via.placeholder.com/150x50?text=GreenQash" alt="GreenQash" class="logo">
@@ -416,6 +372,7 @@
 </body>
 
 </html>
+
 
 
 
