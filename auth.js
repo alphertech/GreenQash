@@ -2,11 +2,8 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm'
 
 // Initialize Supabase client
- const supabaseUrl = 'https://xfbvdpidpfqynlurgvsj.supabase.co';
- const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhmYnZkcGlkcGZxeW5sdXJndnNqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ0Nzg5NDAsImV4cCI6MjA3MDA1NDk0MH0.oFZjb5dbMHuymL8GUlPPFsnR50uQeE668KHzXw4RcC8'; // use the "anon" public key
-        // ------------------------------------------------
-
-
+const supabaseUrl = 'https://xfbvdpidpfqynlurgvsj.supabase.co'
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhmYnZkcGlkcGZxeW5sdXJndnNqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ0Nzg5NDAsImV4cCI6MjA3MDA1NDk0MH0.oFZjb5dbMHuymL8GUlPPFsnR50uQeE668KHzXw4RcC8'
 const supabase = createClient(supabaseUrl, supabaseKey)
 
 // DOM elements
@@ -147,7 +144,6 @@ async function handleRegistration(e) {
                 id: authData.user.id,
                 username: username,
                 phone: phone
-                email: email
             })
         if (profError) throw profError
 
@@ -203,4 +199,3 @@ export {
     handleGoogleLogin,
     handleForgotPassword
 }
-
