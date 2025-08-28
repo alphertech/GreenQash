@@ -21,7 +21,7 @@ async function fetchUserData() {
         // Fetch data from profiles table
         const { data: profileData, error: profileError } = await supabase
             .from('profiles')
-            .select('username, phoneNumber, email, dateCreated')
+            .select('username, phone, email, created_at')
             .eq('id', user.id)
             .single()
 
@@ -35,7 +35,7 @@ async function fetchUserData() {
             document.getElementById('Username00').innerText = profileData.username || 'N/A'
             document.getElementById('phoneNumber').innerText = profileData.phoneNumber || 'N/A'
             document.getElementById('emailAddress').innerText = profileData.email || user.email || 'N/A'
-            document.getElementById('dateCreated').innerText = formatDate(profileData.dateCreated) || 'N/A'
+            document.getElementById('dateCreated').innerText = formatDate(profileData.created_at) || 'N/A'
         }
 
         // Fetch data from userStats table
@@ -52,10 +52,10 @@ async function fetchUserData() {
 
         // Display user stats data
         if (statsData) {
-            document.getElementById('total').innerText = statsData.Total || 0
-            document.getElementById('youtube').innerText = statsData.Youtube || 0
-            document.getElementById('tiktok').innerText = statsData.Tiktok || 0
-            document.getElementById('triviaEarn').innerText = statsData.Trivia || 0
+            document.getElementById('total').innerText = statsData.total || 0
+            document.getElementById('youtube').innerText = statsData.youtube || 0
+            document.getElementById('tiktok').innerText = statsData.tiktok || 0
+            document.getElementById('triviaEarn').innerText = statsData.trivia || 0
             document.getElementById('bonus').innerText = statsData.bonus || 0
             document.getElementById('totalCash').innerText = formatCurrency(statsData.allTimeEarning) || '$0.00'
             document.getElementById('withdrawn').innerText = formatCurrency(statsData.withdrawn) || '$0.00'
@@ -120,9 +120,9 @@ function setupRealtimeSubscriptions(userId) {
         }, (payload) => {
             // Update UI with new profile data
             document.getElementById('Username00').innerText = payload.new.username || 'N/A'
-            document.getElementById('phoneNumber').innerText = payload.new.phoneNumber || 'N/A'
+            document.getElementById('phoneNumber').innerText = payload.new.phone || 'N/A'
             document.getElementById('emailAddress').innerText = payload.new.email || 'N/A'
-            document.getElementById('dateCreated').innerText = formatDate(payload.new.dateCreated) || 'N/A'
+            document.getElementById('dateCreated').innerText = formatDate(payload.new.created_at) || 'N/A'
         })
         .subscribe()
 
@@ -136,13 +136,13 @@ function setupRealtimeSubscriptions(userId) {
             filter: `user_id=eq.${userId}`
         }, (payload) => {
             // Update UI with new stats data
-            document.getElementById('total').innerText = payload.new.Total || 0
-            document.getElementById('youtube').innerText = payload.new.Youtube || 0
-            document.getElementById('tiktok').innerText = payload.new.Tiktok || 0
-            document.getElementById('triviaEarn').innerText = payload.new.Trivia || 0
+            document.getElementById('total').innerText = payload.new.total || 0
+            document.getElementById('youtube').innerText = payload.new.youtube || 0
+            document.getElementById('tiktok').innerText = payload.new.tiktok || 0
+            document.getElementById('triviaEarn').innerText = payload.new.trivia || 0
             document.getElementById('bonus').innerText = payload.new.bonus || 0
-            document.getElementById('totalCash').innerText = formatCurrency(payload.new.allTimeEarning) || '$0.00'
-            document.getElementById('Withdrawn').innerText = formatCurrency(payload.new.withdrawn) || '$0.00'
+            document.getElementById('totalCash').innerText = formatCurrency(payload.new.allTimeEarning) || 'UGX 0.00'
+            document.getElementById('withdrawn').innerText = formatCurrency(payload.new.withdrawn) || 'UGX 0.00'
             document.getElementById('refferals').innerText = payload.new.Refferals || 0
         })
         .subscribe()
