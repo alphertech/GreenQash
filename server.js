@@ -30,23 +30,19 @@ async function fetchUserData() {
             return
         }
 
-        // Display profile data
+        // Display profile data (robust)
         if (profileData) {
+            console.log('Profile Data:', profileData);
             // Username: update all elements with id 'username00'
-            const usernameEls = document.querySelectorAll('#username00');
-            usernameEls.forEach(el => el.innerText = profileData.username || 'N/A');
-
+            document.querySelectorAll('#username00').forEach(el => el.innerText = profileData.username || 'N/A');
             // Phone number
-            const phoneEl = document.getElementById('phoneNumber');
-            if (phoneEl) phoneEl.innerText = profileData.phone || 'N/A';
-
-            // Email: try to find by class or add fallback
-            const emailEl = document.getElementById('emailAddress') || document.querySelector('.emailAddress');
-            if (emailEl) emailEl.innerText = profileData.email || user.email || 'N/A';
-
+            document.querySelectorAll('#phoneNumber').forEach(el => el.innerText = profileData.phone || 'N/A');
+            // Email
+            document.querySelectorAll('#emailAddress, .emailAddress').forEach(el => el.innerText = profileData.email || user.email || 'N/A');
             // Date created
-            const dateEls = document.querySelectorAll('#dateCreated');
-            dateEls.forEach(el => el.innerText = formatDate(profileData.created_at) || 'N/A');
+            document.querySelectorAll('#dateCreated').forEach(el => el.innerText = formatDate(profileData.created_at) || 'N/A');
+        } else {
+            console.warn('No profile data found for user:', user);
         }
 
         // Fetch data from userStats table
@@ -61,35 +57,20 @@ async function fetchUserData() {
             return
         }
 
-        // Display user stats data
+        // Display user stats data (robust)
         if (statsData) {
-            // Youtube
-            const youtubeEl = document.getElementById('youtube');
-            if (youtubeEl) youtubeEl.innerText = statsData.youtube || 0;
-
-            // Tiktok
-            const tiktokEl = document.getElementById('tiktok');
-            if (tiktokEl) tiktokEl.innerText = statsData.tiktok || 0;
-
-            // Trivia
-            const triviaEl = document.getElementById('triviaEarn');
-            if (triviaEl) triviaEl.innerText = statsData.trivia || 0;
-
-            // Bonus (may not exist)
-            const bonusEl = document.getElementById('bonus');
-            if (bonusEl) bonusEl.innerText = statsData.bonus || 0;
-
-            // Total Cash
-            const totalCashEl = document.getElementById('totalCash');
-            if (totalCashEl) totalCashEl.innerText = formatCurrency(statsData.allTimeEarning) || '$0.00';
-
-            // Withdrawn (may not exist)
-            const withdrawnEl = document.getElementById('withdrawn');
-            if (withdrawnEl) withdrawnEl.innerText = formatCurrency(statsData.withdrawn) || '$0.00';
-
-            // Refferals
-            const refferalsEl = document.getElementById('refferals');
-            if (refferalsEl) refferalsEl.innerText = statsData.refferals || 0;
+            console.log('Stats Data:', statsData);
+            // Try to update all possible stat fields
+            document.querySelectorAll('#youtube').forEach(el => el.innerText = statsData.youtube || 0);
+            document.querySelectorAll('#tiktok').forEach(el => el.innerText = statsData.tiktok || 0);
+            document.querySelectorAll('#triviaEarn').forEach(el => el.innerText = statsData.trivia || 0);
+            document.querySelectorAll('#bonus').forEach(el => el.innerText = statsData.bonus || 0);
+            document.querySelectorAll('#totalCash').forEach(el => el.innerText = formatCurrency(statsData.allTimeEarning) || 'UGX 0.00');
+            document.querySelectorAll('#withdrawn').forEach(el => el.innerText = formatCurrency(statsData.withdrawn) || 'UGX 0.00');
+            document.querySelectorAll('#refferals').forEach(el => el.innerText = statsData.refferals || 0);
+            document.querySelectorAll('#total').forEach(el => el.innerText = statsData.total || 0);
+        } else {
+            console.warn('No stats data found for user:', user);
         }
 
     } catch (error) {
@@ -148,11 +129,11 @@ function setupRealtimeSubscriptions(userId) {
             table: 'profiles',
             filter: `id=eq.${userId}`
         }, (payload) => {
-            // Update UI with new profile data
-            document.getElementById('Username00').innerText = payload.new.username || 'N/A'
-            document.getElementById('phoneNumber').innerText = payload.new.phone || 'N/A'
-            document.getElementById('emailAddress').innerText = payload.new.email || 'N/A'
-            document.getElementById('dateCreated').innerText = formatDate(payload.new.created_at) || 'N/A'
+            // Update UI with new profile data (robust)
+            document.querySelectorAll('#username00').forEach(el => el.innerText = payload.new.username || 'N/A');
+            document.querySelectorAll('#phoneNumber').forEach(el => el.innerText = payload.new.phone || 'N/A');
+            document.querySelectorAll('#emailAddress, .emailAddress').forEach(el => el.innerText = payload.new.email || 'N/A');
+            document.querySelectorAll('#dateCreated').forEach(el => el.innerText = formatDate(payload.new.created_at) || 'N/A');
         })
         .subscribe()
 
@@ -165,15 +146,15 @@ function setupRealtimeSubscriptions(userId) {
             table: 'user_stats',
             filter: `user_id=eq.${userId}`
         }, (payload) => {
-            // Update UI with new stats data
-            document.getElementById('total').innerText = payload.new.total || 0
-            document.getElementById('youtube').innerText = payload.new.youtube || 0
-            document.getElementById('tiktok').innerText = payload.new.tiktok || 0
-            document.getElementById('triviaEarn').innerText = payload.new.trivia || 0
-            document.getElementById('bonus').innerText = payload.new.bonus || 0
-            document.getElementById('totalCash').innerText = formatCurrency(payload.new.allTimeEarning) || 'UGX 0.00'
-            document.getElementById('withdrawn').innerText = formatCurrency(payload.new.withdrawn) || 'UGX 0.00'
-            document.getElementById('refferals').innerText = payload.new.Refferals || 0
+            // Update UI with new stats data (robust)
+            document.querySelectorAll('#total').forEach(el => el.innerText = payload.new.total || 0);
+            document.querySelectorAll('#youtube').forEach(el => el.innerText = payload.new.youtube || 0);
+            document.querySelectorAll('#tiktok').forEach(el => el.innerText = payload.new.tiktok || 0);
+            document.querySelectorAll('#triviaEarn').forEach(el => el.innerText = payload.new.trivia || 0);
+            document.querySelectorAll('#bonus').forEach(el => el.innerText = payload.new.bonus || 0);
+            document.querySelectorAll('#totalCash').forEach(el => el.innerText = formatCurrency(payload.new.allTimeEarning) || 'UGX 0.00');
+            document.querySelectorAll('#withdrawn').forEach(el => el.innerText = formatCurrency(payload.new.withdrawn) || 'UGX 0.00');
+            document.querySelectorAll('#refferals').forEach(el => el.innerText = payload.new.refferals || 0);
         })
         .subscribe()
 
