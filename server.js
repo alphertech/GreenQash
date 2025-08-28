@@ -32,10 +32,21 @@ async function fetchUserData() {
 
         // Display profile data
         if (profileData) {
-            document.getElementById('Username00').innerText = profileData.username || 'N/A'
-            document.getElementById('phoneNumber').innerText = profileData.phoneNumber || 'N/A'
-            document.getElementById('emailAddress').innerText = profileData.email || user.email || 'N/A'
-            document.getElementById('dateCreated').innerText = formatDate(profileData.created_at) || 'N/A'
+            // Username: update all elements with id 'username00'
+            const usernameEls = document.querySelectorAll('#username00');
+            usernameEls.forEach(el => el.innerText = profileData.username || 'N/A');
+
+            // Phone number
+            const phoneEl = document.getElementById('phoneNumber');
+            if (phoneEl) phoneEl.innerText = profileData.phone || 'N/A';
+
+            // Email: try to find by class or add fallback
+            const emailEl = document.getElementById('emailAddress') || document.querySelector('.emailAddress');
+            if (emailEl) emailEl.innerText = profileData.email || user.email || 'N/A';
+
+            // Date created
+            const dateEls = document.querySelectorAll('#dateCreated');
+            dateEls.forEach(el => el.innerText = formatDate(profileData.created_at) || 'N/A');
         }
 
         // Fetch data from userStats table
@@ -52,14 +63,33 @@ async function fetchUserData() {
 
         // Display user stats data
         if (statsData) {
-            document.getElementById('total').innerText = statsData.total || 0
-            document.getElementById('youtube').innerText = statsData.youtube || 0
-            document.getElementById('tiktok').innerText = statsData.tiktok || 0
-            document.getElementById('triviaEarn').innerText = statsData.trivia || 0
-            document.getElementById('bonus').innerText = statsData.bonus || 0
-            document.getElementById('totalCash').innerText = formatCurrency(statsData.allTimeEarning) || '$0.00'
-            document.getElementById('withdrawn').innerText = formatCurrency(statsData.withdrawn) || '$0.00'
-            document.getElementById('refferals').innerText = statsData.Refferals || 0
+            // Youtube
+            const youtubeEl = document.getElementById('youtube');
+            if (youtubeEl) youtubeEl.innerText = statsData.youtube || 0;
+
+            // Tiktok
+            const tiktokEl = document.getElementById('tiktok');
+            if (tiktokEl) tiktokEl.innerText = statsData.tiktok || 0;
+
+            // Trivia
+            const triviaEl = document.getElementById('triviaEarn');
+            if (triviaEl) triviaEl.innerText = statsData.trivia || 0;
+
+            // Bonus (may not exist)
+            const bonusEl = document.getElementById('bonus');
+            if (bonusEl) bonusEl.innerText = statsData.bonus || 0;
+
+            // Total Cash
+            const totalCashEl = document.getElementById('totalCash');
+            if (totalCashEl) totalCashEl.innerText = formatCurrency(statsData.allTimeEarning) || '$0.00';
+
+            // Withdrawn (may not exist)
+            const withdrawnEl = document.getElementById('withdrawn');
+            if (withdrawnEl) withdrawnEl.innerText = formatCurrency(statsData.withdrawn) || '$0.00';
+
+            // Refferals
+            const refferalsEl = document.getElementById('refferals');
+            if (refferalsEl) refferalsEl.innerText = statsData.refferals || 0;
         }
 
     } catch (error) {
