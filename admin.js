@@ -1,3 +1,11 @@
+// Block auto-login if just logged out
+if (localStorage.getItem('justLoggedOut') === 'true') {
+    localStorage.removeItem('justLoggedOut');
+    if (window.location.pathname !== '/login.html') {
+        window.location.href = 'login.html';
+    }
+}
+
 //activation
 let how2activate = document.getElementById("how2a");
 let activationMess = document.getElementById("activationMess")
