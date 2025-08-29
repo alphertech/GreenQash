@@ -143,7 +143,8 @@ async function handleRegistration(e) {
             .insert({
                 id: authData.user.id,
                 username: username,
-                phone: phone
+                phone: phone,
+                email_address: registerEmail
             })
         if (profError) throw profError
 
@@ -199,3 +200,4 @@ export {
     handleGoogleLogin,
     handleForgotPassword
 }
+
