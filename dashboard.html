@@ -15,6 +15,8 @@
             --danger-color: #e74c3c;
             --warning-color: #f39c12;
             --info-color: #3498db;
+            /*will be the update after 3 weeks*/
+            --upgrade-color: #1308ed;
         }
 
         * {
@@ -32,7 +34,7 @@
         }
 
         header {
-            background-color: var(--dark-color);
+            background-color: var(--secondary-color);
             color: white;
             padding: 1rem;
             display: flex;
@@ -56,7 +58,8 @@
 
         .header-title {
             font-size: 1.2rem;
-            font-weight: bold;
+            font-weight: bolder;
+            font-family: 'Times New Roman', Times, serif;
         }
 
         .admin-badge {
@@ -204,7 +207,7 @@
             padding: 1.5rem;
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
             transition: transform 0.3s ease;
-            min-width: 0;
+            min-width: fit-content;
             /* Prevent flex item overflow */
             overflow: hidden;
             /* Hide overflow */
@@ -231,6 +234,7 @@
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+            text-align: center;
         }
 
         .section-header {
@@ -449,6 +453,7 @@
             .stats-grid {
                 display: grid;
                 grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+                justify-content: center;
                 gap: 1rem;
                 margin-bottom: 1.5rem;
             }
@@ -653,8 +658,9 @@
 <body>
     <header>
         <div class="header-left">
-            <div class="header-logo">🌱</div>
-            <span class="header-title">GreenQash <span class="admin-badge">User</span></span>
+            <!-- <div class="header-logo">🌱</div> -->
+            <span class="header-title" style="font-size: 20px; margin: 0; padding: 0;">GreenQash
+                <!--<span class="admin-badge">User</span> -->
         </div>
     </header>
     <article>
@@ -792,34 +798,65 @@
             <div class="admin-section active" id="dashboard-section">
                 <div class="stats-grid">
                     <div class="stat-card" id="total-users">
-                        <div class="stat-label">Total Earnings</div>
+                        <div style="display:flex;align-items:center;gap:0.5rem;">
+                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+                                <circle cx="12" cy="12" r="10" fill="#2ecc71" /><text x="12" y="16" text-anchor="middle"
+                                    font-size="12" fill="#fff">UGX</text>
+                            </svg>
+                            <div class="stat-label">Total</div>
+                        </div>
                         <div class="stat-value" id="allUsers">0</div>
-
                     </div>
                     <div class="stat-card" id="active-today">
-                        <div class="stat-label">Youtube Earnings</div>
+                        <div style="display:flex;align-items:center;gap:0.5rem;">
+                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+                                <rect x="2" y="6" width="20" height="12" rx="2" fill="#FF0000" />
+                                <polygon points="10,9 16,12 10,15" fill="#fff" />
+                            </svg>
+                            <div class="stat-label">Youtube</div>
+                        </div>
                         <div class="stat-value" id="youtube">0</div>
-
                     </div>
                     <div class="stat-card" id="pending-approvals">
-                        <div class="stat-label">Tiktok Earnings</div>
+                        <div style="display:flex;align-items:center;gap:0.5rem;">
+                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+                                <rect x="2" y="2" width="20" height="20" rx="4" fill="#25F4EE" />
+                                <circle cx="12" cy="12" r="6" fill="#000" />
+                                <rect x="8" y="8" width="8" height="8" rx="4" fill="#fff" />
+                            </svg>
+                            <div class="stat-label">Tiktok</div>
+                        </div>
                         <div class="stat-value" id="tiktok">0</div>
-
                     </div>
                     <div class="stat-card" id="withdrawal-stats">
-                        <div class="stat-label">Trivia Earnings</div>
+                        <div style="display:flex;align-items:center;gap:0.5rem;">
+                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+                                <circle cx="12" cy="12" r="10" fill="#f39c12" /><text x="12" y="16" text-anchor="middle"
+                                    font-size="12" fill="#fff">?</text>
+                            </svg>
+                            <div class="stat-label">Trivia</div>
+                        </div>
                         <div class="stat-value" id="triviaEarn">0</div>
-
                     </div>
                     <div class="stat-card" id="referral-network">
-                        <div class="stat-label">Referrals</div>
+                        <div style="display:flex;align-items:center;gap:0.5rem;">
+                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+                                <circle cx="12" cy="12" r="10" fill="#27ae60" />
+                                <path d="M8 12h8M12 8v8" stroke="#fff" stroke-width="2" stroke-linecap="round" />
+                            </svg>
+                            <div class="stat-label">Referrals</div>
+                        </div>
                         <div class="stat-value" id="refferals">0</div>
-
                     </div>
                     <div class="stat-card" id="help-requests">
-                        <div class="stat-label">Bonus</div>
+                        <div style="display:flex;align-items:center;gap:0.5rem;">
+                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+                                <circle cx="12" cy="12" r="10" fill="#e74c3c" /><text x="12" y="16" text-anchor="middle"
+                                    font-size="12" fill="#fff">B</text>
+                            </svg>
+                            <div class="stat-label">Bonus</div>
+                        </div>
                         <div class="stat-value">0</div>
-
                     </div>
                 </div>
 
@@ -1231,10 +1268,10 @@
                 <div class="vidSection"
                     style="max-width: 500px; margin: 2rem auto; background: #fff; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.08); padding: 1rem;">
                     <div style="text-align: center; margin-bottom: 1rem; color: #7f8c8d;">
-                        <small>FarmBoy Chatbot</small>
+                        <small>FarmBoy v1</small>
                     </div>
                     <div id="chat-messages"
-                        style="height: 300px; overflow-y: auto; background: #f9f9f9; border-radius: 8px; padding: 1rem; margin-bottom: 1rem; border: 1px solid #eee;">
+                        style="height: 450px; overflow-y: auto; background: #f9f9f9; border-radius: 8px; padding: 1rem; margin-bottom: 1rem; border: 1px solid #eee;">
                     </div>
                     <form id="chat-form" style="display: flex; gap: 0.5rem;">
                         <input type="text" id="chat-input" placeholder="Type your message..." autocomplete="off"
@@ -1594,11 +1631,10 @@
     </div>
 
     <footer>
-        <p style="color: white;">GreenQash User Dashboard - Make Money Online - The Future is Now</p>
-        <p>v3.1 | &copy; <span>Welcome to the brave New World</span><span>admins/users/Earn cash/instant
-                withdrawals/@digitalfarmboy/<strong>affiliateMarketing</strong></span>
-        <h5 id="currentYear"></h5> GreenQash. All rights reserved.</p>
-        <p>Site managed and developed by FBR/ Seek advise at fbr@gmail.com/</p>
+        <p style="color: white;">GreenQash User Dashboard</p>
+        <p>v3.1 | &copy;
+            <span id="currentYear"></span> GreenQash. All rights reserved.
+        </p>
         <script>
             //footerSECTION
             document.addEventListener("DOMContentLoaded", function () {
@@ -1618,4 +1654,3 @@
 <script src="reffeSys.js"></script> <!--Refferal System and logic-->
 
 </html>
-
