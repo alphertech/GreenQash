@@ -144,7 +144,7 @@ async function handleRegistration(e) {
                 id: authData.user.id,
                 username: username,
                 phone: phone,
-                email_address: registerEmail
+                email_address: email
             })
         if (profError) throw profError
 
@@ -200,4 +200,3 @@ export {
     handleGoogleLogin,
     handleForgotPassword
 }
-
