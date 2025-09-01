@@ -117,6 +117,13 @@ async function initializeApp() {
 
 // Initialize the app when the page loads
 document.addEventListener('DOMContentLoaded', initializeApp)
+// Listen for a custom event 'userLoggedIn' to fetch user data immediately after login
+document.addEventListener('userLoggedIn', async () => {
+    await fetchUserData();
+    // Optionally, set up real-time subscriptions for live updates
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) setupRealtimeSubscriptions(user.id);
+});
 
 // Optional: Set up real-time subscriptions for live updates
 function setupRealtimeSubscriptions(userId) {
