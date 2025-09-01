@@ -38,7 +38,7 @@ async function fetchUserData() {
             // Phone number
             document.querySelectorAll('#phoneNumber').forEach(el => el.innerText = profileData.phone || 'N/A');
             // Email
-            document.querySelectorAll('#emailAddress, .emailAddress').forEach(el => el.innerText = profileData.email || user.email || 'N/A');
+            document.querySelectorAll('#emailAdress, .emailAdress').forEach(el => el.innerText = profileData.email || user.email || 'N/A');
             // Date created
             document.querySelectorAll('#dateCreated').forEach(el => el.innerText = formatDate(profileData.created_at) || 'N/A');
         } else {
@@ -66,7 +66,7 @@ async function fetchUserData() {
             document.querySelectorAll('#triviaEarn').forEach(el => el.innerText = statsData.trivia || 0);
             document.querySelectorAll('#bonus').forEach(el => el.innerText = statsData.bonus || 0);
             document.querySelectorAll('#totalCash').forEach(el => el.innerText = formatCurrency(statsData.allTimeEarning) || 'UGX 0.00');
-            document.querySelectorAll('#withdrawn').forEach(el => el.innerText = formatCurrency(statsData.withdrawn) || 'UGX 0.00');
+            document.querySelectorAll('#withdrawnCash').forEach(el => el.innerText = formatCurrency(statsData.withdrawn) || 'UGX 0.00');
             document.querySelectorAll('#refferals').forEach(el => el.innerText = statsData.refferals || 0);
             document.querySelectorAll('#total').forEach(el => el.innerText = statsData.total || 0);
         } else {
