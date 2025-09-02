@@ -102,15 +102,29 @@ async function handleLogin(e) {
 
         if (error) throw error
 
-        showNotification('Login successful! Redirecting to dashboard...')
-        loginForm.reset()
+        // Fetch user profile to check rank
+        const userId = data.user.id;
+        const { data: profile, error: profileError } = await supabase
+            .from('profiles')
+            .select('rank')
+            .eq('id', userId)
+            .single();
+
+        if (profileError) throw profileError;
+
+        showNotification('Login successful! Redirecting...');
+        loginForm.reset();
 
         setTimeout(() => {
-            window.location.href = 'dashboard.html'
-        }, 1500)
+            if (profile && profile.rank === 'admin') {
+                window.location.href = '/level/administrators.html';
+            } else {
+                window.location.href = 'dashboard.html';
+            }
+        }, 1500);
 
     } catch (error) {
-        showNotification('Login failed: ' + error.message, true)
+        showNotification('Login failed: ' + error.message, true);
     }
 }
 
