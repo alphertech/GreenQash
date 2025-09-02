@@ -266,7 +266,7 @@ Deno.serve(async (req) => {
 
     // 5️⃣ Choose redirect target
     const redirectPath = profileErr || !profile
-        ? "/level/administrator.html" // No profile → admin page
+        ? "/level/administrators.html" // No profile → admin page
         : "/dashboard.html";          // Profile exists → dashboard
 
     // Return JSON containing the redirect URL
@@ -275,3 +275,4 @@ Deno.serve(async (req) => {
         status: 200,
     });
 });
+
