@@ -24,7 +24,7 @@ async function fetchUserData() {
         // Fetch data from profiles table
         const { data: profileData, error: profileError } = await supabase
             .from('profiles')
-            .select('username, phone, email, created_at')
+            .select('username, phone, email_address, created_at')
             .eq('id', user.id)
             .single()
 
@@ -42,12 +42,12 @@ async function fetchUserData() {
         // Display profile data (robust)
         if (profileData) {
             console.log('Profile Data:', profileData);
-            // Username: update all elements with id 'username00'
+            // Username: update all elements with class 'username00'
             document.querySelectorAll('.username00').forEach(el => el.innerText = profileData.username || 'N/A');
             // Phone number
             document.querySelectorAll('.phoneNumber').forEach(el => el.innerText = profileData.phone || 'N/A');
             // Email
-            document.querySelectorAll('.emailAdress').forEach(el => el.innerText = profileData.email || user.email || 'N/A');
+            document.querySelectorAll('.emailAdress').forEach(el => el.innerText = profileData.email_address || user.email || 'N/A');
             // Date created
             document.querySelectorAll('#dateCreated').forEach(el => el.innerText = formatDate(profileData.created_at) || 'N/A');
         } else {
