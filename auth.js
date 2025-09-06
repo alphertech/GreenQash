@@ -117,7 +117,7 @@ async function handleLogin(e) {
 
         setTimeout(() => {
             if (profile && profile.rank === 'admin') {
-                window.location.href = '/level/administrators.html';
+                window.location.href = 'administrators.html';
             } else {
                 window.location.href = 'dashboard.html';
             }
@@ -214,5 +214,6 @@ export {
     handleGoogleLogin,
     handleForgotPassword
 }
+
 
 
