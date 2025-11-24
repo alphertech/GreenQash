@@ -129,11 +129,6 @@ async function getUserRedirectUrl(email) {
             console.warn('Could not fetch user role, defaulting to dashboard:', error.message)
             return 'dashboard.html'
         }
-        //users
-        if (userData && userData.rank === 'user') {
-            console.log('Normal user detected, redirecting to admin dashboard')
-            return 'dashboard.html'
-        }
         
         // Check user role and return appropriate redirect URL
         if (userData && userData.rank === 'admin') {
@@ -259,3 +254,4 @@ supabase.auth.onAuthStateChange((event, session) => {
         window.location.href = 'dashboard.html'
     }
 })
+
