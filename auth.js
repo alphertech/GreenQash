@@ -1,5 +1,5 @@
-// auth.js - Supabase Authentication for GreenQash
-import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm'
+// auth.js
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
 
 // Initialize Supabase client
 const supabaseUrl = 'https://xfbvdpidpfqynlurgvsj.supabase.co'
@@ -77,6 +77,147 @@ function togglePasswordVisibility(input, button) {
     }
 }
 
+async function handleLogin(e) {
+    e.preventDefault()
+    
+    const email = document.getElementById('loginEmail').value
+    const password = document.getElementById('loginPassword').value
+    
+    try {
+        const { data, error } = await supabase.auth.signInWithPassword({
+            email: email,
+            password: password
+        })
+        
+        if (error) throw error
+        
+        // Check if user exists in public.users table
+        const { data: userData, error: userError } = await supabase
+            .from('users')
+            .select('*')
+            .eq('email_address', email)
+            .single()
+            
+        if (userError && userError.code !== 'PGRST116') {
+            throw userError
+        }
+        
+        // If user doesn't exist in public.users, create entry
+        if (!userData) {
+            const { data: newUser, error: insertError } = await supabase
+                .from('users')
+                .insert([
+                    { 
+                        email_address: email,
+                        user_name: email.split('@')[0] // Use part of email as username
+                    }
+                ])
+                .select()
+                
+            if (insertError) throw insertError
+        }
+        
+        showNotification('Login successful! Redirecting...')
+        setTimeout(() => {
+            window.location.href = 'dashboard.html'
+        }, 1000)
+        
+    } catch (error) {
+        showNotification(error.message, true)
+    }
+}
+
+async function handleRegistration(e) {
+    e.preventDefault()
+    
+    const username = document.getElementById('registerUsername').value
+    const email = document.getElementById('registerEmail').value
+    const phone = document.getElementById('phone').value
+    const password = document.getElementById('registerPassword').value
+    const confirmPassword = document.getElementById('registerConfirmPassword').value
+    
+    // Validate passwords match
+    if (password !== confirmPassword) {
+        showNotification('Passwords do not match', true)
+        return
+    }
+    
+    try {
+        // Create auth user
+        const { data, error } = await supabase.auth.signUp({
+            email: email,
+            password: password,
+            options: {
+                data: {
+                    username: username,
+                    phone: phone
+                }
+            }
+        })
+        
+        if (error) throw error
+        
+        // Create user in public.users table
+        const { data: newUser, error: insertError } = await supabase
+            .from('users')
+            .insert([
+                { 
+                    user_name: username,
+                    email_address: email
+                    // Note: Phone field doesn't exist in your table structure
+                }
+            ])
+            .select()
+            
+        if (insertError) throw insertError
+        
+        showNotification('Registration successful! Please check your email for verification.')
+        
+        // Reset form
+        registerForm.reset()
+        toggleForms('login')
+        
+    } catch (error) {
+        showNotification(error.message, true)
+    }
+}
+
+async function handleGoogleLogin() {
+    try {
+        const { data, error } = await supabase.auth.signInWithOAuth({
+            provider: 'google',
+            options: {
+                redirectTo: `${window.location.origin}/dashboard.html`
+            }
+        })
+        
+        if (error) throw error
+        
+    } catch (error) {
+        showNotification(error.message, true)
+    }
+}
+
+async function handleForgotPassword(e) {
+    e.preventDefault()
+    
+    const email = prompt('Please enter your email address:')
+    if (!email) return
+    
+    try {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+            redirectTo: `${window.location.origin}/reset-password.html`,
+        })
+        
+        if (error) throw error
+        
+        showNotification('Password reset email sent! Please check your inbox.')
+        
+    } catch (error) {
+        showNotification(error.message, true)
+    }
+}
+
 function showNotification(message, isError = false) {
     notification.textContent = message
     notification.className = 'notification' + (isError ? ' error' : '')
@@ -87,133 +228,9 @@ function showNotification(message, isError = false) {
     }, 5000)
 }
 
-// ------------------ LOGIN -----------------------
-async function handleLogin(e) {
-    e.preventDefault()
-
-    const email = document.getElementById('loginEmail').value
-    const password = document.getElementById('loginPassword').value
-
-    try {
-        const { data, error } = await supabase.auth.signInWithPassword({
-            email: email,
-            password: password,
-        })
-
-        if (error) throw error
-
-        // Fetch user profile to check rank
-        const userId = data.user.id;
-        const { data: profile, error: profileError } = await supabase
-            .from('profiles')
-            .select('rank')
-            .eq('id', userId)
-            .single();
-
-        if (profileError) throw profileError;
-
-        showNotification('Login successful! Redirecting...');
-        loginForm.reset();
-
-        setTimeout(() => {
-            if (profile && profile.rank === 'admin') {
-                window.location.href = 'administrators.html';
-            } else {
-                window.location.href = 'dashboard.html';
-            }
-        }, 1500);
-
-    } catch (error) {
-        showNotification('Login failed: ' + error.message, true);
+// Listen for auth state changes
+supabase.auth.onAuthStateChange((event, session) => {
+    if (event === 'SIGNED_IN' && session) {
+        window.location.href = 'dashboard.html'
     }
-}
-
-// --------------- REGISTRATION --------------------
-async function handleRegistration(e) {
-    e.preventDefault()
-
-    const username = document.getElementById('registerUsername').value
-    const email = document.getElementById('registerEmail').value
-    const phone = document.getElementById('phone').value
-    const password = document.getElementById('registerPassword').value
-    const confirmPassword = document.getElementById('registerConfirmPassword').value
-
-    if (password !== confirmPassword) {
-        showNotification('Passwords do not match', true)
-        return
-    }
-
-    try {
-        // Create auth user
-        const { data: authData, error: authError } = await supabase.auth.signUp({
-            email: email,
-            password: password
-        })
-        if (authError) throw authError
-
-        // Insert user profile into profiles table
-        const { error: profError } = await supabase
-            .from('profiles')
-            .insert({
-                id: authData.user.id,
-                username: username,
-                phone: phone,
-                email_address: email
-            })
-        if (profError) throw profError
-
-        showNotification('Account created! Thank you for joining GreenQash.')
-        registerForm.reset()
-        toggleForms('login')
-
-    } catch (error) {
-        showNotification('Registration failed: ' + error.message, true)
-    }
-}
-
-// ------------------ GOOGLE LOGIN -----------------
-async function handleGoogleLogin() {
-    try {
-        const { error } = await supabase.auth.signInWithOAuth({
-            provider: 'google',
-            options: { redirectTo: window.location.origin + '/dashboard.html' }
-        })
-        if (error) throw error
-    } catch (error) {
-        showNotification('Google login failed: ' + error.message, true)
-    }
-}
-
-// ------------------ FORGOT PASSWORD ---------------
-async function handleForgotPassword(e) {
-    e.preventDefault()
-
-    let email = document.getElementById('loginEmail').value
-    if (!email) {
-        email = prompt('Please enter your email:')
-        if (!email) return
-    }
-
-    try {
-        const { error } = await supabase.auth.resetPasswordForEmail(email, {
-            redirectTo: window.location.origin + '/update-password.html',
-        })
-        if (error) throw error
-        showNotification('Password reset instructions sent to your email')
-    } catch (error) {
-        showNotification('Error sending reset email: ' + error.message, true)
-    }
-}
-
-// Export functions if desired
-export {
-    supabase,
-    checkCurrentSession,
-    handleLogin,
-    handleRegistration,
-    handleGoogleLogin,
-    handleForgotPassword
-}
-
-
-
+})
