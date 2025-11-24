@@ -1,9 +1,9 @@
-// auth.js - Enhanced with detailed error logging
+// auth.js - Updated with your new project credentials
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
 
-// Initialize Supabase client - REPLACE WITH YOUR CREDENTIALS
-const supabaseUrl = 'https://xfbvdpidpfqynlurgvsj.supabase.co'
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhmYnZkcGlkcGZxeW5sdXJndnNqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ0Nzg5NDAsImV4cCI6MjA3MDA1NDk0MH0.oFZjb5dbMHuymL8GUlPPFsnR50uQeE668KHzXw4RcC8'
+// REPLACE THESE WITH YOUR ACTUAL NEW CREDENTIALS
+const supabaseUrl = 'https://kwghulqonljulmvlcfnz.supabase.co' // Your Project URL
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt3Z2h1bHFvbmxqdWxtdmxjZm56Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM5NzcyMDcsImV4cCI6MjA3OTU1MzIwN30.hebcPqAvo4B23kx4gdWuXTJhmx7p8zSHHEYSkPzPhcM' // Your anon public key
 const supabase = createClient(supabaseUrl, supabaseKey)
 
 // DOM elements
@@ -14,25 +14,23 @@ const loginForm = document.getElementById('loginForm')
 const registerForm = document.getElementById('registerForm')
 const notification = document.getElementById('notification')
 const togglePasswordButtons = document.querySelectorAll('.toggle-password')
-const googleLoginBtn = document.getElementById('googleLogin')
-const forgotPasswordLink = document.getElementById('forgotPassword')
 
-// Initialize the authentication system
+// Initialize
 document.addEventListener('DOMContentLoaded', function () {
-    console.log('Initializing auth system...')
-    checkCurrentSession()
+    console.log('🚀 GreenQash Auth System Ready')
     setupEventListeners()
+    checkCurrentSession()
 })
 
 async function checkCurrentSession() {
     try {
         const { data: { session } } = await supabase.auth.getSession()
-        console.log('Session check:', session ? 'User logged in' : 'No session')
         if (session) {
+            console.log('User already logged in, redirecting...')
             window.location.href = 'dashboard.html'
         }
     } catch (error) {
-        console.log('Session check error:', error.message)
+        console.log('No active session')
     }
 }
 
@@ -56,12 +54,6 @@ function setupEventListeners() {
     // Form submission listeners
     loginForm.addEventListener('submit', handleLogin)
     registerForm.addEventListener('submit', handleRegistration)
-    
-    // Other auth listeners
-    googleLoginBtn.addEventListener('click', handleGoogleLogin)
-    forgotPasswordLink.addEventListener('click', handleForgotPassword)
-
-    console.log('Event listeners setup complete')
 }
 
 function toggleForms(form) {
@@ -97,45 +89,25 @@ async function handleLogin(e) {
     const password = document.getElementById('loginPassword').value
     
     try {
-        showNotification('Logging in...')
-        console.log('Login attempt for:', email)
+        showNotification('Signing you in...')
         
         const { data, error } = await supabase.auth.signInWithPassword({
             email: email,
             password: password
         })
         
-        if (error) {
-            console.error('Login auth error:', error)
-            throw error
-        }
+        if (error) throw error
         
-        console.log('Auth login successful:', data.user.id)
+        // Create user in public table if needed
+        await createUserInPublicTable(data.user, email)
         
-        // Check if user exists in public.users table
-        const { data: userData, error: userError } = await supabase
-            .from('users')
-            .select('*')
-            .eq('email_address', email)
-            .single()
-            
-        console.log('Public user check:', userData ? 'Exists' : 'Not found', userError)
-        
-        // If user doesn't exist in public.users, create entry
-        if (!userData && data.user) {
-            console.log('Creating user in public table...')
-            await createUserInPublicTable(data.user, email)
-        }
-        
-        showNotification('Login successful! Redirecting...')
-        console.log('Login complete, redirecting...')
-        
+        showNotification('Welcome back! Redirecting...')
         setTimeout(() => {
             window.location.href = 'dashboard.html'
         }, 1500)
         
     } catch (error) {
-        console.error('Login error details:', error)
+        console.error('Login error:', error)
         showNotification(error.message, true)
     }
 }
@@ -148,7 +120,7 @@ async function handleRegistration(e) {
     const password = document.getElementById('registerPassword').value
     const confirmPassword = document.getElementById('registerConfirmPassword').value
     
-    // Validate passwords match
+    // Validation
     if (password !== confirmPassword) {
         showNotification('Passwords do not match', true)
         return
@@ -160,10 +132,8 @@ async function handleRegistration(e) {
     }
     
     try {
-        showNotification('Creating account...')
-        console.log('Registration attempt:', { username, email })
+        showNotification('Creating your account...')
         
-        // Create auth user
         const { data, error } = await supabase.auth.signUp({
             email: email,
             password: password,
@@ -174,21 +144,14 @@ async function handleRegistration(e) {
             }
         })
         
-        if (error) {
-            console.error('Registration auth error:', error)
-            throw error
-        }
+        if (error) throw error
         
-        console.log('Auth registration successful:', data.user?.id)
-        
-        // Create user in public.users table
+        // Create user in public table
         if (data.user) {
-            console.log('Creating public user record...')
-            const publicUser = await createUserInPublicTable(data.user, email, username)
-            console.log('Public user creation result:', publicUser)
+            await createUserInPublicTable(data.user, email, username)
         }
         
-        showNotification('Registration successful! Please check your email for verification.')
+        showNotification('Account created successfully!')
         
         // Reset form and switch to login
         setTimeout(() => {
@@ -197,96 +160,30 @@ async function handleRegistration(e) {
         }, 2000)
         
     } catch (error) {
-        console.error('Registration error details:', error)
+        console.error('Registration error:', error)
         showNotification(error.message, true)
     }
 }
 
-// Helper function to create user in public.users table
 async function createUserInPublicTable(authUser, email, username = null) {
     try {
-        // Use email part as username if not provided
         const finalUsername = username || email.split('@')[0]
         
-        console.log('Creating public user:', { auth_uid: authUser.id, email, username: finalUsername })
-        
-        const { data, error } = await supabase
+        const { error } = await supabase
             .from('users')
             .insert([
                 { 
-                    auth_uid: authUser.id,
                     user_name: finalUsername,
                     email_address: email
                 }
             ])
-            .select()
             
-        if (error) {
-            console.error('Public table insert error:', error)
-            // If it's a duplicate error, try to update instead
-            if (error.code === '23505') {
-                console.log('User already exists, updating...')
-                const { data: updateData, error: updateError } = await supabase
-                    .from('users')
-                    .update({ 
-                        user_name: finalUsername,
-                        auth_uid: authUser.id
-                    })
-                    .eq('email_address', email)
-                    .select()
-                    
-                if (updateError) {
-                    console.error('Update error:', updateError)
-                    throw updateError
-                }
-                return updateData
-            }
-            throw error
+        if (error && error.code !== '23505') { // Ignore duplicate errors
+            console.error('Public table error:', error)
         }
         
-        console.log('User created in public table:', data)
-        return data
-        
     } catch (error) {
-        console.error('Error in createUserInPublicTable:', error)
-        // Don't throw error here - we don't want to block auth if public table fails
-        return null
-    }
-}
-
-async function handleGoogleLogin() {
-    try {
-        const { data, error } = await supabase.auth.signInWithOAuth({
-            provider: 'google',
-            options: {
-                redirectTo: `${window.location.origin}/dashboard.html`
-            }
-        })
-        
-        if (error) throw error
-        
-    } catch (error) {
-        showNotification(error.message, true)
-    }
-}
-
-async function handleForgotPassword(e) {
-    e.preventDefault()
-    
-    const email = prompt('Please enter your email address:')
-    if (!email) return
-    
-    try {
-        const { error } = await supabase.auth.resetPasswordForEmail(email, {
-            redirectTo: `${window.location.origin}/reset-password.html`
-        })
-        
-        if (error) throw error
-        
-        showNotification('Password reset email sent! Please check your inbox.')
-        
-    } catch (error) {
-        showNotification(error.message, true)
+        console.error('Error creating public user:', error)
     }
 }
 
@@ -300,14 +197,10 @@ function showNotification(message, isError = false) {
     }, 5000)
 }
 
-// Listen for auth state changes
+// Auth state listener
 supabase.auth.onAuthStateChange((event, session) => {
-    console.log('Auth state changed:', event, session?.user?.id)
+    console.log('Auth event:', event)
     if (event === 'SIGNED_IN' && session) {
-        // Create/update user in public table when they sign in
-        if (session.user) {
-            createUserInPublicTable(session.user, session.user.email, session.user.user_metadata?.username)
-        }
         window.location.href = 'dashboard.html'
     }
 })
