@@ -1,8 +1,8 @@
         :root {
             --primary-color: #2ecc71;
             --secondary-color: #27ae60;
-            --dark-color: #2c3e50;
-            --light-color: #ecf0f1;
+            --dark-color: #070707;
+            --light-color: #225f6e;
             --danger-color: #e74c3c;
             --warning-color: #f39c12;
             --info-color: #3498db;
@@ -105,6 +105,7 @@
         }
 
         menu {
+            margin: 15px;
             width: 250px;
             background-color: white;
             padding: 1rem 0;
@@ -522,9 +523,23 @@
             }
 
             table {
+                width: 100%;
                 display: block;
                 overflow-x: auto;
                 white-space: nowrap;
+                tr {
+                    width: 100%;
+                }
+            }
+            .genActivities {
+                width: 100%;
+                .thead .tbody {
+                    width: 100%;
+                    tr {
+                        width: 95%;
+                        justify-content: space-between;
+                    }
+                }
             }
         }
 
