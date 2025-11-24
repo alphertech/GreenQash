@@ -101,9 +101,12 @@ async function handleLogin(e) {
         // Create user in public table if needed
         await createUserInPublicTable(data.user, email)
         
+        // Check user role and redirect accordingly
+        const redirectUrl = await getUserRedirectUrl(email)
+        
         showNotification('Welcome back! Redirecting...')
         setTimeout(() => {
-            window.location.href = 'dashboard.html'
+            window.location.href = redirectUrl
         }, 1500)
         
     } catch (error) {
@@ -111,6 +114,58 @@ async function handleLogin(e) {
         showNotification(error.message, true)
     }
 }
+
+// Function to get redirect URL based on user role
+async function getUserRedirectUrl(email) {
+    try {
+        // Query the users table to get user's rank
+        const { data: userData, error } = await supabase
+            .from('users')
+            .select('rank')
+            .eq('email_address', email)
+            .single()
+        
+        if (error) {
+            console.warn('Could not fetch user role, defaulting to dashboard:', error.message)
+            return 'dashboard.html'
+        }
+        //users
+        if (userData && userData.rank === 'user') {
+            console.log('Normal user detected, redirecting to admin dashboard')
+            return 'dashboard.html'
+        }
+        
+        // Check user role and return appropriate redirect URL
+        if (userData && userData.rank === 'admin') {
+            console.log('Admin user detected, redirecting to admin dashboard')
+            return 'level1/administrators.html'
+        }
+        
+        // Default redirect for regular users
+        console.log('Regular user, redirecting to standard dashboard')
+        return 'dashboard.html'
+        
+    } catch (error) {
+        console.error('Error checking user role:', error)
+        // Fallback to regular dashboard if there's any error
+        return 'dashboard.html'
+    }
+}
+
+// Also update the auth state change listener for role-based redirects
+supabase.auth.onAuthStateChange(async (event, session) => {
+    console.log('Auth event:', event)
+    if (event === 'SIGNED_IN' && session) {
+        try {
+            const redirectUrl = await getUserRedirectUrl(session.user.email)
+            window.location.href = redirectUrl
+        } catch (error) {
+            console.error('Error in auth state redirect:', error)
+            // Fallback to regular dashboard
+            window.location.href = 'dashboard.html'
+        }
+    }
+})
 
 async function handleRegistration(e) {
     e.preventDefault()
