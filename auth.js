@@ -1,4 +1,4 @@
-// auth.js - Updated with your new project credentials
+// auth.js - Updated with role-based redirect logic
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
 
 // REPLACE THESE WITH YOUR ACTUAL NEW CREDENTIALS
@@ -26,8 +26,9 @@ async function checkCurrentSession() {
     try {
         const { data: { session } } = await supabase.auth.getSession()
         if (session) {
-            console.log('User already logged in, redirecting...')
-            window.location.href = 'dashboard.html'
+            console.log('User already logged in, checking role...')
+            const redirectUrl = await getUserRedirectUrl(session.user.email)
+            window.location.href = redirectUrl
         }
     } catch (error) {
         console.log('No active session')
@@ -115,53 +116,6 @@ async function handleLogin(e) {
     }
 }
 
-// Function to get redirect URL based on user role
-async function getUserRedirectUrl(email) {
-    try {
-        // Query the users table to get user's rank
-        const { data: userData, error } = await supabase
-            .from('users')
-            .select('rank')
-            .eq('email_address', email)
-            .single()
-        
-        if (error) {
-            console.warn('Could not fetch user role, defaulting to dashboard:', error.message)
-            return 'dashboard.html'
-        }
-        
-        // Check user role and return appropriate redirect URL
-        if (userData && userData.rank === 'admin') {
-            console.log('Admin user detected, redirecting to admin dashboard')
-            return 'level1/administrators.html'
-        }
-        
-        // Default redirect for regular users
-        console.log('Regular user, redirecting to standard dashboard')
-        return 'dashboard.html'
-        
-    } catch (error) {
-        console.error('Error checking user role:', error)
-        // Fallback to regular dashboard if there's any error
-        return 'dashboard.html'
-    }
-}
-
-// Also update the auth state change listener for role-based redirects
-supabase.auth.onAuthStateChange(async (event, session) => {
-    console.log('Auth event:', event)
-    if (event === 'SIGNED_IN' && session) {
-        try {
-            const redirectUrl = await getUserRedirectUrl(session.user.email)
-            window.location.href = redirectUrl
-        } catch (error) {
-            console.error('Error in auth state redirect:', error)
-            // Fallback to regular dashboard
-            window.location.href = 'dashboard.html'
-        }
-    }
-})
-
 async function handleRegistration(e) {
     e.preventDefault()
     
@@ -224,7 +178,8 @@ async function createUserInPublicTable(authUser, email, username = null) {
             .insert([
                 { 
                     user_name: finalUsername,
-                    email_address: email
+                    email_address: email,
+                    rank: 'user' // Default rank for new users
                 }
             ])
             
@@ -234,6 +189,38 @@ async function createUserInPublicTable(authUser, email, username = null) {
         
     } catch (error) {
         console.error('Error creating public user:', error)
+    }
+}
+
+// Function to get redirect URL based on user role
+async function getUserRedirectUrl(email) {
+    try {
+        // Query the users table to get user's rank
+        const { data: userData, error } = await supabase
+            .from('users')
+            .select('rank')
+            .eq('email_address', email)
+            .single()
+        
+        if (error) {
+            console.warn('Could not fetch user role, defaulting to dashboard:', error.message)
+            return 'dashboard.html'
+        }
+        
+        // Check user role and return appropriate redirect URL
+        if (userData && userData.rank === 'admin') {
+            console.log('Admin user detected, redirecting to admin dashboard')
+            return 'level1/administrators.html'
+        }
+        
+        // Default redirect for regular users
+        console.log('Regular user, redirecting to standard dashboard')
+        return 'dashboard.html'
+        
+    } catch (error) {
+        console.error('Error checking user role:', error)
+        // Fallback to regular dashboard if there's any error
+        return 'dashboard.html'
     }
 }
 
@@ -247,11 +234,17 @@ function showNotification(message, isError = false) {
     }, 5000)
 }
 
-// Auth state listener
-supabase.auth.onAuthStateChange((event, session) => {
+// Auth state listener with role-based redirects
+supabase.auth.onAuthStateChange(async (event, session) => {
     console.log('Auth event:', event)
     if (event === 'SIGNED_IN' && session) {
-        window.location.href = 'dashboard.html'
+        try {
+            const redirectUrl = await getUserRedirectUrl(session.user.email)
+            window.location.href = redirectUrl
+        } catch (error) {
+            console.error('Error in auth state redirect:', error)
+            // Fallback to regular dashboard
+            window.location.href = 'dashboard.html'
+        }
     }
 })
-
