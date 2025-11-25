@@ -1,148 +1,159 @@
-import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.0/dist/supabase-browser.min.js'
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
 
-// Initialize Supabase client - USE ENVIRONMENT VARIABLES IN PRODUCTION
-const supabaseUrl = 'https://xfbvdpidpfqynlurgvsj.supabase.co'
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhmYnZkcGlkcGZxeW5sdXJndnNqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ0Nzg5NDAsImV4cCI6MjA3MDA1NDk0MH0.oFZjb5dbMHuymL8GUlPPFsnR50uQeE668KHzXw4RcC8'
+// Initialize Supabase client
+const supabaseUrl = 'https://kwghulqonljulmvlcfnz.supabase.co' // Your Project URL
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt3Z2h1bHFvbmxqdWxtdmxjZm56Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM5NzcyMDcsImV4cCI6MjA3OTU1MzIwN30.hebcPqAvo4B23kx4gdWuXTJhmx7p8zSHHEYSkPzPhcM' // Your anon public key
 const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
-// Function to fetch and display user data
-async function fetchUserData() {
+// Utility: set innerText for element with given id
+function setInnerTextIfExists(id, value) {
+    const el = document.getElementById(id);
+    if (!el) return false;
+    el.innerText = value === null || value === undefined ? '' : String(value);
+    return true;
+}
+
+// Fetch a single row by primary key and map columns to DOM elements
+async function fetchAndBindRow(table, pkColumn, pkValue, opts = {}) {
+    if (!table || !pkColumn) {
+        console.error('table and pkColumn are required');
+        return null;
+    }
+
     try {
-        // Show loading state
+        const select = opts.select ?? '*';
+        const { data, error, status } = await supabase
+            .from(table)
+            .select(select)
+            .eq(pkColumn, pkValue)
+            .limit(1)
+            .maybeSingle();
+
+        if (error) {
+            console.error(`Error fetching ${table}:`, error);
+            return null;
+        }
+        if (!data) {
+            console.warn(`No row found in ${table} where ${pkColumn} = ${pkValue}`);
+            return null;
+        }
+
+        console.log(`Fetched ${table} data:`, data);
+
+        // Map each column to element with same id
+        Object.entries(data).forEach(([col, val]) => {
+            // Handle special formatting for certain fields
+            let formattedValue = val;
+            
+            if (col === 'created_at' || col === 'last_login') {
+                formattedValue = formatDate(val);
+            } else if (col === 'all_time_earn' || col === 'total_withdrawn' || col === 'total_income') {
+                formattedValue = formatCurrency(val);
+            }
+            
+            setInnerTextIfExists(col, formattedValue);
+        });
+
+        // Also set an element with id equal to table name with the full JSON (optional)
+        setInnerTextIfExists(table, JSON.stringify(data, null, 2));
+
+        return data;
+    } catch (err) {
+        console.error('Unexpected error in fetchAndBindRow:', err);
+        return null;
+    }
+}
+
+// Function to check authentication and get user ID
+async function getAuthenticatedUserId() {
+    try {
+        const { data: { user }, error } = await supabase.auth.getUser();
+        if (error || !user) {
+            console.error('User not authenticated:', error);
+            window.location.href = '/login.html';
+            return null;
+        }
+        
+        // Get the user ID from your users table (since auth user ID might be different)
+        const { data: userData, error: userError } = await supabase
+            .from('users')
+            .select('id')
+            .eq('email_address', user.email)
+            .single();
+            
+        if (userError) {
+            console.error('Error finding user in database:', userError);
+            return null;
+        }
+        
+        return userData.id;
+    } catch (error) {
+        console.error('Error getting authenticated user:', error);
+        return null;
+    }
+}
+
+// Main function to fetch and bind all user data
+async function fetchAllUserData() {
+    try {
         showLoadingState(true);
 
-        // Get current user session
-        const { data: { user }, error: userError } = await supabase.auth.getUser()
+        const userId = await getAuthenticatedUserId();
+        if (!userId) return;
 
-        if (userError || !user) {
-            console.error('User not authenticated:', userError)
-            // Redirect to login or handle unauthorized access
-            window.location.href = '/login.html'
-            return
-        }
+        // Fetch and bind user profile data
+        await fetchAndBindRow('users', 'id', userId, { 
+            select: 'id, user_name, email_address, created_at, status, rank, last_login, total_income' 
+        });
 
-        // Fetch data from profiles table
-        const { data: profileData, error: profileError } = await supabase
-            .from('profiles')
-            .select('username, phone, email_address, created_at')
-            .eq('id', user.id)
-            .single()
+        // Fetch and bind earnings data
+        await fetchAndBindRow('earnings', 'id', userId);
 
-        if (profileError) {
-            console.error('Error fetching profile data:', profileError)
-            // Check if it's a "not found" error and create profile if needed
-            if (profileError.code === 'PGRST116') {
-                await createUserProfile(user);
-                // Retry fetching
-                return fetchUserData();
+        // Fetch and bind payment information
+        await fetchAndBindRow('payment_information', 'id', userId);
+
+        // Optional: Fetch user's content posts
+        const { data: userContents, error: contentsError } = await supabase
+            .from('contents')
+            .select('*')
+            .eq('id', userId);
+            
+        if (!contentsError && userContents) {
+            console.log('User contents:', userContents);
+            // You could display a list of contents or bind the first one
+            if (userContents.length > 0) {
+                // Bind the first content post to elements
+                Object.entries(userContents[0]).forEach(([col, val]) => {
+                    let formattedValue = val;
+                    if (col === 'created_at') formattedValue = formatDate(val);
+                    setInnerTextIfExists(col, formattedValue);
+                });
             }
-            return
         }
 
-        // Display profile data (robust)
-        if (profileData) {
-            console.log('Profile Data:', profileData);
-            // Username: update all elements with class 'username00'
-            document.querySelectorAll('.username00').forEach(el => el.innerText = profileData.username || 'N/A');
-            // Phone number
-            document.querySelectorAll('.phoneNumber').forEach(el => el.innerText = profileData.phone || 'N/A');
-            // Email
-            document.querySelectorAll('.emailAdress').forEach(el => el.innerText = profileData.email_address || user.email || 'N/A');
-            // Date created
-            document.querySelectorAll('#dateCreated').forEach(el => el.innerText = formatDate(profileData.created_at) || 'N/A');
-        } else {
-            console.warn('No profile data found for user:', user);
-        }
-
-        // Fetch data from userStats table
-        const { data: statsData, error: statsError } = await supabase
-            .from('user_stats')
-            .select('total, youtube, tiktok, trivia, bonus, allTimeEarning, withdrawn, refferals')
-            .eq('user_id', user.id)
-            .single()
-
-        if (statsError) {
-            console.error('Error fetching user stats:', statsError)
-            // Create stats record if it doesn't exist
-            if (statsError.code === 'PGRST116') {
-                await createUserStats(user.id);
-                // Retry fetching
-                return fetchUserData();
-            }
-            return
-        }
-
-        // Display user stats data (robust)
-        if (statsData) {
-            console.log('Stats Data:', statsData);
-            // Try to update all possible stat fields
-            document.querySelectorAll('#youtube').forEach(el => el.innerText = statsData.youtube || 0);
-            document.querySelectorAll('#tiktok').forEach(el => el.innerText = statsData.tiktok || 0);
-            document.querySelectorAll('#triviaEarn').forEach(el => el.innerText = statsData.trivia || 0);
-            document.querySelectorAll('#bonus').forEach(el => el.innerText = statsData.bonus || 0);
-            document.querySelectorAll('#totalCash').forEach(el => el.innerText = formatCurrency(statsData.allTimeEarning) || 'UGX 0.00');
-            document.querySelectorAll('#withdrawnCash').forEach(el => el.innerText = formatCurrency(statsData.withdrawn) || 'UGX 0.00');
-            document.querySelectorAll('#refferals').forEach(el => el.innerText = statsData.refferals || 0);
-            document.querySelectorAll('#total').forEach(el => el.innerText = statsData.total || 0);
-        } else {
-            console.warn('No stats data found for user:', user);
+        // Optional: Fetch withdrawal requests
+        const { data: withdrawals, error: withdrawalsError } = await supabase
+            .from('withdrawal_requests')
+            .select('*')
+            .eq('id', userId)
+            .order('created_at', { ascending: false });
+            
+        if (!withdrawalsError && withdrawals) {
+            console.log('Withdrawal requests:', withdrawals);
+            // You could display these in a table or list
         }
 
     } catch (error) {
-        console.error('Unexpected error:', error)
+        console.error('Unexpected error:', error);
         showErrorMessage('Failed to load user data. Please try again.');
     } finally {
         showLoadingState(false);
     }
 }
 
-// Helper function to create user profile if it doesn't exist
-async function createUserProfile(user) {
-    const { error } = await supabase
-        .from('profiles')
-        .insert([
-            {
-                id: user.id,
-                email: user.email,
-                username: user.email.split('@')[0],
-                created_at: new Date().toISOString()
-            }
-        ]);
-
-    if (error) {
-        console.error('Error creating user profile:', error);
-        throw error;
-    }
-}
-
-// Helper function to create user stats if it doesn't exist
-async function createUserStats(userId) {
-    const { error } = await supabase
-        .from('user_stats')
-        .insert([
-            {
-                user_id: userId,
-                total: 0,
-                youtube: 0,
-                tiktok: 0,
-                trivia: 0,
-                bonus: 0,
-                allTimeEarning: 0,
-                withdrawn: 0,
-                refferals: 0,
-                created_at: new Date().toISOString()
-            }
-        ]);
-
-    if (error) {
-        console.error('Error creating user stats:', error);
-        throw error;
-    }
-}
-
 // Helper function to format dates
 function formatDate(dateString) {
-    if (!dateString) return 'N/A'
+    if (!dateString) return 'N/A';
 
     const options = {
         year: 'numeric',
@@ -150,15 +161,14 @@ function formatDate(dateString) {
         day: 'numeric',
         hour: '2-digit',
         minute: '2-digit'
-    }
-    return new Date(dateString).toLocaleDateString(undefined, options)
+    };
+    return new Date(dateString).toLocaleDateString(undefined, options);
 }
 
 // Helper function to format currency
 function formatCurrency(amount) {
-    if (amount === null || amount === undefined) return 'UGX 0.00'
-    // Use a more reliable method for UGX formatting
-    return `UGX ${amount.toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,')}`
+    if (amount === null || amount === undefined) return 'UGX 0';
+    return `UGX ${Number(amount).toLocaleString()}`;
 }
 
 // UI helper functions
@@ -170,110 +180,108 @@ function showLoadingState(show) {
 }
 
 function showErrorMessage(message) {
-    // Implement error message display logic
     console.error('Error:', message);
     // You could show a toast notification here
+    const errorEl = document.getElementById('errorMessage');
+    if (errorEl) {
+        errorEl.textContent = message;
+        errorEl.style.display = 'block';
+    }
 }
 
-// Function to check authentication status and fetch data
+// Initialize the application
 async function initializeApp() {
     try {
-        const { data: { session } } = await supabase.auth.getSession()
+        const { data: { session } } = await supabase.auth.getSession();
 
         if (!session) {
-            // Redirect to login if not authenticated
-            window.location.href = '/login.html'
-            return
+            window.location.href = '/login.html';
+            return;
         }
 
-        // Fetch and display user data
-        await fetchUserData()
+        await fetchAllUserData();
+        
+        // Set up real-time subscriptions for live updates
+        const userId = await getAuthenticatedUserId();
+        if (userId) setupRealtimeSubscriptions(userId);
+        
     } catch (error) {
         console.error('Failed to initialize app:', error);
         window.location.href = '/login.html';
     }
 }
 
-// Initialize the app when the page loads
-document.addEventListener('DOMContentLoaded', initializeApp)
-
-// Listen for a custom event 'userLoggedIn' to fetch user data immediately after login
-document.addEventListener('userLoggedIn', async () => {
-    await fetchUserData();
-    // Optionally, set up real-time subscriptions for live updates
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) setupRealtimeSubscriptions(user.id);
-});
-
-// Optional: Set up real-time subscriptions for live updates
+// Set up real-time subscriptions
 function setupRealtimeSubscriptions(userId) {
-    // Clean up any existing subscriptions
     cleanupSubscriptions();
 
-    // Subscribe to profile changes
-    const profileSubscription = supabase
-        .channel('profile-changes')
+    // Subscribe to users table changes
+    const usersSubscription = supabase
+        .channel('users-changes')
         .on('postgres_changes', {
             event: 'UPDATE',
             schema: 'public',
-            table: 'profiles',
+            table: 'users',
             filter: `id=eq.${userId}`
         }, (payload) => {
-            // Update UI with new profile data (robust)
-            document.querySelectorAll('.username00').forEach(el => el.innerText = payload.new.username || 'N/A');
-            document.querySelectorAll('.phoneNumber').forEach(el => el.innerText = payload.new.phone || 'N/A');
-            document.querySelectorAll('.emailAdress').forEach(el => el.innerText = payload.new.email || 'N/A');
-            document.querySelectorAll('#dateCreated').forEach(el => el.innerText = formatDate(payload.new.created_at) || 'N/A');
+            console.log('Users data updated:', payload.new);
+            Object.entries(payload.new).forEach(([col, val]) => {
+                let formattedValue = val;
+                if (col === 'created_at' || col === 'last_login') formattedValue = formatDate(val);
+                if (col === 'total_income') formattedValue = formatCurrency(val);
+                setInnerTextIfExists(col, formattedValue);
+            });
         })
-        .subscribe((status) => {
-            if (status === 'SUBSCRIBED') {
-                console.log('Profile subscription active');
-            }
-        })
+        .subscribe();
 
-    // Subscribe to userStats changes
-    const statsSubscription = supabase
-        .channel('stats-changes')
+    // Subscribe to earnings table changes
+    const earningsSubscription = supabase
+        .channel('earnings-changes')
         .on('postgres_changes', {
             event: 'UPDATE',
             schema: 'public',
-            table: 'user_stats',
-            filter: `user_id=eq.${userId}`
+            table: 'earnings',
+            filter: `id=eq.${userId}`
         }, (payload) => {
-            // Update UI with new stats data (robust)
-            document.querySelectorAll('#total').forEach(el => el.innerText = payload.new.total || 0);
-            document.querySelectorAll('#youtube').forEach(el => el.innerText = payload.new.youtube || 0);
-            document.querySelectorAll('#tiktok').forEach(el => el.innerText = payload.new.tiktok || 0);
-            document.querySelectorAll('#triviaEarn').forEach(el => el.innerText = payload.new.trivia || 0);
-            document.querySelectorAll('#bonus').forEach(el => el.innerText = payload.new.bonus || 0);
-            document.querySelectorAll('#totalCash').forEach(el => el.innerText = formatCurrency(payload.new.allTimeEarning) || 'UGX 0.00');
-            document.querySelectorAll('#withdrawnCash').forEach(el => el.innerText = formatCurrency(payload.new.withdrawn) || 'UGX 0.00');
-            document.querySelectorAll('#refferals').forEach(el => el.innerText = payload.new.refferals || 0);
+            console.log('Earnings data updated:', payload.new);
+            Object.entries(payload.new).forEach(([col, val]) => {
+                let formattedValue = val;
+                if (col === 'all_time_earn' || col === 'total_withdrawn') formattedValue = formatCurrency(val);
+                setInnerTextIfExists(col, formattedValue);
+            });
         })
-        .subscribe((status) => {
-            if (status === 'SUBSCRIBED') {
-                console.log('Stats subscription active');
-            }
-        })
+        .subscribe();
 
     // Store subscriptions for cleanup
     window.supabaseSubscriptions = {
-        profile: profileSubscription,
-        stats: statsSubscription
+        users: usersSubscription,
+        earnings: earningsSubscription
     };
 }
 
 // Clean up subscriptions
 function cleanupSubscriptions() {
     if (window.supabaseSubscriptions) {
-        if (window.supabaseSubscriptions.profile) {
-            supabase.removeChannel(window.supabaseSubscriptions.profile);
-        }
-        if (window.supabaseSubscriptions.stats) {
-            supabase.removeChannel(window.supabaseSubscriptions.stats);
-        }
+        Object.values(window.supabaseSubscriptions).forEach(channel => {
+            if (channel) supabase.removeChannel(channel);
+        });
     }
 }
 
+// Initialize when DOM is loaded
+document.addEventListener('DOMContentLoaded', initializeApp);
+
 // Clean up on page unload
 window.addEventListener('beforeunload', cleanupSubscriptions);
+
+// Example usage for specific pages:
+// If you have a page that shows a specific content post, you can also do:
+async function loadSpecificContent(postId) {
+    await fetchAndBindRow('contents', 'post_id', postId);
+}
+
+// If you need to load statistics (admin feature)
+async function loadStatistics() {
+    // This would typically be for admin users only
+    await fetchAndBindRow('statistics', 'id', 1); // Assuming there's only one stats row
+}
