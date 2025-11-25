@@ -6,6 +6,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SkyLink</title>
     <link rel="icon" href="android-chrome-512x512.png">
+    <head>
+    <!-- Load Supabase FIRST -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/supabase.min.js"></script>
+    
+    <!-- Then load your custom scripts -->
+    <script src="reffeSys.js" defer></script>
+    
+    <!-- Remove or fix these problematic scripts -->
+    <!-- <script src="greenqash.js"></script> --> <!-- This file doesn't exist -->
+    <!-- <script src="server.js"></script> --> <!-- This has syntax errors -->
     <link rel="stylesheet" href="dashboard.css">
 </head>
 
@@ -1156,3 +1166,4 @@
 <script src="server.js"></script> <!--Data Fetching-->
 <script src="reffeSys.js"></script> <!--Refferal System and logic-->
 </html>
+
