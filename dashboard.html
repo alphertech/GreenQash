@@ -18,10 +18,9 @@
         </div>
     </header>
     <article>
-        <p>Welcome User! <span id="greetings"></span></p>
+        <p>Welcome User! <span id="greetings"></span><span id="user_name"></span></p>
     </article>
     <hr>
-
     <main>
         <!-- Hamburger Button (Place this where you want the toggle) -->
         <button class="hamburger" id="hamburgerBtn">
@@ -159,7 +158,7 @@
                             </svg>
                             <div class="stat-label">Total</div>
                         </div>
-                        <div class="stat-value" id="allUsers">2,000,000</div>
+                        <div class="stat-value" id="total_income">2,000,000</div>
                     </div>
                     <div class="stat-card" id="active-today">
                         <div style="display:flex;align-items:center;gap:0.5rem;">
@@ -190,7 +189,7 @@
                             </svg>
                             <div class="stat-label">Trivia</div>
                         </div>
-                        <div class="stat-value" id="triviaEarn">0</div>
+                        <div class="stat-value" id="trivia">0</div>
                     </div>
                     <div class="stat-card" id="referral-network">
                         <div style="display:flex;align-items:center;gap:0.5rem;">
@@ -200,7 +199,7 @@
                             </svg>
                             <div class="stat-label">Referrals</div>
                         </div>
-                        <div class="stat-value" id="refferals">0</div>
+                        <div class="stat-value" id="refferal">0</div>
                     </div>
                     <div class="stat-card" id="help-requests">
                         <div style="display:flex;align-items:center;gap:0.5rem;">
@@ -210,7 +209,7 @@
                             </svg>
                             <div class="stat-label">Bonus</div>
                         </div>
-                        <div class="stat-value">0</div>
+                        <div class="stat-value" id="bonus">0</div>
                     </div>
                 </div>
 
@@ -673,12 +672,12 @@
                     </div>
                     <div class="stat-card">
                         <div class="stat-label">Total Active Refferals</div>
-                        <div class="stat-value" id="allRefferals"></div>
+                        <div class="stat-value" id="referral"></div>
                         <div class="stat-label">From referrals</div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-label">Available Bonus</div>
-                        <div class="stat-value">0</div>
+                        <div class="stat-value" id="bonus">0</div>
                         <div class="stat-label">Ready to withdraw</div>
                     </div>
                 </div>
@@ -703,7 +702,7 @@
                     </div>
                     <div class="stat-card">
                         <div class="stat-label">Total Earned</div>
-                        <div class="stat-value" id="allTimeCash">0</div>
+                        <div class="stat-value" id="total_income">0</div>
                         <div class="stat-label">Lifetime</div>
                     </div>
                     <div class="stat-card">
@@ -725,11 +724,11 @@
                         <div class="form-group" style="margin-bottom: 1rem;">
                             <label class="form-label">Wallet</label>
                             <select class="form-control" style="width: 100%; padding: 0.5rem;">
-                                <option>Bonus</option>
-                                <option>Trivia</option>
-                                <option>Youtube</option>
-                                <option>TikTok</option>
-                                <option>Refferals</option>
+                                <option id="bonus">Bonus</option>
+                                <option id="trivia" >Trivia</option>
+                                <option id="youtube" >Youtube</option>
+                                <option id="tiktok" >TikTok</option>
+                                <option id="refferal">Refferals</option>
                             </select>
                         </div>
                         <div class="form-group" style="margin-bottom: 1rem;">
@@ -745,7 +744,7 @@
 
                         <div class="form-group" style="margin-bottom: 1rem;">
                             <label class="form-label">Account Details</label>
-                            <input type="text" class="form-control" placeholder="Enter your payment email or ID"
+                            <input type="text" class="form-control" id="account_number" placeholder="Enter your payment email or ID"
                                 style="width: 100%; padding: 0.5rem;">
                         </div>
 
@@ -1021,37 +1020,37 @@
                 <form id="settings-form">
                     <div style="margin-bottom: 1rem;">
                         <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Username</label>
-                        <input type="text" value="user123" class="username00"
+                        <input type="text" value="user123" class="username00" id="user_name"
                             style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;" readonly>
                     </div>
 
                     <div style="margin-bottom: 1rem;">
                         <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Email
                             Address</label>
-                        <input type="email" value="user@example.com" class="emailAdress"
+                        <input type="email" value="user@example.com" class="emailAdress" id="email_address"
                             style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
                     </div>
 
                     <div style="margin-bottom: 1rem;">
                         <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Phone Number</label>
-                        <input type="tel" value="+1234567890" class="phoneNumber"
+                        <input type="tel" value="+1234567890" class="phoneNumber" id="phone_number"
                             style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
                     </div>
 
                     <div style="margin-bottom: 1rem;">
-                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Notification
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;" for="notification_preferences" >Notification
                             Preferences</label>
                         <div style="display: flex; flex-direction: column; gap: 0.5rem;">
                             <label style="display: flex; align-items: center; gap: 0.5rem;">
-                                <input type="checkbox" checked>
+                                <input type="checkbox" name="notification_preferences" checked>
                                 <span>Email notifications</span>
                             </label>
                             <label style="display: flex; align-items: center; gap: 0.5rem;">
-                                <input type="checkbox" checked>
+                                <input type="checkbox" name="notification_preferences" checked>
                                 <span>SMS notifications</span>
                             </label>
                             <label style="display: flex; align-items: center; gap: 0.5rem;">
-                                <input type="checkbox">
+                                <input type="checkbox" name="notification_preferences">
                                 <span>Promotional offers</span>
                             </label>
                         </div>
@@ -1068,8 +1067,8 @@
 
             <div class="vidSection">
                 <div style="display: flex; flex-direction: column; align-items: center; margin-bottom: 1.5rem;">
-                    <h3 class="username00" aria-readonly="true">FrontMan</h3>
-                    <p style="color: #7f8c8d;">Member since <span id="dateCreated">October 2023</span></p>
+                    <h3 id="user_name"></h3>
+                    <p style="color: #7f8c8d;">Member since <span id="createdAt">October 2023</span></p>
                 </div>
 
                 <div style="margin-bottom: 2rem;">
@@ -1077,25 +1076,25 @@
 
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
                         <div>
-                            <p style="color: #7f8c8d; font-size: 0.9rem;">Username</p>
-                            <p style="font-weight: 500;" class="username00" aria-readonly="true">user123</p>
+                            <p style="color: #7f8c8d; font-size: 0.9rem;" id="" >Username</p>
+                            <p style="font-weight: 500;" id="user_name" aria-readonly="true">user123</p>
                         </div>
                         <div>
                             <p style="color: #7f8c8d; font-size: 0.9rem;">Email</p>
-                            <p style="font-weight: 500;" class="emailAdress" aria-readonly="true">user@example.com</p>
+                            <p style="font-weight: 500;" class="emailAdress" id="email_address" aria-readonly="true">user@example.com</p>
                         </div>
                     </div>
 
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
                         <div>
                             <p style="color: #7f8c8d; font-size: 0.9rem;">Phone</p>
-                            <p style="font-weight: 500;" class="phoneNumber">000000000000</p>
+                            <p style="font-weight: 500;" class="phoneNumber" id="phone_number" >000000000000</p>
                         </div>
                     </div>
 
                     <div>
                         <p style="color: #7f8c8d; font-size: 0.9rem;">Payment Method</p>
-                        <p style="font-weight: 500;" id="payMeth">PayPal (user@example.com)</p>
+                        <p style="font-weight: 500;" id="payment_method">PayPal (user@example.com)</p>
                     </div>
                 </div>
 
@@ -1104,11 +1103,11 @@
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
                         <div>
                             <p style="color: #7f8c8d; font-size: 0.9rem;" id="totalCash">Total Earned</p>
-                            <p style="font-weight: 500;">0</p>
+                            <p style="font-weight: 500;" id="total_income" >0</p>
                         </div>
                         <div>
-                            <p style="color: #7f8c8d; font-size: 0.9rem;" id="withdrawnCash">Withdrawn</p>
-                            <p style="font-weight: 500;">0</p>
+                            <p style="color: #7f8c8d; font-size: 0.9rem;" id="withdra">Withdrawn</p>
+                            <p style="font-weight: 500;" id="withdrawn" >0</p>
                         </div>
                     </div>
                 </div>
@@ -1135,9 +1134,9 @@
     </div>
 
     <footer>
-        <p style="color: white;">GreenQash User Dashboard</p>
+        <p style="color: white;">User Dashboard</p>
         <p>v3.1 | &copy;
-            <span id="currentYear"></span> GreenQash. All rights reserved.
+            <span id="currentYear"></span> All rights reserved.
         </p>
         <script>
             //footerSECTION
@@ -1156,5 +1155,4 @@
 <script src="greenqash.js"></script> <!--All settings-->
 <script src="server.js"></script> <!--Data Fetching-->
 <script src="reffeSys.js"></script> <!--Refferal System and logic-->
-
 </html>
