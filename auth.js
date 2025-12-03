@@ -71,6 +71,18 @@ function setupEventListeners() {
     // Form submission listeners
     loginForm.addEventListener('submit', handleLogin)
     registerForm.addEventListener('submit', handleRegistration)
+    
+    // Optional: add handlers for other buttons if they exist
+    const googleLoginBtn = document.getElementById('googleLogin')
+    const forgotPasswordLink = document.getElementById('forgotPassword')
+    if (googleLoginBtn) googleLoginBtn.addEventListener('click', (e) => {
+        e.preventDefault()
+        showNotification('Google login not yet implemented', true)
+    })
+    if (forgotPasswordLink) forgotPasswordLink.addEventListener('click', (e) => {
+        e.preventDefault()
+        showNotification('Password reset not yet implemented', true)
+    })
 }
 
 function toggleForms(form) {
