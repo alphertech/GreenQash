@@ -1,0 +1,1512 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GreenQash - Admin Panel</title>
+    <link rel="stylesheet" href="adstyles.css">
+</head>
+
+<body>
+    <header>
+        <div class="header-left">
+            <div class="header-logo">🌱</div>
+            <span class="header-title">GreenQash <span class="admin-badge">Admin</span></span>
+        </div>
+        <div class="menu-icon">
+            <span class="bar"></span>
+            <span class="bar"></span>
+            <span class="bar"></span>
+        </div>
+    </header>
+    <article>
+        <p>Welcome Admin! <span id="greetings"></span></p>
+    </article>
+    <hr>
+
+    <main>
+        <menu id="sideMenu">
+            <div class="navLinks" id="navLinks">
+                <a href="#" class="active" data-section="dashboard">Dashboard Overview</a>
+                <a href="#" data-section="content">Content Management</a>
+                <a href="#" data-section="users">User Management <span class="menu-notification">3</span></a>
+                <a href="#" data-section="permissions">Permissions</a>
+                <a href="#" data-section="withdrawals">Withdrawals <span class="menu-notification">5</span></a>
+                <a href="#" data-section="reports">Reports & Analytics</a>
+                <a href="#" data-section="settings">System Settings</a>
+                <a href="#" id="logout">Logout</a>
+            </div>
+        </menu>
+
+        <div class="admin-content">
+            <!-- Dashboard Section -->
+            <div class="admin-section active" id="dashboard-section">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-label">Total Users</div>
+                        <div class="stat-value" id="totalUsers">0</div>
+                        <div class="stat-label">All Time</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Active Today</div>
+                        <div class="stat-value" id="activeToday">0</div>
+                        <div class="stat-label">Last 24hrs</div>
+                    </div>
+                    <div class="stat-label">Pending Withdrawals</div>
+                    <div class="stat-value" id="reqWithdrawals">0</div>
+                    <div class="stat-label">UGX 0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Total Earnings</div>
+                    <div class="stat-value" id="alltimeIncome">UGX 0</div>
+                    <div class="stat-label">All time</div>
+                </div>
+            </div>
+
+            <div class="section-header">
+                <h2 class="section-title">Recent Activity</h2>
+                <div class="section-actions">
+                    <button class="btn btn-primary" id="refresh-dashboard">Refresh</button>
+                </div>
+            </div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Time</th>
+                        <th>User</th>
+                        <th>Activity</th>
+                        <th>Details</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>10:42 AM</td>
+                        <td>user123</td>
+                        <td>Withdrawal Request</td>
+                        <td>UGX 62,000</td>
+                        <td><span class="status-pending">Pending</span></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Content Management Section -->
+        <div class="admin-section" id="content-section">
+            <div class="tab-container">
+                <div class="tab active" data-tab="posts">Posts</div>
+                <div class="tab" data-tab="tiktok">TikTok Tasks</div>
+                <div class="tab" data-tab="youtube">YouTube Tasks</div>
+                <div class="tab" data-tab="trivia">Trivia Questions</div>
+            </div>
+
+            <div class="tab-content active" id="posts-tab">
+                <div class="section-header">
+                    <h2 class="section-title">Create New Post</h2>
+                </div>
+
+                <div class="card">
+                    <form id="create-post-form">
+                        <div class="form-group">
+                            <label class="form-label">Post Title</label>
+                            <input type="text" class="form-control" placeholder="Enter post title">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Post Content</label>
+                            <textarea class="form-control" placeholder="Enter post content"></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Post Type</label>
+                            <select class="form-control">
+                                <option>Announcement</option>
+                                <option>Promotion</option>
+                                <option>Update</option>
+                                <option>News</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Featured Image</label>
+                            <div class="file-upload" id="image-upload">
+                                <div class="file-upload-icon">📁</div>
+                                <div class="file-upload-text">Click to upload or drag and drop</div>
+                                <input type="file" id="post-image" accept="image/*">
+                                <img src="" alt="Preview" class="preview-image" id="image-preview">
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Publish Date</label>
+                            <input type="datetime-local" class="form-control">
+                        </div>
+
+                        <button type="submit" class="btn btn-primary">Publish Post</button>
+                    </form>
+                </div>
+
+                <div class="section-header">
+                    <h2 class="section-title">Recent Posts</h2>
+                    <div class="section-actions">
+                        <button class="btn btn-primary">View All</button>
+                    </div>
+                </div>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Title</th>
+                            <th>Type</th>
+                            <th>Author</th>
+                            <th>Date</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>New TikTok Tasks Available</td>
+                            <td>Promotion</td>
+                            <td>admin</td>
+                            <td>2023-11-15</td>
+                            <td><span class="status-active">Published</span></td>
+                            <td>
+                                <button class="btn btn-sm btn-primary">Edit</button>
+                                <button class="btn btn-sm btn-danger">Delete</button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>System Maintenance</td>
+                            <td>Announcement</td>
+                            <td>admin</td>
+                            <td>2023-11-14</td>
+                            <td><span class="status-active">Published</span></td>
+                            <td>
+                                <button class="btn btn-sm btn-primary">Edit</button>
+                                <button class="btn btn-sm btn-danger">Delete</button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Black Friday Promo</td>
+                            <td>Promotion</td>
+                            <td>admin</td>
+                            <td>2023-11-10</td>
+                            <td><span class="status-active">Published</span></td>
+                            <td>
+                                <button class="btn btn-sm btn-primary">Edit</button>
+                                <button class="btn btn-sm btn-danger">Delete</button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="tab-content" id="tiktok-tab">
+                <div class="section-header">
+                    <h2 class="section-title">Create TikTok Task</h2>
+                </div>
+
+                <div class="card">
+                    <form id="create-tiktok-task">
+                        <div class="form-group">
+                            <label class="form-label">Task Title</label>
+                            <input type="text" class="form-control" placeholder="Enter task title">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Task Description</label>
+                            <textarea class="form-control" placeholder="Enter task description"></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Task Type</label>
+                            <select class="form-control">
+                                <option>Like Video</option>
+                                <option>Follow Account</option>
+                                <option>Comment</option>
+                                <option>Share</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Video URL</label>
+                            <input type="url" class="form-control" placeholder="Enter TikTok video URL">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Reward Amount (UGX)</label>
+                            <input type="number" class="form-control" placeholder="Enter reward amount" min="500"
+                                step="100">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Duration (seconds)</label>
+                            <input type="number" class="form-control" placeholder="Minimum watch time" min="30"
+                                step="10">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Sponsored By</label>
+                            <input type="text" class="form-control" placeholder="Enter sponsor name">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Task Image</label>
+                            <div class="file-upload" id="tiktok-image-upload">
+                                <div class="file-upload-icon">📁</div>
+                                <div class="file-upload-text">Click to upload or drag and drop</div>
+                                <input type="file" id="tiktok-image" accept="image/*">
+                                <img src="" alt="Preview" class="preview-image" id="tiktok-image-preview">
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary">Create Task</button>
+                    </form>
+                </div>
+
+                <div class="section-header">
+                    <h2 class="section-title">Active TikTok Tasks</h2>
+                </div>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Title</th>
+                            <th>Type</th>
+                            <th>Reward</th>
+                            <th>Sponsor</th>
+                            <th>Completions</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Like this TikTok video</td>
+                            <td>Like Video</td>
+                            <td>UGX 1000</td>
+                            <td>Nike</td>
+                            <td>124/200</td>
+                            <td><span class="status-active">Active</span></td>
+                            <td>
+                                <button class="btn btn-sm btn-primary">Edit</button>
+                                <button class="btn btn-sm btn-danger">End</button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Follow this account</td>
+                            <td>Follow Account</td>
+                            <td>UGX 1500</td>
+                            <td>Adidas</td>
+                            <td>87/150</td>
+                            <td><span class="status-active">Active</span></td>
+                            <td>
+                                <button class="btn btn-sm btn-primary">Edit</button>
+                                <button class="btn btn-sm btn-danger">End</button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="tab-content" id="youtube-tab">
+                <!-- Similar structure to TikTok tab but for YouTube tasks -->
+                <div class="section-header">
+                    <h2 class="section-title">Create YouTube Task</h2>
+                </div>
+
+                <div class="card">
+                    <form id="create-youtube-task">
+                        <div class="form-group">
+                            <label class="form-label">Task Title</label>
+                            <input type="text" class="form-control" placeholder="Enter task title">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Task Description</label>
+                            <textarea class="form-control" placeholder="Enter task description"></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Task Type</label>
+                            <select class="form-control">
+                                <option>Watch Video</option>
+                                <option>Subscribe</option>
+                                <option>Like</option>
+                                <option>Comment</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Video URL</label>
+                            <input type="url" class="form-control" placeholder="Enter YouTube video URL">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Reward Amount (UGX)</label>
+                            <input type="number" class="form-control" placeholder="Enter reward amount" min="500"
+                                step="100">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Duration (minutes)</label>
+                            <input type="number" class="form-control" placeholder="Minimum watch time" min="1" step="1">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Sponsored By</label>
+                            <input type="text" class="form-control" placeholder="Enter sponsor name">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Task Image</label>
+                            <div class="file-upload" id="youtube-image-upload">
+                                <div class="file-upload-icon">📁</div>
+                                <div class="file-upload-text">Click to upload or drag and drop</div>
+                                <input type="file" id="youtube-image" accept="image/*">
+                                <img src="" alt="Preview" class="preview-image" id="youtube-image-preview">
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary">Create Task</button>
+                    </form>
+                </div>
+
+                <div class="section-header">
+                    <h2 class="section-title">Active YouTube Tasks</h2>
+                </div>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Title</th>
+                            <th>Type</th>
+                            <th>Reward</th>
+                            <th>Sponsor</th>
+                            <th>Completions</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Watch this YouTube video</td>
+                            <td>Watch Video</td>
+                            <td>UGX 1200</td>
+                            <td>Coca-Cola</td>
+                            <td>156/300</td>
+                            <td><span class="status-active">Active</span></td>
+                            <td>
+                                <button class="btn btn-sm btn-primary">Edit</button>
+                                <button class="btn btn-sm btn-danger">End</button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Subscribe to this channel</td>
+                            <td>Subscribe</td>
+                            <td>UGX 2000</td>
+                            <td>Pepsi</td>
+                            <td>92/200</td>
+                            <td><span class="status-active">Active</span></td>
+                            <td>
+                                <button class="btn btn-sm btn-primary">Edit</button>
+                                <button class="btn btn-sm btn-danger">End</button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="tab-content" id="trivia-tab">
+                <div class="section-header">
+                    <h2 class="section-title">Create Trivia Question</h2>
+                </div>
+
+                <div class="card">
+                    <form id="create-trivia-question">
+                        <div class="form-group">
+                            <label class="form-label">Question</label>
+                            <textarea class="form-control" placeholder="Enter the question"></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Category</label>
+                            <select class="form-control">
+                                <option>General Knowledge</option>
+                                <option>Science</option>
+                                <option>History</option>
+                                <option>Entertainment</option>
+                                <option>Sports</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Correct Answer</label>
+                            <input type="text" class="form-control" placeholder="Enter correct answer">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Incorrect Answer 1</label>
+                            <input type="text" class="form-control" placeholder="Enter incorrect answer">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Incorrect Answer 2</label>
+                            <input type="text" class="form-control" placeholder="Enter incorrect answer">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Incorrect Answer 3</label>
+                            <input type="text" class="form-control" placeholder="Enter incorrect answer">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Difficulty</label>
+                            <select class="form-control">
+                                <option>Easy</option>
+                                <option>Medium</option>
+                                <option>Hard</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Reward (UGX)</label>
+                            <input type="number" class="form-control" placeholder="Enter reward amount" min="100"
+                                step="100">
+                        </div>
+
+                        <button type="submit" class="btn btn-primary">Add Question</button>
+                    </form>
+                </div>
+
+                <div class="section-header">
+                    <h2 class="section-title">Active Trivia Questions</h2>
+                </div>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Question</th>
+                            <th>Category</th>
+                            <th>Difficulty</th>
+                            <th>Reward</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>What is the capital of France?</td>
+                            <td>General Knowledge</td>
+                            <td>Easy</td>
+                            <td>UGX 500</td>
+                            <td><span class="status-active">Active</span></td>
+                            <td>
+                                <button class="btn btn-sm btn-primary">Edit</button>
+                                <button class="btn btn-sm btn-danger">Delete</button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Which planet is known as the Red Planet?</td>
+                            <td>Science</td>
+                            <td>Easy</td>
+                            <td>UGX 500</td>
+                            <td><span class="status-active">Active</span></td>
+                            <td>
+                                <button class="btn btn-sm btn-primary">Edit</button>
+                                <button class="btn btn-sm btn-danger">Delete</button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- User Management Section -->
+        <div class="admin-section" id="users-section">
+            <div class="section-header">
+                <h2 class="section-title">User Management</h2>
+                <div class="section-actions">
+                    <button class="btn btn-primary" id="add-user">Add New User</button>
+                    <button class="btn btn-info" id="export-users">Export Users</button>
+                </div>
+            </div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Username</th>
+                        <th>Email</th>
+                        <th>Joined</th>
+                        <th>Last Active</th>
+                        <th>Status</th>
+                        <th>Balance</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>user123</td>
+                        <td>user123@example.com</td>
+                        <td>2023-10-15</td>
+                        <td>Today</td>
+                        <td><span class="status-active">Active</span></td>
+                        <td>UGX 62,500</td>
+                        <td>
+                            <button class="btn btn-sm btn-primary">Edit</button>
+                            <button class="btn btn-sm btn-warning">Suspend</button>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>new_user</td>
+                        <td>new@example.com</td>
+                        <td>2023-11-14</td>
+                        <td>Today</td>
+                        <td><span class="status-active">Active</span></td>
+                        <td>UGX 12,000</td>
+                        <td>
+                            <button class="btn btn-sm btn-primary">Edit</button>
+                            <button class="btn btn-sm btn-warning">Suspend</button>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>banned_user</td>
+                        <td>banned@example.com</td>
+                        <td>2023-09-01</td>
+                        <td>2023-10-30</td>
+                        <td><span class="status-inactive">Banned</span></td>
+                        <td>UGX 0</td>
+                        <td>
+                            <button class="btn btn-sm btn-primary">Edit</button>
+                            <button class="btn btn-sm btn-info">Unban</button>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>inactive_user</td>
+                        <td>inactive@example.com</td>
+                        <td>2023-08-15</td>
+                        <td>2023-09-20</td>
+                        <td><span class="status-inactive">Inactive</span></td>
+                        <td>UGX 5,000</td>
+                        <td>
+                            <button class="btn btn-sm btn-primary">Edit</button>
+                            <button class="btn btn-sm btn-danger">Delete</button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Permissions Section -->
+        <div class="admin-section" id="permissions-section">
+            <div class="section-header">
+                <h2 class="section-title">User Permissions</h2>
+                <div class="section-actions">
+                    <button class="btn btn-primary" id="save-permissions">Save Changes</button>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="section-header">
+                    <h3 class="section-title">Dashboard Access</h3>
+                </div>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>User</th>
+                            <th>TikTok Tasks</th>
+                            <th>YouTube Tasks</th>
+                            <th>Trivia</th>
+                            <th>Withdrawals</th>
+                            <th>Referrals</th>
+                            <th>Admin Panel</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>admin</td>
+                            <td><input type="checkbox" checked disabled></td>
+                            <td><input type="checkbox" checked disabled></td>
+                            <td><input type="checkbox" checked disabled></td>
+                            <td><input type="checkbox" checked disabled></td>
+                            <td><input type="checkbox" checked disabled></td>
+                            <td><input type="checkbox" checked disabled></td>
+                        </tr>
+                        <tr>
+                            <td>moderator</td>
+                            <td><input type="checkbox" checked></td>
+                            <td><input type="checkbox" checked></td>
+                            <td><input type="checkbox" checked></td>
+                            <td><input type="checkbox"></td>
+                            <td><input type="checkbox" checked></td>
+                            <td><input type="checkbox"></td>
+                        </tr>
+                        <tr>
+                            <td>content_manager</td>
+                            <td><input type="checkbox" checked></td>
+                            <td><input type="checkbox" checked></td>
+                            <td><input type="checkbox" checked></td>
+                            <td><input type="checkbox"></td>
+                            <td><input type="checkbox"></td>
+                            <td><input type="checkbox"></td>
+                        </tr>
+                        <tr>
+                            <td>user123</td>
+                            <td><input type="checkbox" checked></td>
+                            <td><input type="checkbox" checked></td>
+                            <td><input type="checkbox" checked></td>
+                            <td><input type="checkbox" checked></td>
+                            <td><input type="checkbox" checked></td>
+                            <td><input type="checkbox"></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="card" style="margin-top: 1.5rem;">
+                <div class="section-header">
+                    <h3 class="section-title">Add New Role</h3>
+                </div>
+
+                <form id="add-role-form">
+                    <div class="form-group">
+                        <label class="form-label">Role Name</label>
+                        <input type="text" class="form-control" placeholder="Enter role name">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Permissions</label>
+                        <div
+                            style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 0.5rem;">
+                            <label style="display: flex; align-items: center; gap: 0.5rem;">
+                                <input type="checkbox">
+                                <span>Manage TikTok Tasks</span>
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 0.5rem;">
+                                <input type="checkbox">
+                                <span>Manage YouTube Tasks</span>
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 0.5rem;">
+                                <input type="checkbox">
+                                <span>Manage Trivia</span>
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 0.5rem;">
+                                <input type="checkbox">
+                                <span>Process Withdrawals</span>
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 0.5rem;">
+                                <input type="checkbox">
+                                <span>Manage Users</span>
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 0.5rem;">
+                                <input type="checkbox">
+                                <span>Admin Panel Access</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">Create Role</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Withdrawals Section -->
+        <div class="admin-section" id="withdrawals-section">
+            <div class="section-header">
+                <h2 class="section-title">Withdrawal Requests</h2>
+                <div class="section-actions">
+                    <button class="btn btn-primary" id="refresh-withdrawals">Refresh</button>
+                    <button class="btn btn-info" id="export-withdrawals">Export</button>
+                </div>
+            </div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>User</th>
+                        <th>Amount</th>
+                        <th>Method</th>
+                        <th>Date</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>#WD-1001</td>
+                        <td>user123</td>
+                        <td>UGX 62,000</td>
+                        <td>MTN Mobile Money</td>
+                        <td>2023-11-15</td>
+                        <td><span class="status-pending">Pending</span></td>
+                        <td>
+                            <button class="btn btn-sm btn-primary">Approve</button>
+                            <button class="btn btn-sm btn-danger">Reject</button>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>#WD-1000</td>
+                        <td>active_user</td>
+                        <td>UGX 45,000</td>
+                        <td>Airtel Money</td>
+                        <td>2023-11-15</td>
+                        <td><span class="status-pending">Pending</span></td>
+                        <td>
+                            <button class="btn btn-sm btn-primary">Approve</button>
+                            <button class="btn btn-sm btn-danger">Reject</button>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>#WD-999</td>
+                        <td>another_user</td>
+                        <td>UGX 32,500</td>
+                        <td>Bank Transfer</td>
+                        <td>2023-11-14</td>
+                        <td><span class="status-active">Completed</span></td>
+                        <td>
+                            <button class="btn btn-sm btn-info" disabled>Approved</button>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>#WD-998</td>
+                        <td>test_user</td>
+                        <td>UGX 15,000</td>
+                        <td>MTN Mobile Money</td>
+                        <td>2023-11-13</td>
+                        <td><span class="status-inactive">Rejected</span></td>
+                        <td>
+                            <button class="btn btn-sm btn-danger" disabled>Rejected</button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="section-header" style="margin-top: 2rem;">
+                <h2 class="section-title">Withdrawal Statistics</h2>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-label">Pending Withdrawals</div>
+                    <div class="stat-value">5</div>
+                    <div class="stat-label">UGX 250,000</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Approved Today</div>
+                    <div class="stat-value">3</div>
+                    <div class="stat-label">UGX 120,000</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Total This Month</div>
+                    <div class="stat-value">UGX 1.2M</div>
+                    <div class="stat-label">42 withdrawals</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">All Time</div>
+                    <div class="stat-value">UGX 8.7M</div>
+                    <div class="stat-label">356 withdrawals</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Reports & Analytics Section -->
+        <div class="admin-section" id="reports-section">
+            <div class="tab-container">
+                <div class="tab active" data-tab="earnings">Earnings</div>
+                <div class="tab" data-tab="users">User Growth</div>
+                <div class="tab" data-tab="tasks">Task Performance</div>
+                <div class="tab" data-tab="referrals">Referrals</div>
+            </div>
+
+            <div class="tab-content active" id="earnings-tab">
+                <div class="section-header">
+                    <h2 class="section-title">Earnings Report</h2>
+                    <div class="section-actions">
+                        <select class="form-control" style="width: auto;">
+                            <option>Last 7 Days</option>
+                            <option>Last 30 Days</option>
+                            <option>Last 90 Days</option>
+                            <option>This Year</option>
+                            <option>All Time</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div
+                        style="height: 300px; display: flex; align-items: center; justify-content: center; background-color: #f8f9fa; border-radius: 8px;">
+                        <p style="color: #7f8c8d;">Earnings Chart Placeholder</p>
+                    </div>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-label">Total Earnings</div>
+                        <div class="stat-value">UGX 5.2M</div>
+                        <div class="stat-label">All time</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">This Month</div>
+                        <div class="stat-value">UGX 1.8M</div>
+                        <div class="stat-label">+15% from last month</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">This Week</div>
+                        <div class="stat-value">UGX 420K</div>
+                        <div class="stat-label">+8% from last week</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Today</div>
+                        <div class="stat-value">UGX 85K</div>
+                        <div class="stat-label">+12% from yesterday</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tab-content" id="users-tab">
+                <div class="section-header">
+                    <h2 class="section-title">User Growth</h2>
+                    <div class="section-actions">
+                        <select class="form-control" style="width: auto;">
+                            <option>Last 7 Days</option>
+                            <option>Last 30 Days</option>
+                            <option>Last 90 Days</option>
+                            <option>This Year</option>
+                            <option>All Time</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div
+                        style="height: 300px; display: flex; align-items: center; justify-content: center; background-color: #f8f9fa; border-radius: 8px;">
+                        <p style="color: #7f8c8d;">User Growth Chart Placeholder</p>
+                    </div>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-label">Total Users</div>
+                        <div class="stat-value">1,248</div>
+                        <div class="stat-label">All time</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">New This Month</div>
+                        <div class="stat-value">187</div>
+                        <div class="stat-label">+22% from last month</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Active Today</div>
+                        <div class="stat-value">387</div>
+                        <div class="stat-label">42% of total</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Avg. Daily Growth</div>
+                        <div class="stat-value">8</div>
+                        <div class="stat-label">New users per day</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tab-content" id="tasks-tab">
+                <div class="section-header">
+                    <h2 class="section-title">Task Performance</h2>
+                    <div class="section-actions">
+                        <select class="form-control" style="width: auto;">
+                            <option>Last 7 Days</option>
+                            <option>Last 30 Days</option>
+                            <option>Last 90 Days</option>
+                            <option>This Year</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div
+                        style="height: 300px; display: flex; align-items: center; justify-content: center; background-color: #f8f9fa; border-radius: 8px;">
+                        <p style="color: #7f8c8d;">Task Performance Chart Placeholder</p>
+                    </div>
+                </div>
+
+                <div class="section-header">
+                    <h3 class="section-title">Top Performing Tasks</h3>
+                </div>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Task</th>
+                            <th>Type</th>
+                            <th>Completions</th>
+                            <th>Success Rate</th>
+                            <th>Avg. Time</th>
+                            <th>Revenue</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Like Nike TikTok</td>
+                            <td>TikTok</td>
+                            <td>1,248</td>
+                            <td>92%</td>
+                            <td>42s</td>
+                            <td>UGX 1.2M</td>
+                        </tr>
+                        <tr>
+                            <td>Subscribe to Pepsi</td>
+                            <td>YouTube</td>
+                            <td>876</td>
+                            <td>85%</td>
+                            <td>2m 15s</td>
+                            <td>UGX 1.7M</td>
+                        </tr>
+                        <tr>
+                            <td>Daily Trivia</td>
+                            <td>Trivia</td>
+                            <td>2,145</td>
+                            <td>78%</td>
+                            <td>3m 42s</td>
+                            <td>UGX 1.1M</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="tab-content" id="referrals-tab">
+                <div class="section-header">
+                    <h2 class="section-title">Referral Program</h2>
+                    <div class="section-actions">
+                        <select class="form-control" style="width: auto;">
+                            <option>Last 7 Days</option>
+                            <option>Last 30 Days</option>
+                            <option>Last 90 Days</option>
+                            <option>This Year</option>
+                            <option>All Time</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div
+                        style="height: 300px; display: flex; align-items: center; justify-content: center; background-color: #f8f9fa; border-radius: 8px;">
+                        <p style="color: #7f8c8d;">Referral Chart Placeholder</p>
+                    </div>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-label">Total Referrals</div>
+                        <div class="stat-value">428</div>
+                        <div class="stat-label">All time</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Active Referrals</div>
+                        <div class="stat-value">287</div>
+                        <div class="stat-label">67% of total</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Referral Earnings</div>
+                        <div class="stat-value">UGX 2.1M</div>
+                        <div class="stat-label">All time</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Top Referrer</div>
+                        <div class="stat-value">user123</div>
+                        <div class="stat-label">42 referrals</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- System Settings Section -->
+        <div class="admin-section" id="settings-section">
+            <div class="tab-container">
+                <div class="tab active" data-tab="general">General</div>
+                <div class="tab" data-tab="payments">Payments</div>
+                <div class="tab" data-tab="security">Security</div>
+                <div class="tab" data-tab="notifications">Notifications</div>
+            </div>
+
+            <div class="tab-content active" id="general-tab">
+                <div class="section-header">
+                    <h2 class="section-title">General Settings</h2>
+                    <div class="section-actions">
+                        <button class="btn btn-primary" id="save-general-settings">Save Changes</button>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <form id="general-settings-form">
+                        <div class="form-group">
+                            <label class="form-label">Site Name</label>
+                            <input type="text" class="form-control" value="GreenQash">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Site Logo</label>
+                            <div class="file-upload" id="logo-upload">
+                                <div class="file-upload-icon">📁</div>
+                                <div class="file-upload-text">Click to upload or drag and drop</div>
+                                <input type="file" id="site-logo" accept="image/*">
+                                <img src="" alt="Logo Preview" class="preview-image" id="logo-preview">
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Default Currency</label>
+                            <select class="form-control">
+                                <option>UGX - Ugandan Shilling</option>
+                                <option>USD - US Dollar</option>
+                                <option>KES - Kenyan Shilling</option>
+                                <option>TZS - Tanzanian Shilling</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Maintenance Mode</label>
+                            <div style="display: flex; align-items: center; gap: 1rem;">
+                                <label style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <input type="radio" name="maintenance" value="off" checked>
+                                    <span>Off</span>
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <input type="radio" name="maintenance" value="on">
+                                    <span>On</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Site Description</label>
+                            <textarea class="form-control"
+                                rows="3">Make money online by completing simple tasks on TikTok, YouTube, and trivia quizzes. Earn cash rewards and referral bonuses.</textarea>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="tab-content" id="payments-tab">
+                <div class="section-header">
+                    <h2 class="section-title">Payment Settings</h2>
+                    <div class="section-actions">
+                        <button class="btn btn-primary" id="save-payment-settings">Save Changes</button>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <form id="payment-settings-form">
+                        <div class="form-group">
+                            <label class="form-label">Minimum Withdrawal Amount (UGX)</label>
+                            <input type="number" class="form-control" value="59000" min="10000" step="1000">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Withdrawal Processing Time</label>
+                            <select class="form-control">
+                                <option>Instant (within minutes)</option>
+                                <option>Same Day (by 8pm EAST)</option>
+                                <option selected>Next Business Day</option>
+                                <option>Within 48 Hours</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Payment Methods</label>
+                            <div
+                                style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 0.5rem;">
+                                <label style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <input type="checkbox" checked>
+                                    <span>MTN Mobile Money</span>
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <input type="checkbox" checked>
+                                    <span>Airtel Money</span>
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <input type="checkbox">
+                                    <span>Airtime TopUp</span>
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <input type="checkbox">
+                                    <span>PayPal</span>
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <input type="checkbox">
+                                    <span>Bank Transfer</span>
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <input type="checkbox">
+                                    <span>Cryptocurrency</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Referral Commission (%)</label>
+                            <input type="number" class="form-control" value="25" min="0" max="100" step="1">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Task Reward Multiplier</label>
+                            <input type="number" class="form-control" value="1.0" min="0.5" max="3" step="0.1">
+                            <small style="color: #7f8c8d;">Adjust this to increase or decrease all task rewards by a
+                                multiplier</small>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="tab-content" id="security-tab">
+                <div class="section-header">
+                    <h2 class="section-title">Security Settings</h2>
+                    <div class="section-actions">
+                        <button class="btn btn-primary" id="save-security-settings">Save Changes</button>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <form id="security-settings-form">
+                        <div class="form-group">
+                            <label class="form-label">Admin Login Security</label>
+                            <div
+                                style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 0.5rem;">
+                                <label style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <input type="checkbox" checked>
+                                    <span>Require 2FA</span>
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <input type="checkbox" checked>
+                                    <span>IP Whitelisting</span>
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <input type="checkbox">
+                                    <span>Login Notifications</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Failed Login Attempts Before Lockout</label>
+                            <input type="number" class="form-control" value="5" min="1" max="10">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Lockout Duration (minutes)</label>
+                            <input type="number" class="form-control" value="30" min="5" max="1440">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Password Requirements</label>
+                            <div
+                                style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 0.5rem;">
+                                <label style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <input type="checkbox" checked>
+                                    <span>Minimum 8 characters</span>
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <input type="checkbox" checked>
+                                    <span>Require uppercase</span>
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <input type="checkbox" checked>
+                                    <span>Require number</span>
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <input type="checkbox">
+                                    <span>Require special character</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Password Expiration (days)</label>
+                            <input type="number" class="form-control" value="90" min="30" max="365">
+                            <small style="color: #7f8c8d;">Set to 0 to disable password expiration</small>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="tab-content" id="notifications-tab">
+                <div class="section-header">
+                    <h2 class="section-title">Notification Settings</h2>
+                    <div class="section-actions">
+                        <button class="btn btn-primary" id="save-notification-settings">Save Changes</button>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <form id="notification-settings-form">
+                        <div class="form-group">
+                            <label class="form-label">Admin Notifications</label>
+                            <div
+                                style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 0.5rem;">
+                                <label style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <input type="checkbox" checked>
+                                    <span>New withdrawal requests</span>
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <input type="checkbox" checked>
+                                    <span>New user registrations</span>
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <input type="checkbox">
+                                    <span>Task completions</span>
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <input type="checkbox" checked>
+                                    <span>System alerts</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Notification Methods</label>
+                            <div
+                                style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 0.5rem;">
+                                <label style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <input type="checkbox" checked>
+                                    <span>Email</span>
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <input type="checkbox">
+                                    <span>SMS</span>
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <input type="checkbox" checked>
+                                    <span>In-app</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Admin Email Addresses</label>
+                            <textarea class="form-control" rows="3"
+                                placeholder="Enter comma-separated email addresses">admin@greenqash.com, support@greenqash.com</textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">SMS Notification Number</label>
+                            <input type="tel" class="form-control"
+                                placeholder="Enter phone number for SMS notifications">
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        </div>
+    </main>
+
+    <!-- Add User Modal -->
+    <div class="modal" id="add-user-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Add New User</h3>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="add-user-form">
+                    <div class="form-group">
+                        <label class="form-label">Username</label>
+                        <input type="text" class="form-control" placeholder="Enter username" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Email Address</label>
+                        <input type="email" class="form-control" placeholder="Enter email" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Password</label>
+                        <input type="password" class="form-control" placeholder="Enter password" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Confirm Password</label>
+                        <input type="password" class="form-control" placeholder="Confirm password" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">User Role</label>
+                        <select class="form-control">
+                            <option>User</option>
+                            <option>Content Manager</option>
+                            <option>Moderator</option>
+                            <option>Admin</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Initial Balance (UGX)</label>
+                        <input type="number" class="form-control" placeholder="Enter initial balance" min="0"
+                            step="1000">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-danger close-modal">Cancel</button>
+                <button class="btn btn-primary" id="confirm-add-user">Add User</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div class="modal" id="confirmation-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Confirm Action</h3>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p id="confirmation-message">Are you sure you want to perform this action?</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-danger close-modal">Cancel</button>
+                <button class="btn btn-primary" id="confirm-action">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>GreenQash Admin Panel - v3.0.3 | &copy; <span id="currentYear"></span> GreenQash. All rights reserved.</p>
+    </footer>
+
+    <script>
+        // Current year in footer
+        document.getElementById('currentYear').textContent = new Date().getFullYear();
+
+        // Greeting based on time of day
+        const hour = new Date().getHours();
+        const greeting = document.getElementById('greetings');
+        if (hour < 12) {
+            greeting.textContent = 'Good morning!';
+        } else if (hour < 18) {
+            greeting.textContent = 'Good afternoon!';
+        } else {
+            greeting.textContent = 'Good evening!';
+        }
+
+        // Menu toggle for mobile
+        const menuIcon = document.querySelector('.menu-icon');
+        const sideMenu = document.getElementById('sideMenu');
+
+        menuIcon.addEventListener('click', () => {
+            menuIcon.classList.toggle('active');
+            sideMenu.classList.toggle('active');
+        });
+
+        // Tab functionality
+        const tabs = document.querySelectorAll('.tab');
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                // Remove active class from all tabs and contents
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+                // Add active class to clicked tab and corresponding content
+                tab.classList.add('active');
+                const tabId = tab.getAttribute('data-tab') + '-tab';
+                document.getElementById(tabId).classList.add('active');
+            });
+        });
+
+        // Section navigation
+        const navLinks = document.querySelectorAll('.navLinks a[data-section]');
+        navLinks.forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+
+                // Remove active class from all links and sections
+                navLinks.forEach(l => l.classList.remove('active'));
+                document.querySelectorAll('.admin-section').forEach(s => s.classList.remove('active'));
+
+                // Add active class to clicked link and corresponding section
+                link.classList.add('active');
+                const sectionId = link.getAttribute('data-section') + '-section';
+                document.getElementById(sectionId).classList.add('active');
+
+                // Close mobile menu if open
+                menuIcon.classList.remove('active');
+                sideMenu.classList.remove('active');
+            });
+        });
+
+        // Image upload preview
+        function setupImageUpload(inputId, previewId) {
+            const input = document.getElementById(inputId);
+            const preview = document.getElementById(previewId);
+
+            input.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        preview.src = event.target.result;
+                        preview.style.display = 'block';
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+        }
+
+        // Set up image upload previews
+        setupImageUpload('post-image', 'image-preview');
+        setupImageUpload('tiktok-image', 'tiktok-image-preview');
+        setupImageUpload('youtube-image', 'youtube-image-preview');
+        setupImageUpload('site-logo', 'logo-preview');
+
+        // Modal functionality
+        function openModal(modalId) {
+            document.getElementById(modalId).style.display = 'flex';
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+
+        // Close modals when clicking X or cancel button
+        document.querySelectorAll('.close-modal').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const modal = btn.closest('.modal');
+                closeModal(modal.id);
+            });
+        });
+
+        // Open add user modal
+        document.getElementById('add-user').addEventListener('click', () => {
+            openModal('add-user-modal');
+        });
+
+        // Open confirmation modal for various actions
+        document.querySelectorAll('[data-confirm]').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                const message = btn.getAttribute('data-confirm');
+                document.getElementById('confirmation-message').textContent = message;
+                openModal('confirmation-modal');
+            });
+        });
+
+        // Close modals when clicking outside
+        window.addEventListener('click', (e) => {
+            if (e.target.classList.contains('modal')) {
+                closeModal(e.target.id);
+            }
+        });
+
+        // Form submissions (prevent default for demo)
+        document.querySelectorAll('form').forEach(form => {
+            form.addEventListener('submit', (e) => {
+                e.preventDefault();
+                alert('Form submitted (demo)');
+            });
+        });
+    </script>
+</body>
+
+</html>
