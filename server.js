@@ -96,69 +96,168 @@ class DataFetcher {
         const userId = AuthManager.getCurrentUserId();
         if (!userId) throw new Error('User not authenticated');
 
-        try {
-            const response = await fetch(`${API_BASE_URL}/users/${userId}`, {
-                headers: AuthManager.getAuthHeaders()
-            });
-            
-            if (!response.ok) throw new Error('Failed to fetch user data');
-            return await response.json();
-        } catch (error) {
-            console.error('Error fetching user data:', error);
-            throw error;
+        // If a backend API base is configured, prefer it. Otherwise fall back
+        // to the client-side Supabase instance (if available) so the dashboard
+        // can still load when the proxy API isn't running.
+        if (API_BASE_URL) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/users/${userId}`, {
+                    headers: AuthManager.getAuthHeaders()
+                });
+                if (!response.ok) throw new Error('Failed to fetch user data');
+                return await response.json();
+            } catch (error) {
+                console.error('Error fetching user data from API:', error);
+                // fall through to client-side supabase
+            }
         }
+
+        // Client-side Supabase fallback
+        if (typeof window !== 'undefined' && window.supabase) {
+            try {
+                const { data, error } = await window.supabase
+                    .from('users')
+                    .select('id, user_name, email_address, status, rank, last_login, total_income')
+                    .eq('id', userId)
+                    .maybeSingle();
+
+                if (error) throw error
+                return data
+            } catch (err) {
+                console.error('Client-side Supabase fetchUserData failed:', err)
+                throw err
+            }
+        }
+
+        throw new Error('No API_BASE_URL configured and no client-side supabase available')
     }
 
     static async fetchEarnings() {
         const userId = AuthManager.getCurrentUserId();
-        try {
-            const response = await fetch(`${API_BASE_URL}/earnings/${userId}`, {
-                headers: AuthManager.getAuthHeaders()
-            });
-            return await response.json();
-        } catch (error) {
-            console.error('Error fetching earnings:', error);
-            return null;
+        if (API_BASE_URL) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/earnings/${userId}`, {
+                    headers: AuthManager.getAuthHeaders()
+                });
+                if (!response.ok) throw new Error('Failed to fetch earnings')
+                return await response.json();
+            } catch (err) {
+                console.error('Error fetching earnings from API:', err)
+            }
         }
+
+        if (typeof window !== 'undefined' && window.supabase) {
+            try {
+                const { data, error } = await window.supabase
+                    .from('earnings')
+                    .select('*')
+                    .eq('user_id', userId)
+                    .maybeSingle();
+                if (error) throw error
+                return data
+            } catch (err) {
+                console.error('Client-side Supabase fetchEarnings failed:', err)
+                return null
+            }
+        }
+
+        return null
     }
 
     static async fetchContents() {
         const userId = AuthManager.getCurrentUserId();
-        try {
-            const response = await fetch(`${API_BASE_URL}/contents?userId=${userId}`, {
-                headers: AuthManager.getAuthHeaders()
-            });
-            return await response.json();
-        } catch (error) {
-            console.error('Error fetching contents:', error);
-            return [];
+        if (API_BASE_URL) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/contents?userId=${userId}`, {
+                    headers: AuthManager.getAuthHeaders()
+                });
+                if (!response.ok) throw new Error('Failed to fetch contents')
+                return await response.json();
+            } catch (err) {
+                console.error('Error fetching contents from API:', err)
+            }
         }
+
+        if (typeof window !== 'undefined' && window.supabase) {
+            try {
+                const { data, error } = await window.supabase
+                    .from('contents')
+                    .select('*')
+                    .eq('user_id', userId)
+                    .order('created_at', { ascending: false })
+                if (error) throw error
+                return data || []
+            } catch (err) {
+                console.error('Client-side Supabase fetchContents failed:', err)
+                return []
+            }
+        }
+
+        return []
     }
 
     static async fetchPaymentInfo() {
         const userId = AuthManager.getCurrentUserId();
-        try {
-            const response = await fetch(`${API_BASE_URL}/payment-info/${userId}`, {
-                headers: AuthManager.getAuthHeaders()
-            });
-            return await response.json();
-        } catch (error) {
-            console.error('Error fetching payment info:', error);
-            return null;
+        if (API_BASE_URL) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/payment-info/${userId}`, {
+                    headers: AuthManager.getAuthHeaders()
+                });
+                if (!response.ok) throw new Error('Failed to fetch payment info')
+                return await response.json();
+            } catch (err) {
+                console.error('Error fetching payment info from API:', err)
+            }
         }
+
+        if (typeof window !== 'undefined' && window.supabase) {
+            try {
+                const { data, error } = await window.supabase
+                    .from('payment_info')
+                    .select('*')
+                    .eq('user_id', userId)
+                    .maybeSingle()
+                if (error) throw error
+                return data
+            } catch (err) {
+                console.error('Client-side Supabase fetchPaymentInfo failed:', err)
+                return null
+            }
+        }
+
+        return null
     }
 
     static async fetchWithdrawalRequests() {
         const userId = AuthManager.getCurrentUserId();
-        try {
-            const response = await fetch(`${API_BASE_URL}/withdrawals?userId=${userId}`, {
-                headers: AuthManager.getAuthHeaders()
-            });
-            return await response.json();
-        } catch (error) {
-            console.error('Error fetching withdrawal requests:', error);
-            return [];
+        if (API_BASE_URL) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/withdrawals?userId=${userId}`, {
+                    headers: AuthManager.getAuthHeaders()
+                });
+                if (!response.ok) throw new Error('Failed to fetch withdrawals')
+                return await response.json();
+            } catch (err) {
+                console.error('Error fetching withdrawals from API:', err)
+            }
         }
+
+        if (typeof window !== 'undefined' && window.supabase) {
+            try {
+                const { data, error } = await window.supabase
+                    .from('withdrawals')
+                    .select('*')
+                    .eq('user_id', userId)
+                    .order('created_at', { ascending: false })
+                if (error) throw error
+                return data || []
+            } catch (err) {
+                console.error('Client-side Supabase fetchWithdrawalRequests failed:', err)
+                return []
+            }
+        }
+
+        return []
     }
 }
 

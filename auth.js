@@ -6,6 +6,14 @@ import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 const supabaseUrl = (typeof process !== 'undefined' && process.env && process.env.SUPABASE_URL) || 'https://kwghulqonljulmvlcfnz.supabase.co'
 const supabaseKey = (typeof process !== 'undefined' && process.env && process.env.SUPABASE_ANON_KEY) || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt3Z2h1bHFvbmxqdWxtdmxjZm56Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM5NzcyMDcsImV4cCI6MjA3OTU1MzIwN30.hebcPqAvo4B23kx4gdWuXTJhmx7p8zSHHEYSkPzPhcM'
 const supabase = createClient(supabaseUrl, supabaseKey)
+// Expose client for other frontend modules to use as a fallback when
+// `API_BASE_URL` is not configured (avoids immediate 404s). This re-uses
+// the same client created for authentication.
+try {
+    window.supabase = supabase
+} catch (err) {
+    // In non-browser environments `window` may be undefined; ignore.
+}
 
 // DOM elements
 const showLoginBtn = document.getElementById('showLogin')
