@@ -1,296 +1,413 @@
-import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
+// main.js - Main application file
 
-// Credentials are read from environment variables when available.
-// For local development you can set these in the `.env` file (already added).
-const supabaseUrl = (typeof process !== 'undefined' && process.env && process.env.SUPABASE_URL) || 'https://kwghulqonljulmvlcfnz.supabase.co'
-const supabaseKey = (typeof process !== 'undefined' && process.env && process.env.SUPABASE_ANON_KEY) || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt3Z2h1bHFvbmxqdWxtdmxjZm56Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM5NzcyMDcsImV4cCI6MjA3OTU1MzIwN30.hebcPqAvo4B23kx4gdWuXTJhmx7p8zSHHEYSkPzPhcM'
+// Configuration
+// Prefer a page-provided API base (set `window.API_BASE_URL` in the HTML) so
+// the frontend does not hardcode production endpoints. Fallback to same-origin
+// API root.
+const API_BASE_URL = (typeof window !== 'undefined' && window.API_BASE_URL) ? window.API_BASE_URL : '';
+let currentUser = null;
 
-console.log('Initializing Supabase client...');
-const supabase = createClient(supabaseUrl, supabaseKey, {
-    auth: {
-        autoRefreshToken: true,
-        persistSession: true,
-        detectSessionInUrl: true
-    }
-});
+// DOM Elements (assuming these IDs exist in your HTML)
+// Match the IDs used in `dashboard.html` (underscore style)
+const userInfoElements = {
+    userName: document.getElementById('user_name'),
+    userEmail: document.getElementById('user_email'),
+    userStatus: document.getElementById('user-status') || document.getElementById('user_status'),
+    userRank: document.getElementById('user-rank') || document.getElementById('user_rank'),
+    lastLogin: document.getElementById('last-login') || document.getElementById('last_login'),
+    totalIncome: document.getElementById('total_income')
+};
 
-// Test function to check Supabase connection
-async function testSupabaseConnection() {
-    console.log('Testing Supabase connection...');
-    
-    try {
-        // Test 1: Basic connection
-        const { data, error } = await supabase.from('users').select('count').limit(1);
-        
-        if (error) {
-            console.error('❌ Supabase connection failed:', error);
-            return false;
+const earningsElements = {
+    youtube: document.getElementById('youtube'),
+    tiktok: document.getElementById('tiktok'),
+    trivia: document.getElementById('trivia'),
+    referral: document.getElementById('refferal') || document.getElementById('referral'),
+    bonus: document.getElementById('bonus'),
+    allTime: document.getElementById('all-time-earnings') || document.getElementById('all_time_earnings'),
+    totalWithdrawn: document.getElementById('total-withdrawn') || document.getElementById('total_withdrawn'),
+    availableBalance: document.getElementById('available-balance') || document.getElementById('available_balance')
+};
+
+const contentElements = {
+    container: document.getElementById('contents-container'),
+    totalActions: document.getElementById('total-actions')
+};
+
+const paymentElements = {
+    mobileNumber: document.getElementById('mobile-number'),
+    paymentMethod: document.getElementById('payment-method'),
+    email: document.getElementById('payment-email'),
+    notificationPref: document.getElementById('notification-preference')
+};
+
+// Authentication and User Management
+class AuthManager {
+    static async login(email, password) {
+        try {
+            const response = await fetch(`${API_BASE_URL}/auth/login`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ email, password })
+            });
+            
+            if (!response.ok) throw new Error('Login failed');
+            
+            const data = await response.json();
+            localStorage.setItem('authToken', data.token);
+            localStorage.setItem('userId', data.userId);
+            currentUser = data.userId;
+            return data;
+        } catch (error) {
+            console.error('Login error:', error);
+            throw error;
         }
-        
-        console.log('✅ Supabase connection successful');
-        return true;
-    } catch (error) {
-        console.error('❌ Supabase connection test failed:', error);
-        return false;
+    }
+
+    static logout() {
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('userId');
+        currentUser = null;
+        window.location.href = '/login.html';
+    }
+
+    static isAuthenticated() {
+        return !!localStorage.getItem('authToken');
+    }
+
+    static getCurrentUserId() {
+        return localStorage.getItem('userId');
+    }
+
+    static getAuthHeaders() {
+        const token = localStorage.getItem('authToken');
+        return {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+        };
     }
 }
 
-// Enhanced fetch function with detailed logging
-async function fetchAndBindRow(table, pkColumn, pkValue, opts = {}) {
-    console.log(`🔄 Fetching from ${table} where ${pkColumn} = ${pkValue}`);
-    
-    if (!table || !pkColumn) {
-        console.error('❌ table and pkColumn are required');
-        return null;
+// Data Fetcher with User-specific Queries
+class DataFetcher {
+    static async fetchUserData() {
+        const userId = AuthManager.getCurrentUserId();
+        if (!userId) throw new Error('User not authenticated');
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/users/${userId}`, {
+                headers: AuthManager.getAuthHeaders()
+            });
+            
+            if (!response.ok) throw new Error('Failed to fetch user data');
+            return await response.json();
+        } catch (error) {
+            console.error('Error fetching user data:', error);
+            throw error;
+        }
     }
 
-    try {
-        const select = opts.select ?? '*';
-        console.log(`📋 Select query: ${select}`);
-        
-        const { data, error, status } = await supabase
-            .from(table)
-            .select(select)
-            .eq(pkColumn, pkValue)
-            .limit(1)
-            .maybeSingle();
-
-        console.log(`📊 Query status: ${status}`);
-        
-        if (error) {
-            console.error(`❌ Error fetching ${table}:`, error);
+    static async fetchEarnings() {
+        const userId = AuthManager.getCurrentUserId();
+        try {
+            const response = await fetch(`${API_BASE_URL}/earnings/${userId}`, {
+                headers: AuthManager.getAuthHeaders()
+            });
+            return await response.json();
+        } catch (error) {
+            console.error('Error fetching earnings:', error);
             return null;
         }
-        
-        if (!data) {
-            console.warn(`⚠️ No row found in ${table} where ${pkColumn} = ${pkValue}`);
+    }
+
+    static async fetchContents() {
+        const userId = AuthManager.getCurrentUserId();
+        try {
+            const response = await fetch(`${API_BASE_URL}/contents?userId=${userId}`, {
+                headers: AuthManager.getAuthHeaders()
+            });
+            return await response.json();
+        } catch (error) {
+            console.error('Error fetching contents:', error);
+            return [];
+        }
+    }
+
+    static async fetchPaymentInfo() {
+        const userId = AuthManager.getCurrentUserId();
+        try {
+            const response = await fetch(`${API_BASE_URL}/payment-info/${userId}`, {
+                headers: AuthManager.getAuthHeaders()
+            });
+            return await response.json();
+        } catch (error) {
+            console.error('Error fetching payment info:', error);
             return null;
         }
+    }
 
-        console.log(`✅ Successfully fetched ${table} data:`, data);
+    static async fetchWithdrawalRequests() {
+        const userId = AuthManager.getCurrentUserId();
+        try {
+            const response = await fetch(`${API_BASE_URL}/withdrawals?userId=${userId}`, {
+                headers: AuthManager.getAuthHeaders()
+            });
+            return await response.json();
+        } catch (error) {
+            console.error('Error fetching withdrawal requests:', error);
+            return [];
+        }
+    }
+}
 
-        // Map each column to element with same id
-        let boundCount = 0;
-        Object.entries(data).forEach(([col, val]) => {
-            // Handle special formatting for certain fields
-            let formattedValue = val;
-            
-            if (col === 'created_at' || col === 'last_login') {
-                formattedValue = formatDate(val);
-            } else if (col === 'all_time_earn' || col === 'total_withdrawn' || col === 'total_income') {
-                formattedValue = formatCurrency(val);
-            }
-            
-            if (setInnerTextIfExists(col, formattedValue)) {
-                boundCount++;
-                console.log(`🔗 Bound ${col} = ${formattedValue}`);
-            }
-        });
+// UI Renderer
+class UIRenderer {
+    static updateUserProfile(userData) {
+        if (!userData) return;
 
-        console.log(`📝 Bound ${boundCount} fields from ${table}`);
+        // Update user info
+        if (userInfoElements.userName) userInfoElements.userName.innerText = userData.user_name || 'N/A';
+        if (userInfoElements.userEmail) userInfoElements.userEmail.innerText = userData.email_address || 'N/A';
+        if (userInfoElements.userStatus) userInfoElements.userStatus.innerText = userData.status || 'N/A';
+        if (userInfoElements.userRank) userInfoElements.userRank.innerText = userData.rank || 'N/A';
+        if (userInfoElements.lastLogin) userInfoElements.lastLogin.innerText = 
+            userData.last_login ? new Date(userData.last_login).toLocaleDateString() : 'Never';
+        if (userInfoElements.totalIncome) userInfoElements.totalIncome.innerText = 
+            this.formatCurrency(userData.total_income) || '$0';
+    }
+
+    static updateEarnings(earningsData) {
+        if (!earningsData) return;
+
+        // Update earnings display
+        if (earningsElements.youtube) earningsElements.youtube.innerText = this.formatCurrency(earningsData.youtube);
+        if (earningsElements.tiktok) earningsElements.tiktok.innerText = this.formatCurrency(earningsData.tiktok);
+        if (earningsElements.trivia) earningsElements.trivia.innerText = this.formatCurrency(earningsData.trivia);
+        if (earningsElements.referral) earningsElements.referral.innerText = this.formatCurrency(earningsData.refferal);
+        if (earningsElements.bonus) earningsElements.bonus.innerText = this.formatCurrency(earningsData.bonus);
+        if (earningsElements.allTime) earningsElements.allTime.innerText = this.formatCurrency(earningsData.all_time_earn);
+        if (earningsElements.totalWithdrawn) earningsElements.totalWithdrawn.innerText = 
+            this.formatCurrency(earningsData.total_withdrawn);
         
-        // Also set an element with id equal to table name with the full JSON
-        setInnerTextIfExists(table, JSON.stringify(data, null, 2));
-
-        return data;
-    } catch (err) {
-        console.error('❌ Unexpected error in fetchAndBindRow:', err);
-        return null;
+        // Calculate and display available balance
+        if (earningsElements.availableBalance && earningsData.all_time_earn && earningsData.total_withdrawn) {
+            const available = earningsData.all_time_earn - earningsData.total_withdrawn;
+            earningsElements.availableBalance.innerText = this.formatCurrency(available);
+        }
     }
-}
 
-// Enhanced utility function with logging
-function setInnerTextIfExists(id, value) {
-    const el = document.getElementById(id);
-    if (!el) {
-        console.log(`🔍 Element with id "${id}" not found`);
-        return false;
-    }
-    
-    const displayValue = value === null || value === undefined ? '' : String(value);
-    el.innerText = displayValue;
-    console.log(`✅ Set #${id} = "${displayValue}"`);
-    return true;
-}
+    static updateContents(contents) {
+        if (!contentElements.container) return;
 
-// Check if user exists in your database
-async function findUserInDatabase(authUser) {
-    console.log('🔍 Looking for user in database:', authUser.email);
-    
-    const { data: userData, error: userError } = await supabase
-        .from('users')
-        .select('id, user_name, email_address')
-        .eq('email_address', authUser.email)
-        .maybeSingle();
-
-    if (userError) {
-        console.error('❌ Error finding user in database:', userError);
-        return null;
-    }
-    
-    if (!userData) {
-        console.warn('⚠️ User not found in database, creating new user...');
-        return await createUserInDatabase(authUser);
-    }
-    
-    console.log('✅ Found user in database:', userData);
-    return userData;
-}
-
-// Create user in database if they don't exist
-async function createUserInDatabase(authUser) {
-    console.log('👤 Creating new user in database...');
-    
-    const { data, error } = await supabase
-        .from('users')
-        .insert([
-            {
-                user_name: authUser.email.split('@')[0],
-                email_address: authUser.email,
-                created_at: new Date().toISOString(),
-                status: 'active',
-                total_income: 0
-            }
-        ])
-        .select()
-        .single();
-
-    if (error) {
-        console.error('❌ Error creating user:', error);
-        return null;
-    }
-    
-    console.log('✅ Created new user:', data);
-    return data;
-}
-
-// Main function to fetch all data
-async function fetchAllUserData() {
-    console.log('🚀 Starting to fetch all user data...');
-    showLoadingState(true);
-
-    try {
-        // First test the connection
-        const connectionOk = await testSupabaseConnection();
-        if (!connectionOk) {
-            showErrorMessage('Cannot connect to database. Please check your connection.');
+        if (contents.length === 0) {
+            contentElements.container.innerHTML = '<p class="no-content">No content available</p>';
             return;
         }
 
-        // Get authenticated user
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        let totalActions = 0;
+        const contentHTML = contents.map(content => {
+            totalActions += content.total_actions || 0;
+            return `
+                <div class="content-item">
+                    <h4>${content.content_title || 'Untitled'}</h4>
+                    <p>Type: ${content.content_type || 'N/A'}</p>
+                    <p>Actions: ${content.total_actions || 0}</p>
+                    <small>Created: ${new Date(content.created_at).toLocaleDateString()}</small>
+                </div>
+            `;
+        }).join('');
+
+        contentElements.container.innerHTML = contentHTML;
         
-        if (authError || !user) {
-            console.error('❌ Auth error:', authError);
-            showErrorMessage('Please log in to continue.');
+        if (contentElements.totalActions) {
+            contentElements.totalActions.innerText = totalActions;
+        }
+    }
+
+    static updatePaymentInfo(paymentInfo) {
+        if (!paymentInfo) return;
+
+        if (paymentElements.mobileNumber) paymentElements.mobileNumber.innerText = 
+            paymentInfo.mobile_number || 'Not set';
+        if (paymentElements.paymentMethod) paymentElements.paymentMethod.innerText = 
+            paymentInfo.payment_method || 'Not set';
+        if (paymentElements.email) paymentElements.email.innerText = 
+            paymentInfo.email || 'Not set';
+        if (paymentElements.notificationPref) paymentElements.notificationPref.innerText = 
+            paymentInfo.notification_preference || 'Default';
+    }
+
+    static updateWithdrawalRequests(requests) {
+        const container = document.getElementById('withdrawals-container');
+        if (!container) return;
+
+        if (requests.length === 0) {
+            container.innerHTML = '<p>No withdrawal requests</p>';
+            return;
+        }
+
+        const requestsHTML = requests.map(request => `
+            <div class="withdrawal-request">
+                <p>Amount: ${this.formatCurrency(request.amount)}</p>
+                <p>Method: ${request.payment_method}</p>
+                <p>Status: <span class="status-${request.status}">${request.status}</span></p>
+                <small>Requested: ${new Date(request.created_at).toLocaleDateString()}</small>
+            </div>
+        `).join('');
+
+        container.innerHTML = requestsHTML;
+    }
+
+    static formatCurrency(amount) {
+        if (amount === null || amount === undefined) return '$0';
+        return new Intl.NumberFormat('en-US', {
+            style: 'currency',
+            currency: 'USD'
+        }).format(amount);
+    }
+
+    static showError(message) {
+        // Create or update error display element
+        let errorDiv = document.getElementById('error-message');
+        if (!errorDiv) {
+            errorDiv = document.createElement('div');
+            errorDiv.id = 'error-message';
+            errorDiv.className = 'error-message';
+            document.body.prepend(errorDiv);
+        }
+        errorDiv.innerText = message;
+        errorDiv.style.display = 'block';
+
+        setTimeout(() => {
+            errorDiv.style.display = 'none';
+        }, 5000);
+    }
+
+    static showLoading(show = true) {
+        const loadingIndicator = document.getElementById('loading-indicator');
+        if (loadingIndicator) {
+            loadingIndicator.style.display = show ? 'block' : 'none';
+        }
+    }
+}
+
+// Main Application Controller
+class AppController {
+    static async initialize() {
+        // Check authentication
+        if (!AuthManager.isAuthenticated()) {
             window.location.href = '/login.html';
             return;
         }
 
-        console.log('✅ Authenticated user:', user);
-
-        // Find user in database
-        const dbUser = await findUserInDatabase(user);
-        if (!dbUser) {
-            showErrorMessage('User account not found. Please contact support.');
-            return;
-        }
-
-        const userId = dbUser.id;
-        console.log(`🆗 Using user ID: ${userId}`);
-
-        // Fetch all user data
-        console.log('📥 Fetching user profile...');
-        await fetchAndBindRow('users', 'id', userId, { 
-            select: 'id, user_name, email_address, created_at, status, rank, last_login, total_income' 
-        });
-
-        console.log('📥 Fetching earnings...');
-        await fetchAndBindRow('earnings', 'id', userId);
-
-        console.log('📥 Fetching payment information...');
-        await fetchAndBindRow('payment_information', 'id', userId);
-
-        // Test: Check what elements exist on the page
-        console.log('🔍 Checking available elements on page:');
-        const testElements = ['user_name', 'email_address', 'total_income', 'youtube', 'tiktok', 'all_time_earn'];
-        testElements.forEach(id => {
-            const el = document.getElementById(id);
-            console.log(`   ${el ? '✅' : '❌'} Element #${id}: ${el ? 'EXISTS' : 'MISSING'}`);
-        });
-
-    } catch (error) {
-        console.error('❌ Unexpected error:', error);
-        showErrorMessage('Failed to load user data: ' + error.message);
-    } finally {
-        showLoadingState(false);
-        console.log('🏁 Finished fetching user data');
-    }
-}
-
-// Rest of your helper functions (keep these the same)
-function formatDate(dateString) {
-    if (!dateString) return 'N/A';
-    const options = { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' };
-    return new Date(dateString).toLocaleDateString(undefined, options);
-}
-
-function formatCurrency(amount) {
-    if (amount === null || amount === undefined) return 'UGX 0';
-    return `UGX ${Number(amount).toLocaleString()}`;
-}
-
-function showLoadingState(show) {
-    const loader = document.getElementById('loadingIndicator');
-    if (loader) {
-        loader.style.display = show ? 'block' : 'none';
-        console.log(show ? '🔄 Showing loader' : '✅ Hiding loader');
-    }
-}
-
-function showErrorMessage(message) {
-    console.error('💥 Error:', message);
-    const errorEl = document.getElementById('errorMessage') || createErrorMessageElement();
-    errorEl.textContent = message;
-    errorEl.style.display = 'block';
-}
-
-function createErrorMessageElement() {
-    const errorEl = document.createElement('div');
-    errorEl.id = 'errorMessage';
-    errorEl.style.cssText = 'background: #fee; border: 1px solid #f00; color: #c00; padding: 10px; margin: 10px;';
-    document.body.prepend(errorEl);
-    return errorEl;
-}
-
-// Initialize app
-async function initializeApp() {
-    console.log('🎯 Initializing application...');
-    
-    try {
-        const { data: { session } } = await supabase.auth.getSession();
-        console.log('🔐 Session:', session);
-
-        if (!session) {
-            console.log('❌ No session, redirecting to login...');
-            window.location.href = '/login.html';
-            return;
-        }
-
-        await fetchAllUserData();
+        // Load all user data
+        await this.loadUserData();
         
-    } catch (error) {
-        console.error('💥 Failed to initialize app:', error);
-        showErrorMessage('Application error: ' + error.message);
+        // Set up auto-refresh (optional)
+        this.setupAutoRefresh();
+        
+        // Set up event listeners
+        this.setupEventListeners();
+    }
+
+    static async loadUserData() {
+        try {
+            UIRenderer.showLoading(true);
+
+            // Fetch all data in parallel
+            const [userData, earnings, contents, paymentInfo, withdrawals] = await Promise.all([
+                DataFetcher.fetchUserData(),
+                DataFetcher.fetchEarnings(),
+                DataFetcher.fetchContents(),
+                DataFetcher.fetchPaymentInfo(),
+                DataFetcher.fetchWithdrawalRequests()
+            ]);
+
+            // Update UI with fetched data
+            UIRenderer.updateUserProfile(userData);
+            UIRenderer.updateEarnings(earnings);
+            UIRenderer.updateContents(contents);
+            UIRenderer.updatePaymentInfo(paymentInfo);
+            UIRenderer.updateWithdrawalRequests(withdrawals);
+
+        } catch (error) {
+            UIRenderer.showError('Failed to load user data. Please try again.');
+            console.error('Data loading error:', error);
+        } finally {
+            UIRenderer.showLoading(false);
+        }
+    }
+
+    static setupAutoRefresh() {
+        // Refresh data every 5 minutes
+        setInterval(() => {
+            if (document.visibilityState === 'visible') {
+                this.loadUserData();
+            }
+        }, 300000); // 5 minutes
+    }
+
+    static setupEventListeners() {
+        // Logout button
+        const logoutBtn = document.getElementById('logout-btn');
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', AuthManager.logout);
+        }
+
+        // Refresh button
+        const refreshBtn = document.getElementById('refresh-btn');
+        if (refreshBtn) {
+            refreshBtn.addEventListener('click', () => this.loadUserData());
+        }
+
+        // Withdrawal form submission
+        const withdrawForm = document.getElementById('withdraw-form');
+        if (withdrawForm) {
+            withdrawForm.addEventListener('submit', this.handleWithdrawalSubmit);
+        }
+    }
+
+    static async handleWithdrawalSubmit(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(e.target);
+        const withdrawalData = {
+            payment_method: formData.get('payment_method'),
+            phone_number: formData.get('phone_number'),
+            email: formData.get('email'),
+            amount: formData.get('amount')
+        };
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/withdrawals`, {
+                method: 'POST',
+                headers: AuthManager.getAuthHeaders(),
+                body: JSON.stringify(withdrawalData)
+            });
+
+            if (response.ok) {
+                alert('Withdrawal request submitted successfully!');
+                e.target.reset();
+                await this.loadUserData(); // Refresh data
+            } else {
+                throw new Error('Withdrawal request failed');
+            }
+        } catch (error) {
+            UIRenderer.showError('Failed to submit withdrawal request');
+        }
     }
 }
 
-// Start the app when DOM is loaded
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('📄 DOM loaded, starting app...');
-    initializeApp();
+// Initialize app when DOM is loaded
+document.addEventListener('DOMContentLoaded', () => {
+    AppController.initialize();
 });
 
-// Add a manual test function you can run in browser console
-window.testConnection = testSupabaseConnection;
-window.reloadData = fetchAllUserData;
+// Handle page visibility change
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+        AppController.loadUserData();
+    }
+});

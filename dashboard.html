@@ -10,10 +10,15 @@
     
     <!-- Then load your custom scripts -->
     <script src="reffeSys.js" defer></script>
-    
-    <!-- Remove or fix these problematic scripts -->
-    <!-- <script src="greenqash.js"></script> --> <!-- This file doesn't exist -->
-    <!-- <script src="server.js"></script> --> <!-- This has syntax errors -->
+
+    <!-- Frontend API base: leave blank for same-origin, or set to your API root. -->
+    <script>
+        // DON'T put secret keys here. Backend should read `.env` and provide an API.
+        window.API_BASE_URL = '';
+    </script>
+
+    <!-- Load the dashboard controller (uses API endpoints defined by window.API_BASE_URL) -->
+    <script src="server.js" defer></script>
 
     <link rel="icon" href="android-chrome-512x512.png">
     <link rel="stylesheet" href="dashboard.css">
