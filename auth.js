@@ -27,6 +27,13 @@ async function checkCurrentSession() {
     try {
         const { data: { session } } = await supabase.auth.getSession()
         if (session) {
+            // Persist session for the frontend controller
+            try {
+                if (session.access_token) localStorage.setItem('authToken', session.access_token)
+                if (session.user && session.user.id) localStorage.setItem('userId', session.user.id)
+            } catch (err) {
+                console.warn('Could not persist session to localStorage', err)
+            }
             console.log('User already logged in, checking role...')
             const redirectUrl = await getUserRedirectUrl(session.user.email)
             window.location.href = redirectUrl
@@ -100,6 +107,18 @@ async function handleLogin(e) {
         
         if (error) throw error
         
+        // Persist token and userId so the frontend can call API endpoints
+        try {
+            if (data.session && data.session.access_token) {
+                localStorage.setItem('authToken', data.session.access_token)
+            }
+            if (data.user && data.user.id) {
+                localStorage.setItem('userId', data.user.id)
+            }
+        } catch (err) {
+            console.warn('Could not persist auth info to localStorage', err)
+        }
+
         // Create user in public table if needed
         await createUserInPublicTable(data.user, email)
         
@@ -239,6 +258,13 @@ function showNotification(message, isError = false) {
 supabase.auth.onAuthStateChange(async (event, session) => {
     console.log('Auth event:', event)
     if (event === 'SIGNED_IN' && session) {
+        // Persist token and userId on sign-in
+        try {
+            if (session.access_token) localStorage.setItem('authToken', session.access_token)
+            if (session.user && session.user.id) localStorage.setItem('userId', session.user.id)
+        } catch (err) {
+            console.warn('Could not persist auth info to localStorage', err)
+        }
         try {
             const redirectUrl = await getUserRedirectUrl(session.user.email)
             window.location.href = redirectUrl
