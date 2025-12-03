@@ -39,6 +39,7 @@ async function checkCurrentSession() {
             try {
                 if (session.access_token) localStorage.setItem('authToken', session.access_token)
                 if (session.user && session.user.id) localStorage.setItem('userId', session.user.id)
+                    if (session.user && session.user.email) localStorage.setItem('userEmail', session.user.email)
             } catch (err) {
                 console.warn('Could not persist session to localStorage', err)
             }
@@ -135,6 +136,9 @@ async function handleLogin(e) {
             if (data.user && data.user.id) {
                 localStorage.setItem('userId', data.user.id)
             }
+                if (data.user && data.user.email) {
+                    localStorage.setItem('userEmail', data.user.email)
+                }
         } catch (err) {
             console.warn('Could not persist auth info to localStorage', err)
         }
@@ -282,6 +286,7 @@ supabase.auth.onAuthStateChange(async (event, session) => {
         try {
             if (session.access_token) localStorage.setItem('authToken', session.access_token)
             if (session.user && session.user.id) localStorage.setItem('userId', session.user.id)
+                if (session.user && session.user.email) localStorage.setItem('userEmail', session.user.email)
         } catch (err) {
             console.warn('Could not persist auth info to localStorage', err)
         }

@@ -67,18 +67,47 @@ class AuthManager {
     }
 
     static logout() {
+        // Clear local storage and sign out from Supabase if available
         localStorage.removeItem('authToken');
         localStorage.removeItem('userId');
+        localStorage.removeItem('userEmail');
         currentUser = null;
-        window.location.href = '/login.html';
+        if (typeof window !== 'undefined' && window.supabase) {
+            try { window.supabase.auth.signOut(); } catch (e) { /* ignore */ }
+        }
+        // Redirect to the app entry (index.html) which contains auth UI
+        window.location.href = '/index.html';
     }
 
-    static isAuthenticated() {
-        return !!localStorage.getItem('authToken');
+    static async isAuthenticated() {
+        // Prefer localStorage token (fast). If missing, attempt to recover from
+        // the Supabase client session and persist it so other modules can use it.
+        const token = localStorage.getItem('authToken');
+        if (token) return true;
+
+        if (typeof window !== 'undefined' && window.supabase) {
+            try {
+                const { data: { session } } = await window.supabase.auth.getSession();
+                if (session) {
+                    if (session.access_token) localStorage.setItem('authToken', session.access_token);
+                    if (session.user && session.user.id) localStorage.setItem('userId', session.user.id);
+                    if (session.user && session.user.email) localStorage.setItem('userEmail', session.user.email);
+                    return true;
+                }
+            } catch (err) {
+                console.warn('AuthManager: could not recover session from Supabase', err);
+            }
+        }
+
+        return false;
     }
 
     static getCurrentUserId() {
         return localStorage.getItem('userId');
+    }
+
+    static getCurrentUserEmail() {
+        return localStorage.getItem('userEmail');
     }
 
     static getAuthHeaders() {
@@ -93,18 +122,20 @@ class AuthManager {
 // Data Fetcher with User-specific Queries
 class DataFetcher {
     static async fetchUserData() {
-        const userId = AuthManager.getCurrentUserId();
-        if (!userId) throw new Error('User not authenticated');
+        // Prefer querying by email because the public `users` table uses
+        // `email_address` as the lookup key in this project.
+        const userEmail = AuthManager.getCurrentUserEmail() || localStorage.getItem('userEmail');
+        if (!userEmail) throw new Error('User not authenticated (email missing)');
 
-        // If a backend API base is configured, prefer it. Otherwise fall back
-        // to the client-side Supabase instance (if available) so the dashboard
-        // can still load when the proxy API isn't running.
+        // If a backend API base is configured, prefer it. The API should
+        // accept an email query param when looking up a user.
         if (API_BASE_URL) {
             try {
-                const response = await fetch(`${API_BASE_URL}/users/${userId}`, {
+                const url = `${API_BASE_URL}/users?email=${encodeURIComponent(userEmail)}`;
+                const response = await fetch(url, {
                     headers: AuthManager.getAuthHeaders()
                 });
-                if (!response.ok) throw new Error('Failed to fetch user data');
+                if (!response.ok) throw new Error(`Failed to fetch user data: ${response.status}`);
                 return await response.json();
             } catch (error) {
                 console.error('Error fetching user data from API:', error);
@@ -112,24 +143,24 @@ class DataFetcher {
             }
         }
 
-        // Client-side Supabase fallback
+        // Client-side Supabase fallback - query by email_address
         if (typeof window !== 'undefined' && window.supabase) {
             try {
                 const { data, error } = await window.supabase
                     .from('users')
                     .select('id, user_name, email_address, status, rank, last_login, total_income')
-                    .eq('id', userId)
+                    .eq('email_address', userEmail)
                     .maybeSingle();
 
-                if (error) throw error
-                return data
+                if (error) throw error;
+                return data;
             } catch (err) {
-                console.error('Client-side Supabase fetchUserData failed:', err)
-                throw err
+                console.error('Client-side Supabase fetchUserData failed:', err);
+                throw err;
             }
         }
 
-        throw new Error('No API_BASE_URL configured and no client-side supabase available')
+        throw new Error('No API_BASE_URL configured and no client-side supabase available');
     }
 
     static async fetchEarnings() {
@@ -395,9 +426,9 @@ class UIRenderer {
 // Main Application Controller
 class AppController {
     static async initialize() {
-        // Check authentication
-        if (!AuthManager.isAuthenticated()) {
-            window.location.href = '/login.html';
+        // Check authentication (attempt to recover session if needed)
+        if (!(await AuthManager.isAuthenticated())) {
+            window.location.href = '/index.html';
             return;
         }
 
