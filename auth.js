@@ -1,7 +1,9 @@
 // auth.js - Updated with role-based redirect logic
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
 
-// Credentials: prefer window.SUPABASE_CONFIG (from config.js), fall back to hardcoded defaults
+// Credentials: prefer window.SUPABASE_CONFIG (from optional config.js),
+// fall back to hardcoded defaults. config.js is optional; if not loaded,
+// window.SUPABASE_CONFIG will be undefined and we use the defaults below.
 const config = (typeof window !== 'undefined' && window.SUPABASE_CONFIG) || {}
 const supabaseUrl = config.url || 'https://kwghulqonljulmvlcfnz.supabase.co'
 const supabaseKey = config.key || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt3Z2h1bHFvbmxqdWxtdmxjZm56Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM5NzcyMDcsImV4cCI6MjA3OTU1MzIwN30.hebcPqAvo4B23kx4gdWuXTJhmx7p8zSHHEYSkPzPhcM'

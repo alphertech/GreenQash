@@ -103,7 +103,18 @@
     </div>
 
     <div class="notification" id="notification"></div>
-    <script src="config.js"></script>
+    <!-- Load optional config.js (contains Supabase credentials). If not found, auth.js uses defaults. -->
+    <script>
+        // Try to load config.js; if it fails (404), window.SUPABASE_CONFIG will remain undefined
+        // and auth.js will use fallback hardcoded credentials.
+        (function() {
+            const script = document.createElement('script');
+            script.src = 'config.js';
+            script.onerror = () => console.warn('config.js not found; using default Supabase credentials');
+            script.onload = () => console.log('✓ config.js loaded');
+            document.head.appendChild(script);
+        })();
+    </script>
     <script type="module" src="auth.js"></script>
 </body>
 </html>

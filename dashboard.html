@@ -8,8 +8,16 @@
     <!-- Load Supabase FIRST -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/supabase.min.js"></script>
     
-    <!-- Load Supabase config (credentials) -->
-    <script src="config.js"></script>
+    <!-- Load optional config.js (contains Supabase credentials). If not found, auth.js/server.js use defaults. -->
+    <script>
+        (function() {
+            const script = document.createElement('script');
+            script.src = 'config.js';
+            script.onerror = () => console.warn('config.js not found; using default Supabase credentials');
+            script.onload = () => console.log('✓ config.js loaded');
+            document.head.appendChild(script);
+        })();
+    </script>
     
     <!-- Then load your custom scripts -->
     <script src="reffeSys.js" defer></script>
