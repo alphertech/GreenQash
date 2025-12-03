@@ -1,6 +1,17 @@
 {
+  "name": "greenqash-root",
+  "private": true,
   "dependencies": {
     "@supabase/supabase-js": "^2.56.0",
     "dotenv": "^17.2.3"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.0",
+    "http-server": "^14.1.1"
+  },
+  "scripts": {
+    "start-api": "node api/index.js",
+    "start-frontend": "http-server -c-1 -p 8080",
+    "start": "concurrently \"npm: start-api\" \"npm: start-frontend\""
   }
 }
