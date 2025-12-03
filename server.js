@@ -7,6 +7,37 @@
 const API_BASE_URL = (typeof window !== 'undefined' && window.API_BASE_URL) ? window.API_BASE_URL : '';
 let currentUser = null;
 
+// Ensure a Supabase client is available on pages that don't load `auth.js`.
+// `auth.js` normally creates `window.supabase` (the client). When
+// `dashboard.html` is loaded directly, that may not have happened. The
+// CDN UMD exposes a factory with `createClient`. Normalize creation and
+// expose the client as `window.supabaseClient` so DataFetcher can use it.
+if (typeof window !== 'undefined' && !window.supabaseClient) {
+    try {
+        const cfg = window.SUPABASE_CONFIG || {};
+        const url = cfg.url || 'https://kwghulqonljulmvlcfnz.supabase.co';
+        const key = cfg.key || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt3Z2h1bHFvbmxqdWxtdmxjZm56Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM5NzcyMDcsImV4cCI6MjA3OTU1MzIwN30.hebcPqAvo4B23kx4gdWuXTJhmx7p8zSHHEYSkPzPhcM';
+
+        // UMD: global `supabase` contains factory with `createClient`.
+        if (window.supabase && typeof window.supabase.createClient === 'function') {
+            window.supabaseClient = window.supabase.createClient(url, key);
+            console.log('Supabase client initialized via UMD factory (window.supabase.createClient)');
+        }
+        // ESM or other: global `createClient` function
+        else if (typeof createClient === 'function') {
+            window.supabaseClient = createClient(url, key);
+            console.log('Supabase client initialized via createClient');
+        }
+        // Fallback: if auth.js already created the client in window.supabase, use it
+        else if (window.supabase && window.supabase.auth) {
+            window.supabaseClient = window.supabase;
+            console.log('Using existing window.supabase as supabaseClient');
+        }
+    } catch (err) {
+        console.warn('Could not initialize Supabase client in server.js', err);
+    }
+}
+
 // DOM Elements (assuming these IDs exist in your HTML)
 // Match the IDs used in `dashboard.html` (underscore style)
 const userInfoElements = {
