@@ -10,6 +10,7 @@
   "scripts": {
     "start-api": "node api/index.js",
     "start-frontend": "http-server -c-1 -p 8080",
-    "start": "concurrently \"npm:start-api\" \"npm:start-frontend\""
+    "dev": "concurrently \"npm:start-api\" \"npm:start-frontend\"",
+    "start": "node api/index.js"
   }
 }

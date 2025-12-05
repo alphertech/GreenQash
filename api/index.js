@@ -19,6 +19,7 @@ app.use(cors({ origin: true }))
 app.use(express.json())
 
 const PORT = process.env.PORT || 3000
+const HOST = process.env.HOST || '0.0.0.0'
 
 app.get('/health', (req, res) => res.json({ ok: true }))
 
@@ -129,6 +130,16 @@ app.post('/withdrawals', async (req, res) => {
   }
 })
 
-app.listen(PORT, () => {
-  console.log(`API server listening on http://localhost:${PORT}`)
+app.listen(PORT, HOST, () => {
+  console.log(`API server listening on http://${HOST}:${PORT}`)
+})
+
+// Graceful error handling for uncaught exceptions and rejections
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught exception:', err)
+  process.exit(1)
+})
+process.on('unhandledRejection', (reason, p) => {
+  console.error('Unhandled Rejection at:', p, 'reason:', reason)
+  process.exit(1)
 })
