@@ -24,8 +24,10 @@
 
     <!-- Frontend API base: leave blank for same-origin, or set to your API root. -->
     <script>
-        // DON'T put secret keys here. Backend should read `.env` and provide an API.
-        window.API_BASE_URL = '';
+        // Determine API base. Prefer an explicitly set `window.API_BASE_URL`,
+        // then `window.SUPABASE_CONFIG.apiBase` (from config.js), otherwise
+        // default to empty string (same-origin).
+        window.API_BASE_URL = window.API_BASE_URL || (window.SUPABASE_CONFIG && window.SUPABASE_CONFIG.apiBase) || '';
     </script>
 
     <!-- Load the dashboard controller (uses API endpoints defined by window.API_BASE_URL) -->
