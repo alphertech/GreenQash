@@ -3,8 +3,9 @@
   "private": true,
   "dependencies": {
     "@supabase/supabase-js": "^2.56.0",
-    "dotenv": "^17.2.3",
     "concurrently": "^8.2.0",
+    "dotenv": "^17.2.3",
+    "express": "^5.2.1",
     "http-server": "^14.1.1"
   },
   "scripts": {
@@ -12,5 +13,19 @@
     "start-frontend": "http-server -c-1 -p 8080",
     "dev": "concurrently \"npm:start-api\" \"npm:start-frontend\"",
     "start": "node api/index.js"
-  }
+  },
+  "version": "1.0.0",
+  "main": "activity.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/alphertech/GreenQash.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/alphertech/GreenQash/issues"
+  },
+  "homepage": "https://github.com/alphertech/GreenQash#readme",
+  "description": ""
 }
