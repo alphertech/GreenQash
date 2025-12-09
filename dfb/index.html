@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FarmBoy Pro - Enhanced Chat Assistant</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .chat-container {
+            width: 100%;
+            max-width: 800px;
+            height: 90vh;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .chat-header {
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .chat-header h2 {
+            margin-bottom: 10px;
+            font-size: 24px;
+        }
+
+        .topic-selector {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: #f8f9fa;
+        }
+
+        .chat-form {
+            display: flex;
+            padding: 20px;
+            border-top: 1px solid #eee;
+            background: white;
+        }
+
+        #chat-input {
+            flex: 1;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 25px;
+            font-size: 16px;
+            resize: none;
+            outline: none;
+            transition: border-color 0.3s;
+            max-height: 150px;
+        }
+
+        #chat-input:focus {
+            border-color: #4CAF50;
+        }
+
+        .chat-form button {
+            margin-left: 10px;
+            padding: 12px 25px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: transform 0.2s;
+        }
+
+        .chat-form button:hover {
+            transform: translateY(-2px);
+        }
+
+        .chat-footer {
+            padding: 10px 20px;
+            background: #f8f9fa;
+            text-align: center;
+            color: #666;
+            font-size: 12px;
+            border-top: 1px solid #eee;
+        }
+
+        @media (max-width: 768px) {
+            .chat-container {
+                height: 95vh;
+                border-radius: 10px;
+            }
+
+            .topic-selector {
+                gap: 5px;
+            }
+
+            .topic-btn {
+                padding: 6px 12px;
+                font-size: 12px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="chat-container">
+        <div class="chat-header">
+            <h2>🌾 FarmBoy Pro Assistant</h2>
+            <div class="chat-context">
+                Current mode: <span id="chat-mode">General Chat</span>
+            </div>
+            <div class="topic-selector">
+                <button class="topic-btn active" data-topic="general">🌐 General</button>
+                <button class="topic-btn" data-topic="business">💼 Business</button>
+                <button class="topic-btn" data-topic="life">🌱 Life</button>
+                <button class="topic-btn" data-topic="global">🌍 Global</button>
+                <button class="topic-btn" data-topic="tech">💻 Tech</button>
+            </div>
+        </div>
+
+        <div id="chat-messages" class="chat-messages">
+            <!-- Messages will appear here -->
+        </div>
+
+        <form id="chat-form" class="chat-form">
+            <textarea id="chat-input"
+                placeholder="Ask me anything about business, life, global trends... (Shift+Enter for new line)"
+                rows="1"></textarea>
+            <button type="submit">Send</button>
+        </form>
+
+        <div class="chat-footer">
+            <small>FarmBoy Pro v2.0 | Ethical AI Assistant | From GreenQash Uganda 🌍 | Type 'clear' to reset
+                chat</small>
+        </div>
+    </div>
+
+    <script src="farmboy-pro.js"></script>
+</body>
+
+</html>
