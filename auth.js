@@ -7,7 +7,7 @@ console.log('Supabase loaded:', typeof window.supabase, typeof createClient);
 const CONFIG = {
     supabase: {
         url: window.SUPABASE_CONFIG?.url || 'https://kwghulqonljulmvlcfnz.supabase.co',
-        key: window.SUPABASE_CONFIG?.key || '',
+        key: window.SUPABASE_CONFIG?.key || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt3Z2h1bHFvbmxqdWxtdmxjZm56Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzY3NjYwMjMsImV4cCI6MjA1MjM0MjAyM30.HhhHRi0v9wuy4qYFfXkXXmC8LZXoG32nGTNfJuf4hRc',
         apiBase: window.API_BASE_URL || window.SUPABASE_CONFIG?.apiBase || ''
     }
 };
@@ -73,6 +73,8 @@ class SupabaseService {
         
         try {
             console.log('Initializing Supabase...');
+            console.log('Supabase URL:', CONFIG.supabase.url);
+            console.log('Supabase Key available:', !!CONFIG.supabase.key);
             
             // Wait for Supabase to be available globally
             await this.waitForSupabase();
@@ -81,8 +83,18 @@ class SupabaseService {
             const supabaseUrl = CONFIG.supabase.url;
             const supabaseKey = CONFIG.supabase.key;
             
-            if (!supabaseUrl || !supabaseKey) {
-                console.warn('Supabase URL or Key is missing');
+            if (!supabaseUrl) {
+                console.error('Supabase URL is missing');
+                return null;
+            }
+            
+            if (!supabaseKey) {
+                console.error('Supabase Key is missing. Please check your configuration.');
+                // Show user-friendly message
+                if (Elements.notification) {
+                    Elements.notification.textContent = 'Authentication service configuration is incomplete. Please contact support.';
+                    Elements.notification.classList.add('error', 'show');
+                }
                 return null;
             }
             
@@ -510,4 +522,3 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 });
-
