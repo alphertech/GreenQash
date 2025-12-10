@@ -12,6 +12,12 @@ const CONFIG = {
     }
 };
 
+console.log('Supabase Config:', {
+    url: CONFIG.supabase.url,
+    keyLength: CONFIG.supabase.key?.length || 0,
+    keyPreview: CONFIG.supabase.key ? CONFIG.supabase.key.substring(0, 20) + '...' : 'No key'
+});
+
 // DOM Elements Cache
 const Elements = {
     // Form toggle buttons
@@ -74,7 +80,7 @@ class SupabaseService {
         try {
             console.log('Initializing Supabase...');
             console.log('Supabase URL:', CONFIG.supabase.url);
-            console.log('Supabase Key available:', !!CONFIG.supabase.key);
+            console.log('Supabase Key length:', CONFIG.supabase.key?.length || 0);
             
             // Wait for Supabase to be available globally
             await this.waitForSupabase();
@@ -88,11 +94,13 @@ class SupabaseService {
                 return null;
             }
             
-            if (!supabaseKey) {
-                console.error('Supabase Key is missing. Please check your configuration.');
+            if (!supabaseKey || supabaseKey.length < 100) {
+                console.error('Supabase Key is invalid or too short. Please check your configuration.');
+                console.error('Current key:', supabaseKey);
+                
                 // Show user-friendly message
                 if (Elements.notification) {
-                    Elements.notification.textContent = 'Authentication service configuration is incomplete. Please contact support.';
+                    Elements.notification.textContent = 'Authentication service configuration error. Please check your API key.';
                     Elements.notification.classList.add('error', 'show');
                 }
                 return null;
@@ -123,6 +131,17 @@ class SupabaseService {
                 throw new Error('Failed to create Supabase client');
             }
             
+            // Test the connection
+            try {
+                const { error } = await this.client.auth.getSession();
+                if (error && error.message.includes('JWT')) {
+                    console.error('Invalid Supabase key detected:', error.message);
+                    throw new Error('Invalid API key configuration');
+                }
+            } catch (testError) {
+                console.warn('Session test failed (may be normal for new users):', testError.message);
+            }
+            
             this.isInitialized = true;
             console.log('Supabase initialized successfully');
             
@@ -136,9 +155,15 @@ class SupabaseService {
             this.isInitialized = false;
             this.client = null;
             
-            // Show user-friendly message
+            // Show user-friendly message based on error type
+            let errorMessage = 'Authentication service is temporarily unavailable. Please try again later.';
+            
+            if (error.message.includes('API key') || error.message.includes('JWT') || error.message.includes('Invalid')) {
+                errorMessage = 'Authentication service configuration error. Please contact the administrator.';
+            }
+            
             if (Elements.notification) {
-                Elements.notification.textContent = 'Authentication service is temporarily unavailable. Please try again later.';
+                Elements.notification.textContent = errorMessage;
                 Elements.notification.classList.add('error', 'show');
             }
             
@@ -335,7 +360,18 @@ class AuthManager {
                 password
             });
             
-            if (error) throw error;
+            if (error) {
+                // Handle specific error cases
+                if (error.message.includes('Invalid login credentials')) {
+                    throw new Error('Invalid email or password. Please try again.');
+                } else if (error.message.includes('Email not confirmed')) {
+                    throw new Error('Please verify your email address before logging in.');
+                } else if (error.message.includes('Invalid API key') || error.status === 401) {
+                    throw new Error('Authentication service error. Please contact support.');
+                } else {
+                    throw error;
+                }
+            }
             
             // Persist session data
             this.persistSession(data.session);
@@ -353,7 +389,7 @@ class AuthManager {
             
         } catch (error) {
             console.error('Login error:', error);
-            this.showNotification(error.message || 'Login failed. Please check your credentials.', true);
+            this.showNotification(error.message || 'Login failed. Please check your credentials and try again.', true);
         }
     }
     
@@ -402,7 +438,16 @@ class AuthManager {
                 }
             });
             
-            if (error) throw error;
+            if (error) {
+                // Handle specific error cases
+                if (error.message.includes('User already registered')) {
+                    throw new Error('This email is already registered. Please login instead.');
+                } else if (error.message.includes('Invalid API key') || error.status === 401) {
+                    throw new Error('Registration service error. Please contact support.');
+                } else {
+                    throw error;
+                }
+            }
             
             // Create user in public table
             if (data.user) {
