@@ -1,14 +1,36 @@
-// Configuration
-const SUPABASE_CONFIG = {
-    url: window.SUPABASE_CONFIG?.url || 'https://kwghulqonljulmvlcfnz.supabase.co',
-    key: window.SUPABASE_CONFIG?.key || '',
-    apiBase: window.API_BASE_URL || window.SUPABASE_CONFIG?.apiBase || ''
+// Configuration - Consolidated configuration
+const CONFIG = {
+    supabase: {
+        url: window.SUPABASE_CONFIG?.url || 'https://kwghulqonljulmvlcfnz.supabase.co',
+        key: window.SUPABASE_CONFIG?.key || '',
+        apiBase: window.API_BASE_URL || window.SUPABASE_CONFIG?.apiBase || ''
+    }
+};
+
+// DOM Elements Cache
+const DOM = {
+    elements: {},
+    
+    get(id) {
+        if (!this.elements[id]) {
+            this.elements[id] = document.getElementById(id);
+        }
+        return this.elements[id];
+    },
+    
+    getUsername() {
+        const usernameElem = this.get('username00');
+        if (!usernameElem) return '';
+        
+        return usernameElem.tagName === 'INPUT' 
+            ? usernameElem.value.trim() 
+            : usernameElem.textContent.trim();
+    }
 };
 
 // Utility Functions
-const Utils = {
-    // Fixed: greetings to users with proper Date usage
-    greetUser: () => {
+class Utils {
+    static greetUser() {
         const hour = new Date().getHours();
         let message = "";
         
@@ -20,281 +42,294 @@ const Utils = {
             message = "Good Evening";
         }
         
-        const greetingsElement = document.getElementById("greetings");
+        const greetingsElement = DOM.get("greetings");
         if (greetingsElement) {
             greetingsElement.innerText = message;
         }
-    },
-
-    getUsername: () => {
-        const usernameElem = document.getElementById('username00');
-        if (!usernameElem) return '';
+    }
+    
+    static showNotification(message, type = 'success', duration = 2000) {
+        const notification = DOM.get('notification');
+        if (!notification) return;
         
-        return usernameElem.tagName === 'INPUT' 
-            ? usernameElem.value.trim() 
-            : usernameElem.textContent.trim();
-    },
-
-    showNotification: (element, message, duration = 2000) => {
-        if (!element) return;
-        
-        element.textContent = message;
-        element.classList.add('show');
+        notification.textContent = message;
+        notification.className = `notification ${type} show`;
         
         setTimeout(() => {
-            element.classList.remove('show');
+            notification.classList.remove('show');
         }, duration);
     }
-};
-
-// Clipboard Manager
-class ClipboardManager {
-    constructor(inputElement, buttonElement, notificationElement) {
-        this.input = inputElement;
-        this.button = buttonElement;
-        this.notification = notificationElement;
-    }
-
-    async copyToClipboard() {
-        if (!this.input || !this.button) return false;
-        
+    
+    static async copyToClipboard(text) {
         try {
-            this.input.focus();
-            this.input.select();
-            this.input.setSelectionRange(0, 99999);
-            
-            let copied = false;
-            
             // Modern Clipboard API
             if (navigator.clipboard && window.isSecureContext) {
-                await navigator.clipboard.writeText(this.input.value);
-                copied = true;
-            } else {
-                // Fallback
-                copied = document.execCommand('copy');
-            }
-            
-            if (copied) {
-                this.handleCopySuccess();
+                await navigator.clipboard.writeText(text);
                 return true;
+            } else {
+                // Fallback for older browsers/HTTP
+                const textArea = document.createElement('textarea');
+                textArea.value = text;
+                textArea.style.position = 'fixed';
+                textArea.style.opacity = '0';
+                document.body.appendChild(textArea);
+                textArea.select();
+                const success = document.execCommand('copy');
+                document.body.removeChild(textArea);
+                return success;
             }
-            return false;
         } catch (error) {
             console.error('Copy failed:', error);
-            this.handleCopyError();
             return false;
         }
     }
+}
 
-    handleCopySuccess() {
-        this.button.textContent = 'Copied!';
-        this.button.classList.add('copied');
-        
-        Utils.showNotification(this.notification, 'Link copied successfully!');
-        
-        setTimeout(() => {
-            this.button.textContent = 'Copy Link';
-            this.button.classList.remove('copied');
-        }, 2000);
+// Supabase Service
+class SupabaseService {
+    static client = null;
+    
+    static initialize() {
+        try {
+            // Check if Supabase is available globally
+            if (window.supabase && typeof window.supabase.createClient === 'function') {
+                this.client = window.supabase.createClient(CONFIG.supabase.url, CONFIG.supabase.key);
+                console.log('Supabase client initialized successfully');
+                return this.client;
+            }
+            
+            // Alternative global function
+            if (typeof createClient === 'function') {
+                this.client = createClient(CONFIG.supabase.url, CONFIG.supabase.key);
+                console.log('Supabase client initialized via createClient');
+                return this.client;
+            }
+            
+            console.warn('Supabase SDK not loaded. Please include Supabase CDN.');
+            return null;
+        } catch (error) {
+            console.error('Failed to initialize Supabase:', error);
+            return null;
+        }
     }
+    
+    static getClient() {
+        if (!this.client) {
+            return this.initialize();
+        }
+        return this.client;
+    }
+    
+    static async saveUserSettings(data) {
+        const client = this.getClient();
+        if (!client) {
+            throw new Error('Supabase client not available');
+        }
+        
+        try {
+            const { error } = await client
+                .from('user_settings')
+                .upsert(data, { 
+                    onConflict: 'username',
+                    ignoreDuplicates: false 
+                });
+                
+            if (error) throw error;
+            return true;
+        } catch (error) {
+            console.error('Error saving settings:', error);
+            throw error;
+        }
+    }
+}
 
-    handleCopyError() {
-        if (this.notification) {
-            Utils.showNotification(this.notification, 'Failed to copy link');
+// Clipboard Manager
+class ClipboardManager {
+    constructor() {
+        this.linkInput = DOM.get('link');
+        this.copyButton = DOM.get('CopyLink');
+        this.init();
+    }
+    
+    init() {
+        if (!this.linkInput || !this.copyButton) return;
+        
+        // Set referral link
+        const username = DOM.getUsername();
+        if (username) {
+            this.linkInput.value = `https://alphertech.github.io/greenqash.com/ref/${encodeURIComponent(username)}`;
+        }
+        
+        // Set up event listeners
+        this.copyButton.addEventListener('click', () => this.handleCopy());
+        this.linkInput.addEventListener('click', () => this.linkInput.select());
+    }
+    
+    async handleCopy() {
+        if (!this.linkInput || !this.copyButton) return;
+        
+        try {
+            const success = await Utils.copyToClipboard(this.linkInput.value);
+            
+            if (success) {
+                this.copyButton.textContent = 'Copied!';
+                this.copyButton.classList.add('copied');
+                Utils.showNotification('Link copied successfully!');
+                
+                setTimeout(() => {
+                    this.copyButton.textContent = 'Copy Link';
+                    this.copyButton.classList.remove('copied');
+                }, 2000);
+            } else {
+                Utils.showNotification('Failed to copy link', 'error');
+            }
+        } catch (error) {
+            console.error('Copy failed:', error);
+            Utils.showNotification('Failed to copy link', 'error');
         }
     }
 }
 
 // Settings Manager
 class SettingsManager {
-    constructor(supabaseClient) {
-        this.supabase = supabaseClient;
-        this.elements = this.getFormElements();
+    constructor() {
+        this.elements = this.getElements();
+        this.init();
     }
-
-    getFormElements() {
+    
+    getElements() {
         return {
-            username: document.getElementById('username00'),
-            email: document.getElementById('emailAdress'),
-            phone: document.getElementById('phoneNumber'),
-            paymentMethod: document.getElementById('payMeth'),
-            notificationPref: document.getElementById('notificationPref'),
-            saveButton: document.getElementById('saveSettings')
+            username: DOM.get('username00'),
+            email: DOM.get('emailAdress'),
+            phone: DOM.get('phoneNumber'),
+            paymentMethod: DOM.get('payMeth'),
+            notificationPref: DOM.get('notificationPref'),
+            saveButton: DOM.get('saveSettings')
         };
     }
-
-    getUserData() {
-        return {
-            username: this.elements.username?.value?.trim() || '',
-            email: this.elements.email?.value?.trim() || '',
-            phone: this.elements.phone?.value?.trim() || '',
-            paymentMethod: this.elements.paymentMethod?.value?.trim() || '',
-            notificationPref: this.elements.notificationPref?.value?.trim() || ''
-        };
-    }
-
-    validateUserData(data) {
-        if (!data.username || !data.email) {
-            alert('Username and email are required');
-            return false;
-        }
-        
-        // Add more validation as needed
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(data.email)) {
-            alert('Please enter a valid email address');
-            return false;
-        }
-        
-        return true;
-    }
-
-    async saveToDatabase(data) {
-        if (!this.supabase) return false;
-        
-        try {
-            const { error } = await this.supabase
-                .from('user_settings')
-                .upsert(data);
-            
-            if (error) throw error;
-            return true;
-        } catch (error) {
-            console.error('Database save error:', error);
-            return false;
-        }
-    }
-
-    saveToLocalStorage(data) {
-        try {
-            localStorage.setItem('userSettings', JSON.stringify(data));
-            return true;
-        } catch (error) {
-            console.error('LocalStorage save error:', error);
-            return false;
-        }
-    }
-
-    async saveSettings() {
+    
+    init() {
         if (!this.elements.saveButton) return;
         
-        const userData = this.getUserData();
+        this.loadSettings();
+        this.elements.saveButton.addEventListener('click', () => this.saveSettings());
+    }
+    
+    getFormData() {
+        const data = {};
         
-        if (!this.validateUserData(userData)) {
+        for (const [key, element] of Object.entries(this.elements)) {
+            if (element && element.value !== undefined && key !== 'saveButton') {
+                data[key] = element.value.trim();
+            }
+        }
+        
+        return data;
+    }
+    
+    validate(data) {
+        const errors = [];
+        
+        if (!data.username) errors.push('Username is required');
+        if (!data.email) errors.push('Email is required');
+        if (data.email && !this.isValidEmail(data.email)) {
+            errors.push('Please enter a valid email address');
+        }
+        
+        return {
+            isValid: errors.length === 0,
+            errors
+        };
+    }
+    
+    isValidEmail(email) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return emailRegex.test(email);
+    }
+    
+    async saveSettings() {
+        const formData = this.getFormData();
+        const validation = this.validate(formData);
+        
+        if (!validation.isValid) {
+            alert(validation.errors.join('\n'));
             return;
         }
         
-        let success = false;
-        let message = '';
-        
-        if (this.supabase) {
-            success = await this.saveToDatabase(userData);
-            message = success ? 'Settings saved successfully!' : 'Failed to save settings to database';
-        } else {
-            success = this.saveToLocalStorage(userData);
-            message = success ? 'Settings saved locally!' : 'Failed to save settings locally';
-        }
-        
-        alert(message);
-    }
-
-    loadSettings() {
-        if (this.supabase) {
-            // Load from database - implement based on your schema
-            // Example: await this.loadFromDatabase();
-        } else {
-            // Load from localStorage
-            try {
-                const saved = localStorage.getItem('userSettings');
-                if (saved) {
-                    const data = JSON.parse(saved);
-                    
-                    if (this.elements.username && data.username) this.elements.username.value = data.username;
-                    if (this.elements.email && data.email) this.elements.email.value = data.email;
-                    if (this.elements.phone && data.phone) this.elements.phone.value = data.phone;
-                    if (this.elements.paymentMethod && data.paymentMethod) this.elements.paymentMethod.value = data.paymentMethod;
-                    if (this.elements.notificationPref && data.notificationPref) this.elements.notificationPref.value = data.notificationPref;
-                }
-            } catch (error) {
-                console.error('Failed to load settings:', error);
+        try {
+            // Try to save to Supabase first
+            const supabase = SupabaseService.getClient();
+            if (supabase) {
+                await SupabaseService.saveUserSettings(formData);
+                Utils.showNotification('Settings saved to database!');
+            } else {
+                // Fallback to localStorage
+                localStorage.setItem('userSettings', JSON.stringify(formData));
+                Utils.showNotification('Settings saved locally');
             }
+        } catch (error) {
+            console.error('Save failed:', error);
+            // Fallback to localStorage on error
+            localStorage.setItem('userSettings', JSON.stringify(formData));
+            Utils.showNotification('Settings saved locally (database unavailable)');
         }
-    }
-
-    initialize() {
-        if (this.elements.saveButton) {
-            this.elements.saveButton.addEventListener('click', () => this.saveSettings());
-        }
-        this.loadSettings();
-    }
-}
-
-// Supabase Client Initialization
-function initializeSupabase() {
-    if (window.supabase?.createClient) {
-        return window.supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.key);
-    } else if (typeof createClient === 'function') {
-        return createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.key);
     }
     
-    console.warn('Supabase client not available');
-    return null;
+    loadSettings() {
+        try {
+            const saved = localStorage.getItem('userSettings');
+            if (!saved) return;
+            
+            const data = JSON.parse(saved);
+            
+            // Populate form fields
+            for (const [key, element] of Object.entries(this.elements)) {
+                if (element && data[key] && key !== 'saveButton') {
+                    element.value = data[key];
+                }
+            }
+        } catch (error) {
+            console.error('Failed to load settings:', error);
+        }
+    }
 }
 
-// Main Application
+// Main Application Controller
 class GreenQashApp {
     constructor() {
-        this.supabase = null;
         this.clipboardManager = null;
         this.settingsManager = null;
     }
-
-    initializeReferralLink() {
-        const linkInput = document.getElementById('link');
-        const copyButton = document.getElementById('CopyLink');
-        const notification = document.getElementById('notification');
-        
-        if (!linkInput || !copyButton) {
-            console.debug('Referral link elements not found');
-            return;
-        }
-        
-        const username = Utils.getUsername();
-        if (username && linkInput) {
-            linkInput.value = `https://alphertech.github.io/greenqash.com/ref/${encodeURIComponent(username)}`;
-        }
-        
-        // Initialize clipboard manager
-        this.clipboardManager = new ClipboardManager(linkInput, copyButton, notification);
-        
-        // Set up event listeners
-        copyButton.addEventListener('click', () => this.clipboardManager.copyToClipboard());
-        
-        linkInput.addEventListener('click', function() {
-            this.select();
-        });
-    }
-
+    
     initialize() {
-        console.log('GreenQash application loaded');
+        console.log('GreenQash application initialized');
         
         // Initialize greeting
         Utils.greetUser();
         
-        // Initialize Supabase
-        this.supabase = initializeSupabase();
+        // Initialize Supabase (non-blocking)
+        setTimeout(() => {
+            SupabaseService.initialize();
+        }, 0);
         
-        // Initialize referral link functionality
-        this.initializeReferralLink();
+        // Initialize clipboard functionality
+        this.clipboardManager = new ClipboardManager();
         
-        // Initialize settings manager
-        this.settingsManager = new SettingsManager(this.supabase);
-        this.settingsManager.initialize();
+        // Initialize settings
+        this.settingsManager = new SettingsManager();
     }
 }
 
-// Application Bootstrap
+// Application Bootstrap with error handling
 document.addEventListener('DOMContentLoaded', () => {
-    const app = new GreenQashApp();
-    app.initialize();
+    try {
+        const app = new GreenQashApp();
+        app.initialize();
+    } catch (error) {
+        console.error('Application initialization failed:', error);
+        Utils.showNotification('Application failed to load properly', 'error');
+    }
 });
+
+// Make sure Supabase CDN is loaded in HTML head before this script:
+// <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
