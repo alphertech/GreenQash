@@ -2,7 +2,8 @@
 const CONFIG = {
     supabase: {
         url: window.SUPABASE_CONFIG?.url || 'https://kwghulqonljulmvlcfnz.supabase.co',
-        key: window.SUPABASE_CONFIG?.key || '',
+        // Provide the actual anon/public key here
+        key: window.SUPABASE_CONFIG?.key || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt3Z2h1bHFvbmxqdWxtdmxjZm56Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM5NzcyMDcsImV4cCI6MjA3OTU1MzIwN30.hebcPqAvo4B23kx4gdWuXTJhmx7p8zSHHEYSkPzPhcM',
         apiBase: window.API_BASE_URL || window.SUPABASE_CONFIG?.apiBase || ''
     }
 };
@@ -80,13 +81,63 @@ class Utils {
 // ========== SUPABASE SERVICE ==========
 class SupabaseService {
     static client = null;
+    static loadingPromise = null;
+    static isAvailable = false;
     
-    static initialize() {
+    static async loadSDK() {
+        // Check if already loaded
+        if (window.supabase || typeof createClient !== 'undefined') {
+            return true;
+        }
+        
+        // If already loading, wait for it
+        if (this.loadingPromise) {
+            return this.loadingPromise;
+        }
+        
+        // Load Supabase SDK
+        this.loadingPromise = new Promise((resolve, reject) => {
+            console.log('Loading Supabase SDK...');
+            
+            const script = document.createElement('script');
+            script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js';
+            script.crossOrigin = 'anonymous';
+            
+            script.onload = () => {
+                console.log('Supabase SDK loaded successfully');
+                resolve(true);
+            };
+            
+            script.onerror = (error) => {
+                console.error('Failed to load Supabase SDK:', error);
+                reject(new Error('Failed to load Supabase SDK'));
+            };
+            
+            document.head.appendChild(script);
+        });
+        
+        return this.loadingPromise;
+    }
+    
+    static async initialize() {
         try {
-            // Check if Supabase exists
+            // Try to load SDK if not present
+            if (!window.supabase && typeof createClient === 'undefined') {
+                await this.loadSDK();
+            }
+            
+            // Check if we have a valid key
+            if (!CONFIG.supabase.key || CONFIG.supabase.key.trim() === '') {
+                console.warn('Supabase key is missing or empty. Supabase features disabled.');
+                this.isAvailable = false;
+                return null;
+            }
+            
+            // Check if Supabase exists after loading
             if (window.supabase && typeof window.supabase.createClient === 'function') {
                 this.client = window.supabase.createClient(CONFIG.supabase.url, CONFIG.supabase.key);
-                console.log('Supabase initialized');
+                console.log('Supabase initialized successfully');
+                this.isAvailable = true;
                 return this.client;
             }
             
@@ -94,35 +145,45 @@ class SupabaseService {
             if (typeof createClient === 'function') {
                 this.client = createClient(CONFIG.supabase.url, CONFIG.supabase.key);
                 console.log('Supabase initialized via createClient');
+                this.isAvailable = true;
                 return this.client;
             }
             
-            console.warn('Supabase SDK not loaded');
+            console.warn('Supabase SDK not available. Using local storage only.');
+            this.isAvailable = false;
             return null;
+            
         } catch (error) {
             console.error('Supabase init error:', error);
+            this.isAvailable = false;
             return null;
         }
     }
     
     static getClient() {
-        if (!this.client) this.initialize();
         return this.client;
     }
     
+    static isSupabaseReady() {
+        return this.isAvailable && this.client !== null;
+    }
+    
     static async saveUserSettings(data) {
-        const client = this.getClient();
-        if (!client) throw new Error('Supabase not available');
-        
         try {
+            if (!this.isSupabaseReady()) {
+                throw new Error('Supabase not available');
+            }
+            
+            const client = this.getClient();
             const { error } = await client
                 .from('user_settings')
                 .upsert(data, { onConflict: 'username' });
                 
             if (error) throw error;
             return true;
+            
         } catch (error) {
-            console.error('Save error:', error);
+            console.error('Save to Supabase failed:', error);
             throw error;
         }
     }
@@ -237,8 +298,8 @@ class SettingsManager {
         }
         
         try {
-            const supabase = SupabaseService.getClient();
-            if (supabase) {
+            // Try Supabase first if available
+            if (SupabaseService.isSupabaseReady()) {
                 await SupabaseService.saveUserSettings(formData);
                 Utils.showNotification('Saved to database!');
             } else {
@@ -247,8 +308,9 @@ class SettingsManager {
             }
         } catch (error) {
             console.error('Save failed:', error);
+            // Always fallback to localStorage
             localStorage.setItem('userSettings', JSON.stringify(formData));
-            Utils.showNotification('Saved locally (db unavailable)');
+            Utils.showNotification('Saved locally (database unavailable)');
         }
     }
     
@@ -275,29 +337,50 @@ class GreenQashApp {
     constructor() {
         this.clipboardManager = null;
         this.settingsManager = null;
+        this.supabaseStatus = 'pending';
     }
     
-    initialize() {
+    async initialize() {
         console.log('App initializing');
         
+        // Initialize core features immediately
         Utils.greetUser();
-        
-        setTimeout(() => {
-            SupabaseService.initialize();
-        }, 0);
-        
         this.clipboardManager = new ClipboardManager();
         this.settingsManager = new SettingsManager();
+        
+        // Initialize Supabase in background (non-blocking)
+        this.initializeSupabaseAsync();
+    }
+    
+    async initializeSupabaseAsync() {
+        try {
+            console.log('Starting Supabase initialization...');
+            await SupabaseService.initialize();
+            
+            if (SupabaseService.isSupabaseReady()) {
+                this.supabaseStatus = 'ready';
+                console.log('✅ Supabase ready');
+            } else {
+                this.supabaseStatus = 'failed';
+                console.log('⚠️ Supabase not available, using localStorage');
+            }
+        } catch (error) {
+            this.supabaseStatus = 'error';
+            console.warn('Supabase init failed:', error);
+        }
     }
 }
 
 // ========== INITIALIZATION ==========
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     try {
         const app = new GreenQashApp();
-        app.initialize();
+        await app.initialize();
     } catch (error) {
         console.error('App init failed:', error);
         Utils.showNotification('App failed to load', 'error');
     }
 });
+
+// Make key available globally for debugging
+window.GREENQASH_KEY = CONFIG.supabase.key ? 'Key is set' : 'Key is missing';
