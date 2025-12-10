@@ -8,6 +8,13 @@
     <!-- Load Supabase FIRST -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/supabase.min.js"></script>
     
+    <script src="dfb.js"></script> <!--Completed successfully--><!--Chatbot-->
+    <script src="greenqash.js"></script> <!--All settings-->
+    <script src="server.js"></script> <!--Data Fetching-->
+    <script src="activity.js"></script>
+    <script src="admin.js"></script>
+    <script src="config.js"></script>
+    <script src="server.js"></script>
     <!-- Load optional config.js (contains Supabase credentials). If not found, auth.js/server.js use defaults. -->
     <script>
         (function() {
@@ -19,9 +26,6 @@
         })();
     </script>
     
-    <!-- Then load your custom scripts -->
-    <script src="reffeSys.js" defer></script>
-
     <!-- Frontend API base: leave blank for same-origin, or set to your API root. -->
     <script>
         // Determine API base. Prefer an explicitly set `window.API_BASE_URL`,
@@ -41,30 +45,34 @@
     <header>
         <div class="header-left">
             <!-- <div class="header-logo">🌱</div> -->
-            <span class="header-title" style="font-size: 20px; margin: 0; padding: 0;">SkyLink
-                <span class="admin-badge">User</span>
-            </span>
+            <span class="header-title" style="font-size: 20px; margin: 0; padding: 0;">SKY-LINK</span>
         </div>
+        <div class="user-infor">
+            <div class="png-zone"></div>
+            <div class="userIdentification" >
+                <p id="user_name"></p>
+                <div class="center">
+                    <h4>Invited by: <span id="inviter_name"></span></h4>
+                </div>
+            </div>
+        </div>
+        <button class="hamburger" id="hamburgerBtn">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
     </header>
-    <div class="center">
-        <h4>Invited by: <span>Alpher</span></h4>
-    </div>
     <article>
         <p>Welcome User! <span id="greetings"></span><span id="user_name"></span></p>
     </article>
     <hr>
     <main>
         <!-- Hamburger Button (Place this where you want the toggle) -->
-        <button class="hamburger" id="hamburgerBtn">
-            <span></span>
-            <span></span>
-            <span></span>
-        </button>
 
         <!-- Your Existing Menu -->
         <menu id="sideMenu">
             <div class="navLinks" id="navLinks">
-                <a href="#" class="active" data-section="dashboard">Dashboard Overview</a>
+                <!-- <a href="#" class="active" data-section="dashboard">Dashboard Overview</a> -->
                 <a href="#" data-section="dashboard">Dashboard Overview</a>
                 <a href="#" data-section="users">Tiktok <span class="menu-notification"></span></a>
                 <a href="#" data-section="approvals">Youtube <span class="menu-notification"></span></a>
@@ -78,81 +86,6 @@
                 <a href="#" data-section="activation">Activate</a>
                 <a href="#" id="logout">Logout</a>
             </div>
-            <style>
-                /* Hamburger Button Styles */
-                .hamburger {
-                    position: fixed;
-                    top: 20px;
-                    right: 10px;
-                    color: white;
-                    display: none;
-                    /* Hidden by default (shown in mobile) */
-                    flex-direction: column;
-                    justify-content: space-between;
-                    width: 30px;
-                    height: 21px;
-                    background: transparent;
-                    border: none;
-                    cursor: pointer;
-                    padding: 0;
-                    z-index: 1000;
-                }
-
-                .hamburger span {
-                    display: block;
-                    color: white;
-                    width: 100%;
-                    height: 3px;
-                    background: white;
-                    /* Change color as needed */
-                    transition: all 0.3s ease;
-                }
-
-                /* Menu Styles */
-                #sideMenu {
-                    transition: transform 0.3s ease;
-                }
-
-                /* Mobile Responsive Styles */
-                @media (max-width: 768px) {
-                    .hamburger {
-                        display: flex;
-                        /* Show hamburger on mobile */
-                    }
-
-                    #sideMenu {
-                        position: fixed;
-                        top: 0;
-                        left: 0;
-                        width: 250px;
-                        height: 100vh;
-                        background: #fff;
-                        box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
-                        transform: translateX(-100%);
-                        z-index: 999;
-                    }
-
-                    #sideMenu.active {
-                        transform: translateX(0);
-                    }
-
-                    /* Optional: Dark overlay when menu is open */
-                    .overlay {
-                        position: fixed;
-                        top: 0;
-                        left: 0;
-                        width: 100%;
-                        height: 100%;
-                        background: rgba(207, 212, 212, 0.5);
-                        z-index: 998;
-                        display: none;
-                    }
-
-                    #sideMenu.active+.overlay {
-                        display: block;
-                    }
-                }
-            </style>
             <script>
                 const hamburgerBtn = document.getElementById("hamburgerBtn");
                 sideMenu = document.getElementById("sideMenu");
@@ -190,7 +123,7 @@
                             </svg>
                             <div class="stat-label">Total</div>
                         </div>
-                        <div class="stat-value" id="total_income">2,000,000</div>
+                        <div class="stat-value" id="total_income"></div>
                     </div>
                     <div class="stat-card" id="active-today">
                         <div style="display:flex;align-items:center;gap:0.5rem;">
@@ -476,7 +409,7 @@
                                 <p>Like this video and stay for at least 30 seconds to earn your reward.</p>
                                 <h5>Posted: Today</h5>
                                 <div class="buttons">
-                                    <button id="claim1">Claim Reward</button>
+                                    <button id="claim">Claim Reward</button>
                                     <button id="replay">View Video</button>
                                 </div>
                             </div>
@@ -544,13 +477,10 @@
                                 <p>Watch this video for at least 1 minute and like it to earn your reward.</p>
                                 <h5>Posted: Today</h5>
                                 <div class="buttons">
-                                    <button id="claim">Claim Reward</button>
+                                    <button id="claimYoutube">Claim Reward</button>
                                     <button id="replay">Watch Video</button>
                                 </div>
                             </div>
-                            <script>
-
-                            </script>
                         </div>
                     </div>
                     
@@ -575,7 +505,7 @@
                                 </p>
                                 <h5>Posted: 2 days ago</h5>
                                 <div class="buttons">
-                                    <button id="claim">Claim Reward</button>
+                                    <button id="claimYoutube">Claim Reward</button>
                                     <button id="replay">View Channel</button>
                                 </div>
                             </div>
@@ -1181,10 +1111,4 @@
         </script>
     </footer>
 </body>
-<script src="admin.js"></script><!--General performance of the front end-->
-<script src="dfb.js"></script> <!--Completed successfully--><!--Chatbot-->
-<script src="monSys.js"></script><!--button functions and submissions-->
-<script src="greenqash.js"></script> <!--All settings-->
-<script src="server.js"></script> <!--Data Fetching-->
-<script src="reffeSys.js"></script> <!--Refferal System and logic-->
 </html>

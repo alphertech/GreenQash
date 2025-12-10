@@ -17,6 +17,10 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_KEY)
 const app = express()
 app.use(cors({ origin: true }))
 app.use(express.json())
+app.use(cors({
+  origin: 'https://alphertech.github.io/GreenQash/', // Your frontend URL
+  credentials: true
+}));
 
 const PORT = process.env.PORT || 3000
 const HOST = process.env.HOST || '0.0.0.0'

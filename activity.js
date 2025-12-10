@@ -1,6 +1,8 @@
 // Initialize Supabase
-const supabaseUrl = 'https://ntjltxbpnjcwfzwegtct.supabase.co'
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im50amx0eGJwbmpjd2Z6d2VndGN0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTIyNTQ3MTcsImV4cCI6MjA2NzgzMDcxN30.AHV1vIOL6QcRkHEWnTgnpg6zf0UBD1-HFuxIvU3vbag'
+const supabaseUrl = window.SUPABASE_CONFIG?.url || 'https://kwghulqonljulmvlcfnz.supabase.co';
+const supabaseKey = window.SUPABASE_CONFIG?.key || '';
+const apiBase = window.API_BASE_URL || window.SUPABASE_CONFIG?.apiBase || '';
+
 const supabase = supabase.createClient(supabaseUrl, supabaseKey);
 
 // DOM Elements

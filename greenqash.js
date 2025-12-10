@@ -1,165 +1,300 @@
-// Supabase setup (from auth.js, assumes CDN script is loaded in HTML)
-const supabaseUrl = 'https://xfbvdpidpfqynlurgvsj.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhmYnZkcGlkcGZxeW5sdXJndnNqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ0Nzg5NDAsImV4cCI6MjA3MDA1NDk0MH0.oFZjb5dbMHuymL8GUlPPFsnR50uQeE668KHzXw4RcC8';
-const username = document.getElementById("userName00");
+// Configuration
+const SUPABASE_CONFIG = {
+    url: window.SUPABASE_CONFIG?.url || 'https://kwghulqonljulmvlcfnz.supabase.co',
+    key: window.SUPABASE_CONFIG?.key || '',
+    apiBase: window.API_BASE_URL || window.SUPABASE_CONFIG?.apiBase || ''
+};
 
-//greetings to users
-(function greetUser() {
-    const time = new Date.getHours();
-    const message = "";
-    if (time < 12) {
-        message = "Good Morning";
-    } else if (time < 16) {
-        message = "Good Afternoon";
-    } else {
-        message = "Good Evening";
-    }
-    document.getElementById("greetings").innerText = message;
-})();
-// refferal link generator
-
-document.addEventListener('DOMContentLoaded', function () {
-    // Debug: check element existence
-    console.log('CopyLink:', document.getElementById('CopyLink'));
-    console.log('link:', document.getElementById('link'));
-    console.log('notification:', document.getElementById('notification'));
-    // Fix: Use global createClient, not window.createClient
-    let supabase;
-    if (window.supabase) {
-        supabase = window.supabase;
-    } else if (typeof createClient === 'function') {
-        supabase = createClient(supabaseUrl, supabaseKey);
-    } else {
-        console.error('Supabase client not found. Make sure the CDN script is loaded before reffeSys.js.');
-    }
-
-    // Registration logic removed: no registerForm in HTML
-    const copyButton = document.getElementById('CopyLink');
-    const linkInput = document.getElementById('link');
-    const notification = document.getElementById('notification');
-    // Get inviter's username from #username00 (input or text)
-    let inviterUsername = '';
-    const usernameElem = document.getElementById('username00');
-    if (usernameElem) {
-        if (usernameElem.tagName === 'INPUT') {
-            inviterUsername = usernameElem.value;
+// Utility Functions
+const Utils = {
+    // Fixed: greetings to users with proper Date usage
+    greetUser: () => {
+        const hour = new Date().getHours();
+        let message = "";
+        
+        if (hour < 12) {
+            message = "Good Morning";
+        } else if (hour < 16) {
+            message = "Good Afternoon";
         } else {
-            inviterUsername = usernameElem.textContent.trim();
+            message = "Good Evening";
+        }
+        
+        const greetingsElement = document.getElementById("greetings");
+        if (greetingsElement) {
+            greetingsElement.innerText = message;
+        }
+    },
+
+    getUsername: () => {
+        const usernameElem = document.getElementById('username00');
+        if (!usernameElem) return '';
+        
+        return usernameElem.tagName === 'INPUT' 
+            ? usernameElem.value.trim() 
+            : usernameElem.textContent.trim();
+    },
+
+    showNotification: (element, message, duration = 2000) => {
+        if (!element) return;
+        
+        element.textContent = message;
+        element.classList.add('show');
+        
+        setTimeout(() => {
+            element.classList.remove('show');
+        }, duration);
+    }
+};
+
+// Clipboard Manager
+class ClipboardManager {
+    constructor(inputElement, buttonElement, notificationElement) {
+        this.input = inputElement;
+        this.button = buttonElement;
+        this.notification = notificationElement;
+    }
+
+    async copyToClipboard() {
+        if (!this.input || !this.button) return false;
+        
+        try {
+            this.input.focus();
+            this.input.select();
+            this.input.setSelectionRange(0, 99999);
+            
+            let copied = false;
+            
+            // Modern Clipboard API
+            if (navigator.clipboard && window.isSecureContext) {
+                await navigator.clipboard.writeText(this.input.value);
+                copied = true;
+            } else {
+                // Fallback
+                copied = document.execCommand('copy');
+            }
+            
+            if (copied) {
+                this.handleCopySuccess();
+                return true;
+            }
+            return false;
+        } catch (error) {
+            console.error('Copy failed:', error);
+            this.handleCopyError();
+            return false;
         }
     }
-    // Set referral link value to include inviter's username
-    if (linkInput && inviterUsername) {
-        linkInput.value = `https://alphertech.github.io/greenqash.com/ref/${inviterUsername}`;
+
+    handleCopySuccess() {
+        this.button.textContent = 'Copied!';
+        this.button.classList.add('copied');
+        
+        Utils.showNotification(this.notification, 'Link copied successfully!');
+        
+        setTimeout(() => {
+            this.button.textContent = 'Copy Link';
+            this.button.classList.remove('copied');
+        }, 2000);
     }
 
-    // Function to copy link to clipboard
-    function copyToClipboard() {
-        if (!linkInput || !copyButton) return;
-        linkInput.focus();
-        linkInput.select();
-        linkInput.setSelectionRange(0, 99999); // For mobile devices
-        if (navigator.clipboard) {
-            navigator.clipboard.writeText(linkInput.value)
-                .then(() => {
-                    copyButton.textContent = 'Copied!';
-                    copyButton.classList.add('copied');
-                    if (notification) notification.classList.add('show');
-                    setTimeout(() => {
-                        copyButton.textContent = 'Copy Link';
-                        copyButton.classList.remove('copied');
-                        if (notification) notification.classList.remove('show');
-                    }, 2000);
-                })
-                .catch(err => {
-                    // Fallback to execCommand
-                    try {
-                        document.execCommand('copy');
-                        copyButton.textContent = 'Copied!';
-                        copyButton.classList.add('copied');
-                        if (notification) notification.classList.add('show');
-                        setTimeout(() => {
-                            copyButton.textContent = 'Copy Link';
-                            copyButton.classList.remove('copied');
-                            if (notification) notification.classList.remove('show');
-                        }, 2000);
-                    } catch (fallbackErr) {
-                        console.error('Fallback copy failed:', fallbackErr);
-                        if (notification) {
-                            notification.textContent = 'Failed to copy link.';
-                            notification.classList.add('show');
-                        }
-                        alert('Failed to copy link. Please try again.');
-                    }
-                });
+    handleCopyError() {
+        if (this.notification) {
+            Utils.showNotification(this.notification, 'Failed to copy link');
+        }
+    }
+}
+
+// Settings Manager
+class SettingsManager {
+    constructor(supabaseClient) {
+        this.supabase = supabaseClient;
+        this.elements = this.getFormElements();
+    }
+
+    getFormElements() {
+        return {
+            username: document.getElementById('username00'),
+            email: document.getElementById('emailAdress'),
+            phone: document.getElementById('phoneNumber'),
+            paymentMethod: document.getElementById('payMeth'),
+            notificationPref: document.getElementById('notificationPref'),
+            saveButton: document.getElementById('saveSettings')
+        };
+    }
+
+    getUserData() {
+        return {
+            username: this.elements.username?.value?.trim() || '',
+            email: this.elements.email?.value?.trim() || '',
+            phone: this.elements.phone?.value?.trim() || '',
+            paymentMethod: this.elements.paymentMethod?.value?.trim() || '',
+            notificationPref: this.elements.notificationPref?.value?.trim() || ''
+        };
+    }
+
+    validateUserData(data) {
+        if (!data.username || !data.email) {
+            alert('Username and email are required');
+            return false;
+        }
+        
+        // Add more validation as needed
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(data.email)) {
+            alert('Please enter a valid email address');
+            return false;
+        }
+        
+        return true;
+    }
+
+    async saveToDatabase(data) {
+        if (!this.supabase) return false;
+        
+        try {
+            const { error } = await this.supabase
+                .from('user_settings')
+                .upsert(data);
+            
+            if (error) throw error;
+            return true;
+        } catch (error) {
+            console.error('Database save error:', error);
+            return false;
+        }
+    }
+
+    saveToLocalStorage(data) {
+        try {
+            localStorage.setItem('userSettings', JSON.stringify(data));
+            return true;
+        } catch (error) {
+            console.error('LocalStorage save error:', error);
+            return false;
+        }
+    }
+
+    async saveSettings() {
+        if (!this.elements.saveButton) return;
+        
+        const userData = this.getUserData();
+        
+        if (!this.validateUserData(userData)) {
+            return;
+        }
+        
+        let success = false;
+        let message = '';
+        
+        if (this.supabase) {
+            success = await this.saveToDatabase(userData);
+            message = success ? 'Settings saved successfully!' : 'Failed to save settings to database';
         } else {
-            // Fallback for older browsers
+            success = this.saveToLocalStorage(userData);
+            message = success ? 'Settings saved locally!' : 'Failed to save settings locally';
+        }
+        
+        alert(message);
+    }
+
+    loadSettings() {
+        if (this.supabase) {
+            // Load from database - implement based on your schema
+            // Example: await this.loadFromDatabase();
+        } else {
+            // Load from localStorage
             try {
-                document.execCommand('copy');
-                copyButton.textContent = 'Copied!';
-                copyButton.classList.add('copied');
-                if (notification) notification.classList.add('show');
-                setTimeout(() => {
-                    copyButton.textContent = 'Copy Link';
-                    copyButton.classList.remove('copied');
-                    if (notification) notification.classList.remove('show');
-                }, 2000);
-            } catch (fallbackErr) {
-                console.error('Fallback copy failed:', fallbackErr);
-                if (notification) {
-                    notification.textContent = 'Failed to copy link.';
-                    notification.classList.add('show');
+                const saved = localStorage.getItem('userSettings');
+                if (saved) {
+                    const data = JSON.parse(saved);
+                    
+                    if (this.elements.username && data.username) this.elements.username.value = data.username;
+                    if (this.elements.email && data.email) this.elements.email.value = data.email;
+                    if (this.elements.phone && data.phone) this.elements.phone.value = data.phone;
+                    if (this.elements.paymentMethod && data.paymentMethod) this.elements.paymentMethod.value = data.paymentMethod;
+                    if (this.elements.notificationPref && data.notificationPref) this.elements.notificationPref.value = data.notificationPref;
                 }
-                alert('Failed to copy link. Please try again.');
+            } catch (error) {
+                console.error('Failed to load settings:', error);
             }
         }
     }
 
-    if (copyButton) {
-        console.log('Attaching click event to CopyLink button');
-        copyButton.addEventListener('click', copyToClipboard);
+    initialize() {
+        if (this.elements.saveButton) {
+            this.elements.saveButton.addEventListener('click', () => this.saveSettings());
+        }
+        this.loadSettings();
     }
-    if (linkInput) {
-        console.log('Attaching click event to link input');
-        linkInput.addEventListener('click', function () {
+}
+
+// Supabase Client Initialization
+function initializeSupabase() {
+    if (window.supabase?.createClient) {
+        return window.supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.key);
+    } else if (typeof createClient === 'function') {
+        return createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.key);
+    }
+    
+    console.warn('Supabase client not available');
+    return null;
+}
+
+// Main Application
+class GreenQashApp {
+    constructor() {
+        this.supabase = null;
+        this.clipboardManager = null;
+        this.settingsManager = null;
+    }
+
+    initializeReferralLink() {
+        const linkInput = document.getElementById('link');
+        const copyButton = document.getElementById('CopyLink');
+        const notification = document.getElementById('notification');
+        
+        if (!linkInput || !copyButton) {
+            console.debug('Referral link elements not found');
+            return;
+        }
+        
+        const username = Utils.getUsername();
+        if (username && linkInput) {
+            linkInput.value = `https://alphertech.github.io/greenqash.com/ref/${encodeURIComponent(username)}`;
+        }
+        
+        // Initialize clipboard manager
+        this.clipboardManager = new ClipboardManager(linkInput, copyButton, notification);
+        
+        // Set up event listeners
+        copyButton.addEventListener('click', () => this.clipboardManager.copyToClipboard());
+        
+        linkInput.addEventListener('click', function() {
             this.select();
         });
     }
-});
 
-
-const userName00 = document.getElementByC("username00");
-const emailAdress = document.getElementById("emailAdress");
-const phoneNumber = document.getElementById("phoneNumber");
-const payMeth = document.getElementById("payMeth");
-const notif = document.getElementById("notification")
-let saveSettings = document.getElementById("saveSettings")
-
-//functions
-function submitnewUserData() {
-    saveSettings.addEventListener("click", function saveDb() {
-        userName00.value().trim();
-        emailAdress.value().trim();
-        phoneNumber.value().trim();
-        payMeth.value().trim();
-        notif.value().trim();
-
-        if (userName00 || emailAdress || phoneNumber || payMeth || notif == null) {
-            userName00.value() == `%username`,
-            emailAdress.value() == `%emailAddress`,
-            phoneNumber.value() == `%phoneNumber`,
-            payMeth.value() == `payMeth`,
-            notif.value() == `%notif`
-        }else{}
-
-        dataArray = new Array;
-        dataArray = {
-            userName00: `%username`,
-            emailAdress: `%emailAddress`,
-            phoneNumber: `%phoneNumber`,
-            payMeth: `payMeth`,
-            notif: `%notif`
-        }
+    initialize() {
+        console.log('GreenQash application loaded');
         
-    })
+        // Initialize greeting
+        Utils.greetUser();
+        
+        // Initialize Supabase
+        this.supabase = initializeSupabase();
+        
+        // Initialize referral link functionality
+        this.initializeReferralLink();
+        
+        // Initialize settings manager
+        this.settingsManager = new SettingsManager(this.supabase);
+        this.settingsManager.initialize();
+    }
 }
-saveSettings.onclick = submitnewUserData()
+
+// Application Bootstrap
+document.addEventListener('DOMContentLoaded', () => {
+    const app = new GreenQashApp();
+    app.initialize();
+});
