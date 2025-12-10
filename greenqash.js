@@ -1,4 +1,4 @@
-// Configuration - Consolidated configuration
+// ========== CONFIGURATION ==========
 const CONFIG = {
     supabase: {
         url: window.SUPABASE_CONFIG?.url || 'https://kwghulqonljulmvlcfnz.supabase.co',
@@ -7,7 +7,7 @@ const CONFIG = {
     }
 };
 
-// DOM Elements Cache
+// ========== DOM MANAGER ==========
 const DOM = {
     elements: {},
     
@@ -28,24 +28,18 @@ const DOM = {
     }
 };
 
-// Utility Functions
+// ========== UTILITY FUNCTIONS ==========
 class Utils {
     static greetUser() {
         const hour = new Date().getHours();
         let message = "";
         
-        if (hour < 12) {
-            message = "Good Morning";
-        } else if (hour < 16) {
-            message = "Good Afternoon";
-        } else {
-            message = "Good Evening";
-        }
+        if (hour < 12) message = "Good Morning";
+        else if (hour < 16) message = "Good Afternoon";
+        else message = "Good Evening";
         
         const greetingsElement = DOM.get("greetings");
-        if (greetingsElement) {
-            greetingsElement.innerText = message;
-        }
+        if (greetingsElement) greetingsElement.innerText = message;
     }
     
     static showNotification(message, type = 'success', duration = 2000) {
@@ -62,12 +56,10 @@ class Utils {
     
     static async copyToClipboard(text) {
         try {
-            // Modern Clipboard API
             if (navigator.clipboard && window.isSecureContext) {
                 await navigator.clipboard.writeText(text);
                 return true;
             } else {
-                // Fallback for older browsers/HTTP
                 const textArea = document.createElement('textarea');
                 textArea.value = text;
                 textArea.style.position = 'fixed';
@@ -85,65 +77,58 @@ class Utils {
     }
 }
 
-// Supabase Service
+// ========== SUPABASE SERVICE ==========
 class SupabaseService {
     static client = null;
     
     static initialize() {
         try {
-            // Check if Supabase is available globally
+            // Check if Supabase exists
             if (window.supabase && typeof window.supabase.createClient === 'function') {
                 this.client = window.supabase.createClient(CONFIG.supabase.url, CONFIG.supabase.key);
-                console.log('Supabase client initialized successfully');
+                console.log('Supabase initialized');
                 return this.client;
             }
             
-            // Alternative global function
+            // Check alternative
             if (typeof createClient === 'function') {
                 this.client = createClient(CONFIG.supabase.url, CONFIG.supabase.key);
-                console.log('Supabase client initialized via createClient');
+                console.log('Supabase initialized via createClient');
                 return this.client;
             }
             
-            console.warn('Supabase SDK not loaded. Please include Supabase CDN.');
+            console.warn('Supabase SDK not loaded');
             return null;
         } catch (error) {
-            console.error('Failed to initialize Supabase:', error);
+            console.error('Supabase init error:', error);
             return null;
         }
     }
     
     static getClient() {
-        if (!this.client) {
-            return this.initialize();
-        }
+        if (!this.client) this.initialize();
         return this.client;
     }
     
     static async saveUserSettings(data) {
         const client = this.getClient();
-        if (!client) {
-            throw new Error('Supabase client not available');
-        }
+        if (!client) throw new Error('Supabase not available');
         
         try {
             const { error } = await client
                 .from('user_settings')
-                .upsert(data, { 
-                    onConflict: 'username',
-                    ignoreDuplicates: false 
-                });
+                .upsert(data, { onConflict: 'username' });
                 
             if (error) throw error;
             return true;
         } catch (error) {
-            console.error('Error saving settings:', error);
+            console.error('Save error:', error);
             throw error;
         }
     }
 }
 
-// Clipboard Manager
+// ========== CLIPBOARD MANAGER ==========
 class ClipboardManager {
     constructor() {
         this.linkInput = DOM.get('link');
@@ -154,43 +139,39 @@ class ClipboardManager {
     init() {
         if (!this.linkInput || !this.copyButton) return;
         
-        // Set referral link
         const username = DOM.getUsername();
         if (username) {
             this.linkInput.value = `https://alphertech.github.io/greenqash.com/ref/${encodeURIComponent(username)}`;
         }
         
-        // Set up event listeners
         this.copyButton.addEventListener('click', () => this.handleCopy());
         this.linkInput.addEventListener('click', () => this.linkInput.select());
     }
     
     async handleCopy() {
-        if (!this.linkInput || !this.copyButton) return;
-        
         try {
             const success = await Utils.copyToClipboard(this.linkInput.value);
             
             if (success) {
                 this.copyButton.textContent = 'Copied!';
                 this.copyButton.classList.add('copied');
-                Utils.showNotification('Link copied successfully!');
+                Utils.showNotification('Link copied!');
                 
                 setTimeout(() => {
                     this.copyButton.textContent = 'Copy Link';
                     this.copyButton.classList.remove('copied');
                 }, 2000);
             } else {
-                Utils.showNotification('Failed to copy link', 'error');
+                Utils.showNotification('Failed to copy', 'error');
             }
         } catch (error) {
             console.error('Copy failed:', error);
-            Utils.showNotification('Failed to copy link', 'error');
+            Utils.showNotification('Failed to copy', 'error');
         }
     }
 }
 
-// Settings Manager
+// ========== SETTINGS MANAGER ==========
 class SettingsManager {
     constructor() {
         this.elements = this.getElements();
@@ -230,10 +211,10 @@ class SettingsManager {
     validate(data) {
         const errors = [];
         
-        if (!data.username) errors.push('Username is required');
-        if (!data.email) errors.push('Email is required');
+        if (!data.username) errors.push('Username required');
+        if (!data.email) errors.push('Email required');
         if (data.email && !this.isValidEmail(data.email)) {
-            errors.push('Please enter a valid email address');
+            errors.push('Invalid email');
         }
         
         return {
@@ -243,8 +224,7 @@ class SettingsManager {
     }
     
     isValidEmail(email) {
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        return emailRegex.test(email);
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
     }
     
     async saveSettings() {
@@ -257,21 +237,18 @@ class SettingsManager {
         }
         
         try {
-            // Try to save to Supabase first
             const supabase = SupabaseService.getClient();
             if (supabase) {
                 await SupabaseService.saveUserSettings(formData);
-                Utils.showNotification('Settings saved to database!');
+                Utils.showNotification('Saved to database!');
             } else {
-                // Fallback to localStorage
                 localStorage.setItem('userSettings', JSON.stringify(formData));
-                Utils.showNotification('Settings saved locally');
+                Utils.showNotification('Saved locally');
             }
         } catch (error) {
             console.error('Save failed:', error);
-            // Fallback to localStorage on error
             localStorage.setItem('userSettings', JSON.stringify(formData));
-            Utils.showNotification('Settings saved locally (database unavailable)');
+            Utils.showNotification('Saved locally (db unavailable)');
         }
     }
     
@@ -282,19 +259,18 @@ class SettingsManager {
             
             const data = JSON.parse(saved);
             
-            // Populate form fields
             for (const [key, element] of Object.entries(this.elements)) {
                 if (element && data[key] && key !== 'saveButton') {
                     element.value = data[key];
                 }
             }
         } catch (error) {
-            console.error('Failed to load settings:', error);
+            console.error('Load failed:', error);
         }
     }
 }
 
-// Main Application Controller
+// ========== MAIN APP ==========
 class GreenQashApp {
     constructor() {
         this.clipboardManager = null;
@@ -302,34 +278,26 @@ class GreenQashApp {
     }
     
     initialize() {
-        console.log('GreenQash application initialized');
+        console.log('App initializing');
         
-        // Initialize greeting
         Utils.greetUser();
         
-        // Initialize Supabase (non-blocking)
         setTimeout(() => {
             SupabaseService.initialize();
         }, 0);
         
-        // Initialize clipboard functionality
         this.clipboardManager = new ClipboardManager();
-        
-        // Initialize settings
         this.settingsManager = new SettingsManager();
     }
 }
 
-// Application Bootstrap with error handling
+// ========== INITIALIZATION ==========
 document.addEventListener('DOMContentLoaded', () => {
     try {
         const app = new GreenQashApp();
         app.initialize();
     } catch (error) {
-        console.error('Application initialization failed:', error);
-        Utils.showNotification('Application failed to load properly', 'error');
+        console.error('App init failed:', error);
+        Utils.showNotification('App failed to load', 'error');
     }
 });
-
-// Make sure Supabase CDN is loaded in HTML head before this script:
-// <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
