@@ -5,70 +5,15 @@
         window.APP_CONFIG = {
             API_BASE_URL: (typeof window !== 'undefined' && window.API_BASE_URL) ? window.API_BASE_URL : 'https://kwghulqonljulmvlcfnz.supabase.co',
             SUPABASE_URL: 'https://kwghulqonljulmvlcfnz.supabase.co',
-            SUPABASE_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt3Z2h1bHFvbmxqdWxtdmxjZm56Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM5NzcyMDcsImV4cCI6MjA3OTU1MzIwN30.hebcPqAvo4B23kx4gdWuXTJhmx7p8zSHHEYSkPzPhcM',
-            // CORS proxy for API requests - FAST solution
-            CORS_PROXY: 'https://corsproxy.io/?',
-            USE_PROXY: true // Enable proxy for CORS issues
+            SUPABASE_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt3Z2h1bHFvbmxqdWxtdmxjZm56Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM5NzcyMDcsImV4cCI6MjA3OTU1MzIwN30.hebcPqAvo4B23kx4gdWuXTJhmx7p8zSHHEYSkPzPhcM'
         };
     }
 
     // Use the configuration
-    const CONFIG = window.APP_CONFIG;
-    const API_BASE_URL = CONFIG.API_BASE_URL;
-    const USE_PROXY = CONFIG.USE_PROXY;
-    const CORS_PROXY = CONFIG.CORS_PROXY;
+    const API_BASE_URL = window.APP_CONFIG.API_BASE_URL;
     let currentUser = null;
 
-    // Enhanced fetch with CORS handling
-    class EnhancedFetch {
-        static async fetchWithCORS(url, options = {}) {
-            const isSupabaseUrl = url.includes('supabase.co');
-            
-            // Don't use proxy for local requests or if proxy disabled
-            if (!USE_PROXY || !isSupabaseUrl) {
-                return await fetch(url, options);
-            }
-
-            // Use proxy for Supabase requests
-            const proxiedUrl = `${CORS_PROXY}${encodeURIComponent(url)}`;
-            
-            // Prepare headers for proxy
-            const proxyOptions = {
-                ...options,
-                headers: {
-                    ...options.headers,
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'Origin': 'https://alphertech.github.io'
-                }
-            };
-
-            try {
-                return await fetch(proxiedUrl, proxyOptions);
-            } catch (proxyError) {
-                console.warn('Proxy failed, trying direct fetch:', proxyError);
-                
-                // Fallback to direct fetch with CORS workaround
-                const directOptions = {
-                    ...options,
-                    mode: 'cors',
-                    credentials: 'omit',
-                    headers: {
-                        ...options.headers,
-                        'Origin': window.location.origin
-                    }
-                };
-                
-                return await fetch(url, directOptions);
-            }
-        }
-
-        static async fetchAPI(endpoint, options = {}) {
-            const url = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint.startsWith('/') ? '' : '/'}${endpoint}`;
-            return await this.fetchWithCORS(url, options);
-        }
-    }
-
-    // Initialize Supabase client with CORS headers
+    // Initialize Supabase client
     function initializeSupabaseClient() {
         if (typeof window === 'undefined') return null;
 
@@ -79,57 +24,23 @@
 
         try {
             const cfg = window.SUPABASE_CONFIG || {};
-            const url = cfg.url || CONFIG.SUPABASE_URL;
-            const key = cfg.key || CONFIG.SUPABASE_KEY;
+            const url = cfg.url || window.APP_CONFIG.SUPABASE_URL;
+            const key = cfg.key || window.APP_CONFIG.SUPABASE_KEY;
 
             let client = null;
 
-            // Try different ways to create Supabase client with CORS configuration
+            // Try different ways to create Supabase client
             if (typeof supabase !== 'undefined' && supabase.createClient) {
-                client = supabase.createClient(url, key, {
-                    global: {
-                        headers: {
-                            'apikey': key,
-                            'Authorization': `Bearer ${key}`,
-                            'Content-Type': 'application/json',
-                            'Access-Control-Allow-Origin': '*'
-                        }
-                    },
-                    auth: {
-                        persistSession: true,
-                        autoRefreshToken: true,
-                        detectSessionInUrl: true
-                    }
-                });
+                client = supabase.createClient(url, key);
             } else if (typeof createClient !== 'undefined') {
-                client = createClient(url, key, {
-                    global: {
-                        headers: {
-                            'apikey': key,
-                            'Authorization': `Bearer ${key}`
-                        }
-                    }
-                });
+                client = createClient(url, key);
             } else if (typeof window.supabase !== 'undefined' && window.supabase.auth) {
                 client = window.supabase;
             }
 
             if (client) {
-                // Add custom fetch to handle CORS
-                client.customFetch = async (url, options = {}) => {
-                    return await EnhancedFetch.fetchWithCORS(url, {
-                        ...options,
-                        headers: {
-                            ...options.headers,
-                            'apikey': key,
-                            'Authorization': `Bearer ${key}`,
-                            'Content-Type': 'application/json'
-                        }
-                    });
-                };
-                
                 window.supabaseClient = client;
-                console.log('Supabase client initialized successfully with CORS handling');
+                console.log('Supabase client initialized successfully');
                 return client;
             }
         } catch (err) {
@@ -142,7 +53,7 @@
     // Initialize Supabase
     const supabaseClient = initializeSupabaseClient();
 
-    // DOM Elements Cache (unchanged)
+    // DOM Elements Cache
     class DOMCache {
         static elements = {};
 
@@ -196,16 +107,13 @@
         }
     }
 
-    // Auth Manager with enhanced fetch
+    // Auth Manager
     class AuthManager {
         static async login(email, password) {
             try {
-                const response = await EnhancedFetch.fetchAPI('/auth/v1/token?grant_type=password', {
+                const response = await fetch(`${API_BASE_URL}/auth/login`, {
                     method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        'apikey': CONFIG.SUPABASE_KEY
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ email, password })
                 });
 
@@ -225,14 +133,14 @@
         }
 
         static setAuthData(data) {
-            if (data.access_token) {
-                localStorage.setItem('authToken', data.access_token);
+            if (data.token) {
+                localStorage.setItem('authToken', data.token);
             }
-            if (data.user?.id) {
-                localStorage.setItem('userId', data.user.id);
-                currentUser = data.user.id;
+            if (data.userId) {
+                localStorage.setItem('userId', data.userId);
+                currentUser = data.userId;
             }
-            if (data.user?.email) {
+            if (data.user) {
                 localStorage.setItem('userEmail', data.user.email);
             }
         }
@@ -257,26 +165,20 @@
                 return this.validateToken(token);
             }
 
-            // Try to get session from Supabase with CORS handling
+            // Try to get session from Supabase
             if (supabaseClient?.auth?.getSession) {
                 try {
-                    // Use custom fetch for CORS
-                    const sessionResponse = await EnhancedFetch.fetchAPI('/auth/v1/user', {
-                        headers: {
-                            'Authorization': `Bearer ${localStorage.getItem('authToken') || ''}`,
-                            'apikey': CONFIG.SUPABASE_KEY
-                        }
-                    });
+                    const { data: { session }, error } = await supabaseClient.auth.getSession();
                     
-                    if (sessionResponse.ok) {
-                        const userData = await sessionResponse.json();
-                        if (userData) {
-                            this.setAuthData({
-                                access_token: localStorage.getItem('authToken'),
-                                user: userData
-                            });
-                            return true;
-                        }
+                    if (error) throw error;
+                    
+                    if (session) {
+                        this.setAuthData({
+                            token: session.access_token,
+                            userId: session.user?.id,
+                            user: { email: session.user?.email }
+                        });
+                        return true;
                     }
                 } catch (err) {
                     console.warn('Supabase session recovery failed:', err);
@@ -287,17 +189,8 @@
         }
 
         static async validateToken(token) {
-            try {
-                const response = await EnhancedFetch.fetchAPI('/auth/v1/user', {
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'apikey': CONFIG.SUPABASE_KEY
-                    }
-                });
-                return response.ok;
-            } catch (error) {
-                return false;
-            }
+            // Simple token validation - you might want to add actual validation
+            return token && token.length > 10;
         }
 
         static getCurrentUserId() {
@@ -311,8 +204,7 @@
         static getAuthHeaders() {
             const token = localStorage.getItem('authToken');
             const headers = {
-                'Content-Type': 'application/json',
-                'apikey': CONFIG.SUPABASE_KEY
+                'Content-Type': 'application/json'
             };
             
             if (token) {
@@ -323,7 +215,7 @@
         }
     }
 
-    // Enhanced Data Fetcher with CORS handling
+    // Data Fetcher
     class DataFetcher {
         static async fetchUserData() {
             const userEmail = AuthManager.getCurrentUserEmail();
@@ -333,32 +225,33 @@
                 throw new Error('User not authenticated - no email or user ID found');
             }
 
-            // Use Enhanced Fetch for API calls
-            try {
-                let url = '';
-                if (userId) {
-                    url = `/rest/v1/users?id=eq.${userId}`;
-                } else if (userEmail) {
-                    url = `/rest/v1/users?email_address=eq.${encodeURIComponent(userEmail)}`;
-                }
-                
-                if (url) {
-                    const response = await EnhancedFetch.fetchAPI(url, {
-                        headers: AuthManager.getAuthHeaders(),
-                        signal: AbortSignal.timeout(10000)
-                    });
-                    
-                    if (response.ok) {
-                        const data = await response.json();
-                        return Array.isArray(data) ? data[0] : data;
+            // Try API first if BASE_URL is configured
+            if (API_BASE_URL && API_BASE_URL !== '') {
+                try {
+                    let url = '';
+                    if (userId) {
+                        url = `${API_BASE_URL}/users/${userId}`;
+                    } else if (userEmail) {
+                        url = `${API_BASE_URL}/users?email=${encodeURIComponent(userEmail)}`;
                     }
-                    console.warn(`API fetch failed with status: ${response.status}`);
+                    
+                    if (url) {
+                        const response = await fetch(url, {
+                            headers: AuthManager.getAuthHeaders(),
+                            signal: AbortSignal.timeout(10000) // 10 second timeout
+                        });
+                        
+                        if (response.ok) {
+                            return await response.json();
+                        }
+                        console.warn(`API fetch failed with status: ${response.status}`);
+                    }
+                } catch (error) {
+                    console.warn('API fetch user data error, falling back to Supabase:', error.message);
                 }
-            } catch (error) {
-                console.warn('API fetch user data error:', error.message);
             }
 
-            // Fall back to Supabase client if available
+            // Fall back to Supabase
             if (supabaseClient) {
                 try {
                     let query = supabaseClient
@@ -379,6 +272,7 @@
                     throw new Error('User not found in database');
                 } catch (err) {
                     console.error('Supabase fetch user data failed:', err);
+                    throw new Error(`Failed to fetch user data: ${err.message}`);
                 }
             }
 
@@ -389,18 +283,17 @@
             const userId = AuthManager.getCurrentUserId();
             if (!userId) return null;
 
-            try {
-                const response = await EnhancedFetch.fetchAPI(`/rest/v1/earnings?user_id=eq.${userId}`, {
-                    headers: AuthManager.getAuthHeaders(),
-                    signal: AbortSignal.timeout(10000)
-                });
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    return Array.isArray(data) ? data[0] : data;
+            // Try API first
+            if (API_BASE_URL && API_BASE_URL !== '') {
+                try {
+                    const response = await fetch(`${API_BASE_URL}/earnings/${userId}`, {
+                        headers: AuthManager.getAuthHeaders(),
+                        signal: AbortSignal.timeout(10000)
+                    });
+                    if (response.ok) return await response.json();
+                } catch (err) {
+                    console.warn('API fetch earnings error:', err.message);
                 }
-            } catch (err) {
-                console.warn('API fetch earnings error:', err.message);
             }
 
             // Fall back to Supabase
@@ -425,17 +318,17 @@
             const userId = AuthManager.getCurrentUserId();
             if (!userId) return [];
 
-            try {
-                const response = await EnhancedFetch.fetchAPI(`/rest/v1/contents?user_id=eq.${userId}`, {
-                    headers: AuthManager.getAuthHeaders(),
-                    signal: AbortSignal.timeout(10000)
-                });
-                
-                if (response.ok) {
-                    return await response.json();
+            // Try API first
+            if (API_BASE_URL && API_BASE_URL !== '') {
+                try {
+                    const response = await fetch(`${API_BASE_URL}/contents?userId=${userId}`, {
+                        headers: AuthManager.getAuthHeaders(),
+                        signal: AbortSignal.timeout(10000)
+                    });
+                    if (response.ok) return await response.json();
+                } catch (err) {
+                    console.warn('API fetch contents error:', err.message);
                 }
-            } catch (err) {
-                console.warn('API fetch contents error:', err.message);
             }
 
             // Fall back to Supabase
@@ -460,18 +353,17 @@
             const userId = AuthManager.getCurrentUserId();
             if (!userId) return null;
 
-            try {
-                const response = await EnhancedFetch.fetchAPI(`/rest/v1/payment_info?user_id=eq.${userId}`, {
-                    headers: AuthManager.getAuthHeaders(),
-                    signal: AbortSignal.timeout(10000)
-                });
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    return Array.isArray(data) ? data[0] : data;
+            // Try API first
+            if (API_BASE_URL && API_BASE_URL !== '') {
+                try {
+                    const response = await fetch(`${API_BASE_URL}/payment-info/${userId}`, {
+                        headers: AuthManager.getAuthHeaders(),
+                        signal: AbortSignal.timeout(10000)
+                    });
+                    if (response.ok) return await response.json();
+                } catch (err) {
+                    console.warn('API fetch payment info error:', err.message);
                 }
-            } catch (err) {
-                console.warn('API fetch payment info error:', err.message);
             }
 
             // Fall back to Supabase
@@ -496,17 +388,17 @@
             const userId = AuthManager.getCurrentUserId();
             if (!userId) return [];
 
-            try {
-                const response = await EnhancedFetch.fetchAPI(`/rest/v1/withdrawals?user_id=eq.${userId}&order=created_at.desc`, {
-                    headers: AuthManager.getAuthHeaders(),
-                    signal: AbortSignal.timeout(10000)
-                });
-                
-                if (response.ok) {
-                    return await response.json();
+            // Try API first
+            if (API_BASE_URL && API_BASE_URL !== '') {
+                try {
+                    const response = await fetch(`${API_BASE_URL}/withdrawals?userId=${userId}`, {
+                        headers: AuthManager.getAuthHeaders(),
+                        signal: AbortSignal.timeout(10000)
+                    });
+                    if (response.ok) return await response.json();
+                } catch (err) {
+                    console.warn('API fetch withdrawals error:', err.message);
                 }
-            } catch (err) {
-                console.warn('API fetch withdrawals error:', err.message);
             }
 
             // Fall back to Supabase
@@ -528,7 +420,7 @@
         }
     }
 
-    // UI Renderer (unchanged - keeping for completeness)
+    // UI Renderer
     class UIRenderer {
         static format = {
             currency: (amount) => {
@@ -720,10 +612,10 @@
         }
     }
 
-    // App Controller with enhanced CORS handling
+    // App Controller
     class AppController {
         static async initialize() {
-            console.log('App initializing with CORS handling...');
+            console.log('App initializing...');
             
             // Check authentication
             const isAuthenticated = await AuthManager.isAuthenticated();
@@ -736,9 +628,6 @@
             // Initialize DOM cache
             DOMCache.initializeElements();
 
-            // Test connection first
-            await this.testConnection();
-
             // Load initial data
             await this.loadUserData();
 
@@ -749,30 +638,6 @@
             this.setupAutoRefresh();
 
             console.log('App initialized successfully');
-        }
-
-        static async testConnection() {
-            try {
-                console.log('Testing connection to Supabase...');
-                const response = await EnhancedFetch.fetchAPI('/rest/v1/users?limit=1', {
-                    headers: {
-                        'apikey': CONFIG.SUPABASE_KEY,
-                        'Content-Type': 'application/json'
-                    }
-                });
-                
-                if (response.ok) {
-                    console.log('Connection test successful');
-                    return true;
-                } else {
-                    console.warn('Connection test failed:', response.status);
-                    return false;
-                }
-            } catch (error) {
-                console.error('Connection test error:', error);
-                UIRenderer.showError('Connection issue detected. Some features may not work.');
-                return false;
-            }
         }
 
         static async loadUserData() {
@@ -857,37 +722,6 @@
                     this.loadUserData();
                 }
             });
-
-            // Add CORS toggle button for debugging
-            this.addCORSToggle();
-        }
-
-        static addCORSToggle() {
-            const toggleBtn = document.createElement('button');
-            toggleBtn.className = 'cors-toggle';
-            toggleBtn.innerHTML = 'CORS: ON';
-            toggleBtn.style.cssText = `
-                position: fixed;
-                bottom: 10px;
-                right: 10px;
-                background: #007bff;
-                color: white;
-                border: none;
-                padding: 5px 10px;
-                border-radius: 3px;
-                cursor: pointer;
-                font-size: 12px;
-                z-index: 9999;
-            `;
-            
-            toggleBtn.addEventListener('click', () => {
-                CONFIG.USE_PROXY = !CONFIG.USE_PROXY;
-                toggleBtn.innerHTML = CONFIG.USE_PROXY ? 'CORS: PROXY' : 'CORS: DIRECT';
-                toggleBtn.style.background = CONFIG.USE_PROXY ? '#007bff' : '#dc3545';
-                UIRenderer.showSuccess(`CORS mode switched to ${CONFIG.USE_PROXY ? 'proxy' : 'direct'}`);
-            });
-            
-            document.body.appendChild(toggleBtn);
         }
 
         static async handleWithdrawalSubmit(e) {
@@ -906,32 +740,42 @@
                 payment_method: formData.get('payment_method'),
                 phone_number: formData.get('phone_number'),
                 email: formData.get('email'),
-                amount: amount,
-                user_id: AuthManager.getCurrentUserId(),
-                status: 'pending',
-                created_at: new Date().toISOString()
+                amount: amount
             };
 
             try {
                 UIRenderer.showLoading(true);
                 
-                // Use Enhanced Fetch for API call
-                const response = await EnhancedFetch.fetchAPI('/rest/v1/withdrawals', {
-                    method: 'POST',
-                    headers: {
-                        ...AuthManager.getAuthHeaders(),
-                        'Prefer': 'return=representation'
-                    },
-                    body: JSON.stringify(withdrawalData)
-                });
+                let response;
+                if (API_BASE_URL && API_BASE_URL !== '') {
+                    response = await fetch(`${API_BASE_URL}/withdrawals`, {
+                        method: 'POST',
+                        headers: AuthManager.getAuthHeaders(),
+                        body: JSON.stringify(withdrawalData)
+                    });
+                } else if (supabaseClient) {
+                    // Fallback to Supabase
+                    const { data, error } = await supabaseClient
+                        .from('withdrawals')
+                        .insert([{
+                            ...withdrawalData,
+                            user_id: AuthManager.getCurrentUserId(),
+                            status: 'pending'
+                        }])
+                        .select();
+                    
+                    if (error) throw error;
+                    response = { ok: true, data };
+                } else {
+                    throw new Error('No submission method available');
+                }
 
                 if (response.ok) {
                     UIRenderer.showSuccess('Withdrawal request submitted successfully!');
                     e.target.reset();
                     await this.loadUserData();
                 } else {
-                    const errorText = await response.text();
-                    throw new Error(`Withdrawal failed: ${response.status} ${errorText}`);
+                    throw new Error('Withdrawal request failed');
                 }
             } catch (error) {
                 console.error('Withdrawal submission error:', error);
