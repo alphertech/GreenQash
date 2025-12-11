@@ -44,25 +44,328 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    if (activateBtn) {
-        activateBtn.addEventListener("click", function() {
+    // Updated activation function - checks database status continuously
+if (activateBtn) {
+    let statusCheckInterval = null;
+    
+    activateBtn.addEventListener("click", async function() {
+        // Get current user from Supabase auth
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        
+        if (authError || !user) {
+            alert("You must be logged in to submit an activation request");
+            return;
+        }
+        
+        // Check current status in users table
+        const { data: userData, error: fetchError } = await supabase
+            .from('users')
+            .select('status, user_name')
+            .eq('email_address', user.email)
+            .single();
+        
+        if (fetchError) {
+            console.error("Error fetching user status:", fetchError);
+            alert("Error checking account status. Please try again.");
+            return;
+        }
+        
+        // If already active, show message and disable button
+        if (userData && userData.status === 'active') {
             this.disabled = true;
-            this.textContent = "Processing...";
+            this.textContent = "Already Activated";
+            this.style.background = "rgba(0, 255, 153, 0.3)";
             
-            // Simulate activation process
-            setTimeout(() => {
-                this.textContent = "Account Activated!";
-                this.style.background = "rgba(0, 255, 153, 0.3)";
-                
-                if (activationMess) {
-                    activationMess.innerHTML += `
+            if (activationMess) {
+                activationMess.innerHTML = `
                     <p style="color: var(--green-main); font-weight: bold; margin-top: 15px;">
-                        Account activated successfully! You can now access all features.
+                        ✅ Your account is already activated!
+                    </p>
+                    <p style="color: #666; margin-top: 10px; font-size: 0.9rem;">
+                        You have full access to all platform features.
                     </p>`;
+            }
+            return;
+        }
+        
+        // If pending activation, show pending status and start checking
+        if (userData && userData.status === 'pending') {
+            showPendingStatus(user.email, userData.user_name);
+            return;
+        }
+        
+        // If not active, submit activation request
+        this.disabled = true;
+        this.textContent = "Submitting Request...";
+        
+        try {
+            // Get username for reference
+            const username = userData?.user_name || user.email.split('@')[0];
+            
+            // Submit activation request (set status to pending)
+            const { error: updateError } = await supabase
+                .from('users')
+                .update({ 
+                    status: 'pending',
+                    activation_requested_at: new Date().toISOString()
+                })
+                .eq('email_address', user.email);
+            
+            if (updateError) {
+                throw updateError;
+            }
+            
+            // Simulate request submission delay
+            setTimeout(async () => {
+                this.textContent = "Request Submitted";
+                this.style.background = "rgba(255, 193, 7, 0.3)";
+                
+                // Show payment instructions with username as reference
+                if (activationMess) {
+                    activationMess.innerHTML = `
+                        <div style="margin-top: 15px;">
+                            <p style="color: #ff9800; font-weight: bold; font-size: 1.1rem;">
+                                ⏳ Activation Request Submitted
+                            </p>
+                            
+                            <div style="background: #fff8e1; border: 2px solid #ffd54f; 
+                                        border-radius: 8px; padding: 15px; margin-top: 15px;">
+                                <p style="color: #ff6f00; font-weight: bold; margin: 0 0 10px 0;">
+                                    💳 Payment Instructions:
+                                </p>
+                                <p style="color: #5d4037; margin: 5px 0; font-size: 0.9rem;">
+                                    <strong>Amount:</strong> UGX 20,000
+                                </p>
+                                <p style="color: #5d4037; margin: 5px 0; font-size: 0.9rem;">
+                                    <strong>Reference:</strong> ${username}
+                                </p>
+                                <p style="color: #5d4037; margin: 5px 0; font-size: 0.9rem;">
+                                    <strong>Business No:</strong> 000000
+                                </p>
+                                <p style="color: #5d4037; margin: 5px 0 0 0; font-size: 0.85rem;">
+                                    <em>After payment, admin will verify and activate your account</em>
+                                </p>
+                            </div>
+                            
+                            <div style="background: #e3f2fd; border: 1px solid #bbdefb; 
+                                        border-radius: 5px; padding: 10px; margin-top: 15px;">
+                                <p style="color: #1565c0; margin: 0 0 8px 0; font-size: 0.9rem;">
+                                    <strong>📋 Request Status:</strong> 
+                                    <span style="color: #ff9800; font-weight: bold;">PENDING PAYMENT VERIFICATION</span>
+                                </p>
+                                <p style="color: #1565c0; margin: 5px 0 0 0; font-size: 0.85rem;">
+                                    <strong>⏳ Process:</strong> Admin will verify payment within 24 hours
+                                </p>
+                            </div>
+                            
+                            <p style="color: #666; margin-top: 15px; font-size: 0.9rem;">
+                                <strong>Note:</strong> This page will automatically update when your 
+                                account is activated. You can also refresh the page to check status.
+                            </p>
+                        </div>`;
                 }
+                
+                // Start checking for status updates
+                startStatusChecking(user.email, username);
+                
             }, 1500);
+            
+        } catch (error) {
+            console.error("Activation request error:", error);
+            this.disabled = false;
+            this.textContent = "Activate Account";
+            this.style.background = "";
+            
+            if (activationMess) {
+                activationMess.innerHTML += `
+                    <p style="color: #dc3545; font-weight: bold; margin-top: 15px;">
+                        ❌ Request failed. Please try again or contact support.
+                    </p>`;
+            }
+        }
+    });
+    
+    // Function to show pending status
+    async function showPendingStatus(email, username) {
+        activateBtn.disabled = true;
+        activateBtn.textContent = "Pending Approval";
+        activateBtn.style.background = "rgba(255, 193, 7, 0.3)";
+        
+        if (activationMess) {
+            activationMess.innerHTML = `
+                <div style="margin-top: 15px;">
+                    <p style="color: #ff9800; font-weight: bold; font-size: 1.1rem;">
+                        ⏳ Activation Pending
+                    </p>
+                    
+                    <div style="background: #fff8e1; border: 2px solid #ffd54f; 
+                                border-radius: 8px; padding: 15px; margin-top: 15px;">
+                        <p style="color: #ff6f00; font-weight: bold; margin: 0 0 10px 0;">
+                            💳 Payment Verification:
+                        </p>
+                        <p style="color: #5d4037; margin: 5px 0; font-size: 0.9rem;">
+                            <strong>Amount:</strong> UGX 20,000
+                        </p>
+                        <p style="color: #5d4037; margin: 5px 0; font-size: 0.9rem;">
+                            <strong>Reference:</strong> ${username || 'Your Username'}
+                        </p>
+                        <p style="color: #5d4037; margin: 5px 0; font-size: 0.9rem;">
+                            <strong>Business No:</strong> 000000
+                        </p>
+                    </div>
+                    
+                    <div style="background: #e3f2fd; border: 1px solid #bbdefb; 
+                                border-radius: 5px; padding: 10px; margin-top: 15px;">
+                        <p style="color: #1565c0; margin: 0 0 8px 0; font-size: 0.9rem;">
+                            <strong>📋 Current Status:</strong> 
+                            <span style="color: #ff9800; font-weight: bold;">AWAITING PAYMENT VERIFICATION</span>
+                        </p>
+                        <p style="color: #1565c0; margin: 5px 0 0 0; font-size: 0.85rem;">
+                            <strong>⏳ Next Step:</strong> Admin is verifying your payment
+                        </p>
+                    </div>
+                    
+                    <p style="color: #666; margin-top: 15px; font-size: 0.9rem;">
+                        <strong>Note:</strong> This page will automatically update when your 
+                        account is activated. Status is checked every 30 seconds.
+                    </p>
+                </div>`;
+        }
+        
+        // Start checking for status updates
+        startStatusChecking(email, username);
+    }
+    
+    // Function to start checking status periodically
+    function startStatusChecking(email, username) {
+        // Clear any existing interval
+        if (statusCheckInterval) {
+            clearInterval(statusCheckInterval);
+        }
+        
+        // Check status immediately
+        checkStatusUpdate(email, username);
+        
+        // Then check every 30 seconds
+        statusCheckInterval = setInterval(() => {
+            checkStatusUpdate(email, username);
+        }, 30000); // 30 seconds
+        
+        // Also check when user focuses the tab
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') {
+                checkStatusUpdate(email, username);
+            }
         });
     }
+    
+    // Function to check for status updates
+    async function checkStatusUpdate(email, username) {
+        try {
+            const { data: userData, error } = await supabase
+                .from('users')
+                .select('status')
+                .eq('email_address', email)
+                .single();
+            
+            if (error) {
+                console.error("Error checking status update:", error);
+                return;
+            }
+            
+            if (userData && userData.status === 'active') {
+                // Account is now active!
+                clearInterval(statusCheckInterval);
+                
+                activateBtn.disabled = true;
+                activateBtn.textContent = "✅ Activated!";
+                activateBtn.style.background = "rgba(0, 255, 153, 0.3)";
+                
+                if (activationMess) {
+                    activationMess.innerHTML = `
+                        <div style="margin-top: 15px;">
+                            <p style="color: var(--green-main); font-weight: bold; font-size: 1.2rem;">
+                                🎉 Account Activated Successfully!
+                            </p>
+                            
+                            <div style="background: #d4edda; border: 2px solid #c3e6cb; 
+                                        border-radius: 8px; padding: 15px; margin-top: 15px;">
+                                <p style="color: #155724; font-weight: bold; margin: 0 0 10px 0;">
+                                    ✅ Payment Verified & Account Activated
+                                </p>
+                                <p style="color: #155724; margin: 5px 0; font-size: 0.9rem;">
+                                    <strong>Username:</strong> ${username}
+                                </p>
+                                <p style="color: #155724; margin: 5px 0; font-size: 0.9rem;">
+                                    <strong>Status:</strong> <span style="color: #28a745; font-weight: bold;">ACTIVE</span>
+                                </p>
+                                <p style="color: #155724; margin: 5px 0; font-size: 0.9rem;">
+                                    <strong>Activated On:</strong> ${new Date().toLocaleDateString()}
+                                </p>
+                            </div>
+                            
+                            <p style="color: #666; margin-top: 15px; font-size: 0.9rem;">
+                                <strong>Welcome to GreenQash!</strong> You now have full access to all features:
+                                TikTok tasks, YouTube tasks, Trivia, Referrals, and Withdrawals.
+                            </p>
+                            
+                            <button onclick="location.reload()" 
+                                    style="background: #28a745; color: white; border: none; 
+                                           padding: 10px 20px; border-radius: 5px; 
+                                           margin-top: 10px; cursor: pointer; font-weight: bold;">
+                                🚀 Start Earning Now!
+                            </button>
+                        </div>`;
+                }
+                
+                // Refresh page after 3 seconds to show updated features
+                setTimeout(() => {
+                    location.reload();
+                }, 3000);
+            }
+            // If still pending, do nothing (continue showing pending status)
+            
+        } catch (error) {
+            console.error("Status check error:", error);
+        }
+    }
+    
+    // Check initial status on page load
+    async function checkInitialStatus() {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        
+        const { data: userData } = await supabase
+            .from('users')
+            .select('status, user_name')
+            .eq('email_address', user.email)
+            .single();
+        
+        if (userData) {
+            if (userData.status === 'active') {
+                activateBtn.disabled = true;
+                activateBtn.textContent = "✅ Activated";
+                activateBtn.style.background = "rgba(0, 255, 153, 0.3)";
+                
+                if (activationMess) {
+                    activationMess.innerHTML = `
+                        <p style="color: var(--green-main); font-weight: bold; margin-top: 15px;">
+                            ✅ Your account is already activated!
+                        </p>`;
+                }
+                
+                if (how2activate) {
+                    how2activate.style.display = "none";
+                }
+            } else if (userData.status === 'pending') {
+                showPendingStatus(user.email, userData.user_name);
+            }
+        }
+    }
+    
+    // Run status check on page load
+    checkInitialStatus();
+}
     
     // Help button
     const helpBtn = document.getElementById("helpbtn");
