@@ -89,19 +89,79 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Mobile menu toggle - already handled in HTML inline script, but let's ensure it works
-    if (hamburgerBtn && sideMenu && overlay) {
-        hamburgerBtn.addEventListener('click', function() {
-            sideMenu.classList.toggle('active');
-            overlay.style.display = sideMenu.classList.contains('active') ? 'block' : 'none';
-            hamburgerBtn.classList.toggle('active');
+    // Wait for DOM to be fully loaded
+document.addEventListener('DOMContentLoaded', function() {
+    // DOM Elements for navigation
+    const navLinks = document.querySelectorAll('menu a[data-section]');
+    const hamburgerBtn = document.getElementById('hamburgerBtn');
+    const sideMenu = document.getElementById('sideMenu');
+    const sections = document.querySelectorAll('.admin-section');
+    const overlay = document.querySelector('.overlay') || createOverlay();
+    
+    // Create overlay if it doesn't exist
+    function createOverlay() {
+        const overlay = document.createElement('div');
+        overlay.className = 'overlay';
+        overlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            z-index: 999;
+        `;
+        document.body.appendChild(overlay);
+        return overlay;
+    }
+    
+    // Mobile menu toggle
+    if (hamburgerBtn && sideMenu) {
+        // Remove any existing event listeners by cloning and replacing
+        const newHamburgerBtn = hamburgerBtn.cloneNode(true);
+        hamburgerBtn.parentNode.replaceChild(newHamburgerBtn, hamburgerBtn);
+        
+        const newSideMenu = sideMenu.cloneNode(true);
+        sideMenu.parentNode.replaceChild(newSideMenu, sideMenu);
+        
+        // Get fresh references
+        const freshHamburgerBtn = document.getElementById('hamburgerBtn');
+        const freshSideMenu = document.getElementById('sideMenu');
+        
+        // Add click event to hamburger button
+        freshHamburgerBtn.addEventListener('click', function(e) {
+            e.stopPropagation(); // Prevent event bubbling
+            freshSideMenu.classList.toggle('active');
+            overlay.style.display = freshSideMenu.classList.contains('active') ? 'block' : 'none';
+            freshHamburgerBtn.classList.toggle('active');
         });
         
         // Close menu when clicking overlay
         overlay.addEventListener('click', function() {
-            sideMenu.classList.remove('active');
+            freshSideMenu.classList.remove('active');
             overlay.style.display = 'none';
-            hamburgerBtn.classList.remove('active');
+            freshHamburgerBtn.classList.remove('active');
+        });
+        
+        // Close menu when clicking outside
+        document.addEventListener('click', function(e) {
+            if (freshSideMenu.classList.contains('active') &&
+                !freshSideMenu.contains(e.target) &&
+                !freshHamburgerBtn.contains(e.target)) {
+                freshSideMenu.classList.remove('active');
+                overlay.style.display = 'none';
+                freshHamburgerBtn.classList.remove('active');
+            }
+        });
+        
+        // Close menu on escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && freshSideMenu.classList.contains('active')) {
+                freshSideMenu.classList.remove('active');
+                overlay.style.display = 'none';
+                freshHamburgerBtn.classList.remove('active');
+            }
         });
     }
     
@@ -129,7 +189,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Close mobile menu if open
         if (sideMenu && sideMenu.classList.contains('active')) {
             sideMenu.classList.remove('active');
-            if (overlay) overlay.style.display = 'none';
+            overlay.style.display = 'none';
             if (hamburgerBtn) hamburgerBtn.classList.remove('active');
         }
     }
@@ -140,9 +200,9 @@ document.addEventListener('DOMContentLoaded', function() {
             e.preventDefault();
             const sectionId = this.getAttribute('data-section');
             
-            // Special handling for logout
+            // Skip logout button
             if (this.id === 'logout') {
-                return; // Already handled above
+                return;
             }
             
             setActiveSection(sectionId);
@@ -150,8 +210,10 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     // Set default active section
-    setActiveSection('dashboard');
-    
+    if (!document.querySelector('.admin-section.active')) {
+        setActiveSection('dashboard');
+    }
+});
     // Copy link functionality
     const copyLinkBtn = document.getElementById('CopyLink');
     const linkInput = document.getElementById('link');
@@ -259,63 +321,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // Here you would typically send data to server
         });
     }
-    
-    // Chat functionality
-    const chatForm = document.getElementById('chat-form');
-    const chatInput = document.getElementById('chat-input');
-    const chatMessages = document.getElementById('chat-messages');
-    
-    if (chatForm && chatInput && chatMessages) {
-        // Add initial greeting
-        addMessage('FarmBoy', 'Hello! I\'m FarmBoy, your AI assistant. How can I help you today?', 'bot');
-        
-        chatForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            const message = chatInput.value.trim();
-            
-            if (message) {
-                // Add user message
-                addMessage('You', message, 'user');
-                chatInput.value = '';
-                
-                // Simulate bot response after delay
-                setTimeout(() => {
-                    const responses = [
-                        'I understand your question. Let me help you with that.',
-                        'Thanks for your message! How else can I assist?',
-                        'That\'s a great question! Let me think about the best way to help.',
-                        'I\'m here to help you with any questions about the platform!',
-                        'Would you like me to explain any feature in more detail?'
-                    ];
-                    const randomResponse = responses[Math.floor(Math.random() * responses.length)];
-                    addMessage('FarmBoy', randomResponse, 'bot');
-                }, 1000);
-            }
-        });
-        
-        function addMessage(sender, text, type) {
-            const messageDiv = document.createElement('div');
-            messageDiv.style.marginBottom = '10px';
-            messageDiv.style.padding = '8px 12px';
-            messageDiv.style.borderRadius = '10px';
-            messageDiv.style.maxWidth = '80%';
-            messageDiv.style.wordWrap = 'break-word';
-            
-            if (type === 'user') {
-                messageDiv.style.backgroundColor = '#e3f2fd';
-                messageDiv.style.marginLeft = 'auto';
-                messageDiv.style.textAlign = 'right';
-            } else {
-                messageDiv.style.backgroundColor = '#f5f5f5';
-                messageDiv.style.marginRight = 'auto';
-            }
-            
-            messageDiv.innerHTML = `<strong>${sender}:</strong> ${text}`;
-            chatMessages.appendChild(messageDiv);
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-        }
-    }
-    
+       
     // Task claim buttons
     document.querySelectorAll('#claim, #claimYoutube').forEach(button => {
         button.addEventListener('click', function() {
