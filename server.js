@@ -2,81 +2,191 @@
 const SUPABASE_URL = CONFIG.supabase.url || 'https://kwghulqonljulmvlcfnz.supabase.co';
 const SUPABASE_ANON_KEY = CONFIG.supabase.key || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt3Z2h1bHFvbmxqdWxtdmxjZm56Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM5NzcyMDcsImV4cCI6MjA3OTU1MzIwN30.hebcPqAvo4B23kx4gdWuXTJhmx7p8zSHHEYSkPzPhcM';
 
-// Get JWT token from localStorage (assuming you have an auth system)
-const getToken = () => {
-    return localStorage.getItem('supabase.auth.token');
-};
-
 // Initialize Supabase client
-const supabaseClient = {
-    async fetchUserData() {
-        const token = getToken();
-        if (!token) {
-            console.error('No JWT token found. Please log in.');
+const supabase = window.supabase || null;
+
+// Check if Supabase client is available globally (from CDN)
+if (!supabase) {
+    console.error('Supabase client not found. Make sure to include Supabase JS in your HTML.');
+}
+
+// Get current user ID from Supabase session
+const getCurrentUserId = async () => {
+    try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error) throw error;
+        
+        if (!session || !session.user) {
+            console.error('No active session found');
             return null;
         }
+        
+        return session.user.id; // This is the UUID from auth.users
+    } catch (error) {
+        console.error('Error getting session:', error);
+        return null;
+    }
+};
 
-        try {
-            // First, get the current user's ID from the token
-            const payload = JSON.parse(atob(token.split('.')[1]));
-            const userId = payload.sub || payload.user_id;
+// Get the numeric user ID from public.users table using auth UUID
+const getNumericUserId = async (authUserId) => {
+    if (!authUserId) return null;
+    
+    try {
+        const { data, error } = await supabase
+            .from('users')
+            .select('id')
+            .eq('uuid', authUserId)
+            .single();
             
-            if (!userId) {
-                console.error('User ID not found in token');
+        if (error) {
+            // If user not found in public.users yet (race condition), try to create it
+            console.log('User not found in public.users, attempting to create...');
+            const { data: newUser, error: createError } = await supabase
+                .from('users')
+                .insert({ uuid: authUserId })
+                .select('id')
+                .single();
+                
+            if (createError) {
+                console.error('Error creating user profile:', createError);
                 return null;
             }
+            
+            return newUser.id;
+        }
+        
+        return data.id;
+    } catch (error) {
+        console.error('Error fetching numeric user ID:', error);
+        return null;
+    }
+};
 
+// Supabase data fetching functions
+const supabaseClient = {
+    async fetchUserData() {
+        try {
+            // Get current authenticated user's UUID
+            const authUserId = await getCurrentUserId();
+            if (!authUserId) {
+                displayError('Please log in to view your dashboard.');
+                return null;
+            }
+            
+            // Get numeric ID from public.users
+            const numericUserId = await getNumericUserId(authUserId);
+            if (!numericUserId) {
+                displayError('Unable to load user profile. Please try again.');
+                return null;
+            }
+            
+            console.log('Fetching data for user ID:', numericUserId);
+            
             // Fetch all user-related data in parallel
             const [
                 userData,
                 earningsData,
                 contentsData,
                 paymentData,
-                statsData,
                 withdrawalsData
             ] = await Promise.all([
-                this.fetchFromTable('users', userId),
-                this.fetchFromTable('earnings', userId),
-                this.fetchFromTable('contents', userId, 'id'),
-                this.fetchFromTable('payment_information', userId),
-                this.fetchFromTable('statistics', userId),
-                this.fetchFromTable('withdrawal_requests', userId, 'id')
+                this.fetchUserProfile(numericUserId),
+                this.fetchFromTable('earnings', numericUserId),
+                this.fetchUserContents(numericUserId),
+                this.fetchFromTable('payment_information', numericUserId),
+                this.fetchWithdrawals(numericUserId)
             ]);
-
+            
             return {
                 user: userData,
                 earnings: earningsData,
                 contents: contentsData,
                 payment: paymentData,
-                statistics: statsData,
                 withdrawals: withdrawalsData
             };
             
         } catch (error) {
             console.error('Error fetching user data:', error);
+            displayError('An error occurred while loading your data.');
             return null;
         }
     },
-
-    async fetchFromTable(tableName, userId, idColumn = 'id') {
-        const token = getToken();
-        const response = await fetch(
-            `${SUPABASE_URL}/rest/v1/${tableName}?${idColumn}=eq.${userId}`,
-            {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'apikey': CONFIG.supabase.key,
-                    'Content-Type': 'application/json'
-                }
-            }
-        );
-        
-        if (!response.ok) {
-            throw new Error(`Failed to fetch from ${tableName}: ${response.statusText}`);
+    
+    async fetchUserProfile(userId) {
+        try {
+            const { data, error } = await supabase
+                .from('users')
+                .select('*')
+                .eq('id', userId)
+                .single();
+                
+            if (error) throw error;
+            return data;
+        } catch (error) {
+            console.error('Error fetching user profile:', error);
+            return null;
         }
-        
-        const data = await response.json();
-        return data.length > 0 ? data[0] : null;
+    },
+    
+    async fetchFromTable(tableName, userId) {
+        try {
+            const { data, error } = await supabase
+                .from(tableName)
+                .select('*')
+                .eq('id', userId)
+                .single();
+                
+            if (error) {
+                // If no data exists (first-time user), return null instead of throwing
+                if (error.code === 'PGRST116') {
+                    console.log(`No data found in ${tableName} for user ${userId}`);
+                    return null;
+                }
+                throw error;
+            }
+            
+            return data;
+        } catch (error) {
+            console.error(`Error fetching from ${tableName}:`, error);
+            return null;
+        }
+    },
+    
+    async fetchUserContents(userId) {
+        try {
+            const { data, error } = await supabase
+                .from('contents')
+                .select('*')
+                .eq('id', userId);
+                
+            if (error) throw error;
+            
+            // Return the latest content or null if none
+            return data && data.length > 0 ? data[0] : null;
+        } catch (error) {
+            console.error('Error fetching user contents:', error);
+            return null;
+        }
+    },
+    
+    async fetchWithdrawals(userId) {
+        try {
+            const { data, error } = await supabase
+                .from('withdrawal_requests')
+                .select('*')
+                .eq('id', userId)
+                .order('created_at', { ascending: false })
+                .limit(1);
+                
+            if (error) throw error;
+            
+            // Return the latest withdrawal request or null if none
+            return data && data.length > 0 ? data[0] : null;
+        } catch (error) {
+            console.error('Error fetching withdrawals:', error);
+            return null;
+        }
     }
 };
 
@@ -84,12 +194,14 @@ const supabaseClient = {
 const displayUserData = (data) => {
     if (!data) return;
     
+    console.log('Displaying user data:', data);
+    
     // Display user data
     if (data.user) {
-        setElementText('user_name', data.user.user_name);
-        setElementText('email_address', data.user.email_address);
-        setElementText('status', data.user.status);
-        setElementText('rank', data.user.rank);
+        setElementText('user_name', data.user.user_name || 'Not set');
+        setElementText('email_address', data.user.email_address || 'Not set');
+        setElementText('status', data.user.status || 'Not active');
+        setElementText('rank', data.user.rank || 'User');
         setElementText('last_login', formatDate(data.user.last_login));
         setElementText('total_income', formatNumber(data.user.total_income));
     }
@@ -100,48 +212,70 @@ const displayUserData = (data) => {
         setElementText('tiktok', formatNumber(data.earnings.tiktok));
         setElementText('trivia', formatNumber(data.earnings.trivia));
         setElementText('refferal', formatNumber(data.earnings.refferal));
-        setElementText('bonus', formatNumber(data.earnings.bonus));
+        setElementText('bonus', formatNumber(data.earnings.bonus || 5000));
         setElementText('all_time_earn', formatNumber(data.earnings.all_time_earn));
         setElementText('total_withdrawn', formatNumber(data.earnings.total_withdrawn));
         
         // Calculate available balance
-        const available = (data.earnings.all_time_earn || 0) - (data.earnings.total_withdrawn || 0);
+        const allTimeEarn = data.earnings.all_time_earn || 0;
+        const totalWithdrawn = data.earnings.total_withdrawn || 0;
+        const available = allTimeEarn - totalWithdrawn;
         setElementText('available_balance', formatNumber(available));
+    } else {
+        // If no earnings record exists, show defaults
+        setElementText('youtube', '0');
+        setElementText('tiktok', '0');
+        setElementText('trivia', '0');
+        setElementText('refferal', '0');
+        setElementText('bonus', '5,000');
+        setElementText('all_time_earn', '0');
+        setElementText('total_withdrawn', '0');
+        setElementText('available_balance', '0');
     }
     
     // Display contents data
     if (data.contents) {
         setElementText('post_id', data.contents.post_id);
-        setElementText('content_title', data.contents.content_title);
-        setElementText('content_type', data.contents.content_type);
+        setElementText('content_title', data.contents.content_title || 'No content');
+        setElementText('content_type', data.contents.content_type || 'N/A');
         setElementText('total_actions', formatNumber(data.contents.total_actions));
+    } else {
+        setElementText('post_id', 'N/A');
+        setElementText('content_title', 'No content available');
+        setElementText('content_type', 'N/A');
+        setElementText('total_actions', '0');
     }
     
     // Display payment information
     if (data.payment) {
-        setElementText('mobile_number', data.payment.mobile_number);
-        setElementText('payment_method', data.payment.payment_method);
-        setElementText('email', data.payment.email);
-        setElementText('notification_preference', data.payment.notification_preference);
-    }
-    
-    // Display statistics (if user has access)
-    if (data.statistics) {
-        setElementText('total_users', formatNumber(data.statistics.total_users));
-        setElementText('total_income', formatNumber(data.statistics.total_income));
-        setElementText('total_withdrawn', formatNumber(data.statistics.total_withdrawn));
-        setElementText('pending_withdrawals', formatNumber(data.statistics.pending_withdrawals));
-        setElementText('available_income', formatNumber(data.statistics.available_income));
+        setElementText('mobile_number', data.payment.mobile_number || 'Not set');
+        setElementText('payment_method', data.payment.payment_method || 'Not set');
+        setElementText('email', data.payment.email || 'Not set');
+        setElementText('notification_preference', data.payment.notification_preference || 'Not set');
+    } else {
+        setElementText('mobile_number', 'Not set');
+        setElementText('payment_method', 'Not set');
+        setElementText('email', 'Not set');
+        setElementText('notification_preference', 'Not set');
     }
     
     // Display withdrawal requests
     if (data.withdrawals) {
         setElementText('request_id', data.withdrawals.request_id);
-        setElementText('withdrawal_payment_method', data.withdrawals.payment_method);
-        setElementText('withdrawal_phone_number', data.withdrawals.phone_number);
-        setElementText('withdrawal_email', data.withdrawals.email);
-        setElementText('withdrawal_status', data.withdrawals.status);
+        setElementText('withdrawal_payment_method', data.withdrawals.payment_method || 'N/A');
+        setElementText('withdrawal_phone_number', data.withdrawals.phone_number || 'N/A');
+        setElementText('withdrawal_email', data.withdrawals.email || 'N/A');
+        setElementText('withdrawal_status', data.withdrawals.status || 'Pending');
+    } else {
+        setElementText('request_id', 'N/A');
+        setElementText('withdrawal_payment_method', 'No withdrawal requests');
+        setElementText('withdrawal_phone_number', 'N/A');
+        setElementText('withdrawal_email', 'N/A');
+        setElementText('withdrawal_status', 'N/A');
     }
+    
+    // Note: Statistics table is typically admin-only, so we don't fetch it for regular users
+    // If you need user-specific statistics, you should add a user_id column to that table
 };
 
 // Helper functions
@@ -158,7 +292,7 @@ const formatNumber = (num) => {
 };
 
 const formatDate = (dateString) => {
-    if (!dateString) return 'N/A';
+    if (!dateString) return 'Never';
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', {
         year: 'numeric',
@@ -172,6 +306,11 @@ const displayError = (message) => {
     const errorDiv = document.getElementById('error-message') || createErrorElement();
     errorDiv.textContent = message;
     errorDiv.style.display = 'block';
+    
+    // Auto-hide error after 5 seconds
+    setTimeout(() => {
+        errorDiv.style.display = 'none';
+    }, 5000);
 };
 
 const createErrorElement = () => {
@@ -187,6 +326,8 @@ const createErrorElement = () => {
         border-radius: 5px;
         z-index: 1000;
         display: none;
+        max-width: 400px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
     `;
     document.body.appendChild(errorDiv);
     return errorDiv;
@@ -201,21 +342,37 @@ const setLoading = (isLoading) => {
 const createLoadingElement = () => {
     const loadingDiv = document.createElement('div');
     loadingDiv.id = 'loading';
-    loadingDiv.innerHTML = 'Loading...';
+    loadingDiv.innerHTML = `
+        <div style="text-align: center;">
+            <div style="margin-bottom: 10px;">Loading your dashboard...</div>
+            <div style="width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; margin: 0 auto; animation: spin 1s linear infinite;"></div>
+        </div>
+    `;
     loadingDiv.style.cssText = `
         position: fixed;
         top: 0;
         left: 0;
         right: 0;
         bottom: 0;
-        background: rgba(255, 255, 255, 0.8);
+        background: rgba(255, 255, 255, 0.9);
         display: flex;
         justify-content: center;
         align-items: center;
-        font-size: 24px;
+        font-size: 18px;
         z-index: 999;
         display: none;
     `;
+    
+    // Add CSS for spinner animation
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    `;
+    document.head.appendChild(style);
+    
     document.body.appendChild(loadingDiv);
     return loadingDiv;
 };
@@ -226,26 +383,83 @@ const initializeDashboard = async () => {
         setLoading(true);
         displayError('');
         
+        // Check if user is authenticated
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+            displayError('Please log in to access the dashboard.');
+            setLoading(false);
+            
+            // Redirect to login page after 2 seconds
+            setTimeout(() => {
+                window.location.href = '/login.html';
+            }, 2000);
+            return;
+        }
+        
         const userData = await supabaseClient.fetchUserData();
         
         if (userData) {
             displayUserData(userData);
         } else {
-            displayError('Unable to load user data. Please try again.');
+            displayError('Unable to load user data. Please try refreshing the page.');
         }
     } catch (error) {
         console.error('Dashboard initialization error:', error);
-        displayError('An error occurred while loading your data.');
+        displayError('An error occurred while loading your data. Please try again.');
     } finally {
         setLoading(false);
     }
 };
 
+// Handle authentication state changes
+const setupAuthListener = () => {
+    supabase.auth.onAuthStateChange((event, session) => {
+        console.log('Auth state changed:', event);
+        
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+            // Refresh dashboard data when user signs in or token refreshes
+            initializeDashboard();
+        } else if (event === 'SIGNED_OUT') {
+            // Clear dashboard and redirect to login
+            clearDashboard();
+            window.location.href = '/login.html';
+        }
+    });
+};
+
+// Clear dashboard data
+const clearDashboard = () => {
+    // Clear all displayed data
+    const elementsToClear = [
+        'user_name', 'email_address', 'status', 'rank', 'last_login', 'total_income',
+        'youtube', 'tiktok', 'trivia', 'refferal', 'bonus', 'all_time_earn', 'total_withdrawn', 'available_balance',
+        'post_id', 'content_title', 'content_type', 'total_actions',
+        'mobile_number', 'payment_method', 'email', 'notification_preference',
+        'request_id', 'withdrawal_payment_method', 'withdrawal_phone_number', 'withdrawal_email', 'withdrawal_status'
+    ];
+    
+    elementsToClear.forEach(id => setElementText(id, 'Loading...'));
+};
+
 // Auto-initialize when DOM is loaded
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initializeDashboard);
+    document.addEventListener('DOMContentLoaded', () => {
+        // First check if Supabase is loaded
+        if (!window.supabase) {
+            displayError('Supabase client not loaded. Please refresh the page.');
+            return;
+        }
+        
+        setupAuthListener();
+        initializeDashboard();
+    });
 } else {
-    initializeDashboard();
+    if (window.supabase) {
+        setupAuthListener();
+        initializeDashboard();
+    } else {
+        displayError('Supabase client not loaded. Please refresh the page.');
+    }
 }
 
 // Optional: Refresh data periodically (every 30 seconds)
@@ -259,10 +473,28 @@ const stopAutoRefresh = () => {
     if (refreshInterval) clearInterval(refreshInterval);
 };
 
-// Export functions for manual control (if needed)
+// Export functions for manual control
 window.dashboard = {
     refresh: initializeDashboard,
     startAutoRefresh,
     stopAutoRefresh,
-    getUserData: () => supabaseClient.fetchUserData()
+    getUserData: () => supabaseClient.fetchUserData(),
+    signOut: async () => {
+        await supabase.auth.signOut();
+    }
 };
+
+// Make sure to include this CSS for the spinner animation if not already in your stylesheet
+document.addEventListener('DOMContentLoaded', () => {
+    if (!document.querySelector('#spinner-styles')) {
+        const style = document.createElement('style');
+        style.id = 'spinner-styles';
+        style.textContent = `
+            @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+});
