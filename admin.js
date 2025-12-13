@@ -1,4 +1,4 @@
-// dashboard-nav.js - Navigation and section switching only
+// admin.js - UPDATED VERSION
 
 // Block auto-login if just logged out
 if (localStorage.getItem('justLoggedOut') === 'true') {
@@ -40,7 +40,15 @@ function initializeNavigation() {
         logoutBtn.addEventListener('click', function(e) {
             e.preventDefault();
             localStorage.setItem('justLoggedOut', 'true');
-            window.location.href = 'index.html';
+            
+            // Try to sign out with Supabase if available
+            if (window.supabase) {
+                window.supabase.auth.signOut().then(() => {
+                    window.location.href = 'index.html';
+                });
+            } else {
+                window.location.href = 'index.html';
+            }
         });
     }
     
@@ -76,8 +84,10 @@ function initializeNavigation() {
         // Update URL hash without page reload
         window.history.pushState(null, null, `#${sectionId}`);
         
-        // Close mobile menu if open
-        closeMobileMenu();
+        // Close mobile menu if open (check if function exists)
+        if (typeof window.closeMobileMenu === 'function') {
+            window.closeMobileMenu();
+        }
     }
     
     // Navigation click handler
@@ -173,12 +183,13 @@ function initializeMobileMenu() {
         document.body.style.overflow = 'hidden'; // Prevent scrolling
     }
     
-    function closeMobileMenu() {
+    // Define closeMobileMenu globally so other functions can call it
+    window.closeMobileMenu = function() {
         freshSideMenu.classList.remove('active');
         overlay.style.display = 'none';
         if (freshHamburgerBtn) freshHamburgerBtn.classList.remove('active');
         document.body.style.overflow = ''; // Restore scrolling
-    }
+    };
     
     // Mobile menu toggle
     if (freshHamburgerBtn && freshSideMenu) {
@@ -328,8 +339,5 @@ window.dashboardNav = {
         const btn = document.getElementById('hamburgerBtn');
         if (btn) btn.click();
     },
-    closeMenu: function() {
-        const overlay = document.querySelector('.overlay');
-        if (overlay) overlay.click();
-    }
+    closeMenu: window.closeMobileMenu
 };
