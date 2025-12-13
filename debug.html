@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Debug Supabase Loading</title>
+    <script>
+        console.log('Testing Supabase loading...');
+
+        // Test loading from CDN
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/supabase.min.js';
+        script.async = false;
+
+        script.onload = function () {
+            console.log('✓ Supabase loaded from CDN');
+            console.log('supabase object:', typeof supabase);
+
+            if (typeof supabase !== 'undefined') {
+                document.body.innerHTML += '<div style="color: green; padding: 20px;">SUCCESS: Supabase loaded!</div>';
+            }
+        };
+
+        script.onerror = function (e) {
+            console.error('✗ Failed to load Supabase from CDN');
+            console.error(e);
+            document.body.innerHTML += '<div style="color: red; padding: 20px;">FAILED: Could not load Supabase from CDN</div>';
+            document.body.innerHTML += '<div>Try loading: <a href="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/supabase.min.js" target="_blank">Supabase CDN Link</a></div>';
+        };
+
+        document.head.appendChild(script);
+    </script>
+</head>
+
+<body>
+    <h1>Debug Supabase Loading</h1>
+    <p>Check browser console for details.</p>
+</body>
+
+</html>

@@ -1,68 +1,38 @@
-// auth-middleware.js
-// Handles authentication and redirects
-
+// auth-middleware.js - SIMPLIFIED VERSION
 (function() {
     console.log('Auth middleware starting...');
     
-    // Wait for Supabase to be available
-    function waitForSupabase(callback, maxAttempts = 30, interval = 100) {
-        let attempts = 0;
-        
-        function check() {
-            attempts++;
-            
-            if (window.supabase) {
-                console.log('Supabase found after', attempts, 'attempts');
-                callback();
-            } else if (attempts < maxAttempts) {
-                setTimeout(check, interval);
-            } else {
-                console.error('Supabase not found after max attempts');
-                showError('Application initialization failed. Please refresh.');
-                // Try to redirect to login after delay
-                setTimeout(() => {
-                    const isLoginPage = window.location.pathname.includes('index.html') || 
-                                       window.location.pathname === '/' || 
-                                       window.location.pathname === '/index.html';
-                    
-                    if (!isLoginPage) {
-                        window.location.href = 'index.html';
-                    }
-                }, 2000);
-            }
-        }
-        
-        check();
+    // Simple check for required globals
+    if (!window.supabase) {
+        console.error('Supabase not available');
+        showAuthError('Application not properly initialized. Please refresh.');
+        return;
     }
     
-    waitForSupabase(async function() {
+    async function checkAuth() {
         try {
-            console.log('Checking authentication...');
+            console.log('Checking authentication status...');
             
             // Get current session
             const { data: { session }, error } = await window.supabase.auth.getSession();
             
             if (error) {
                 console.error('Session error:', error);
-                handleUnauthenticated();
+                handleNoSession();
                 return;
             }
-            
-            console.log('Session check completed:', session ? 'Authenticated' : 'Not authenticated');
             
             if (!session) {
-                console.log('No session found');
-                handleUnauthenticated();
+                console.log('No active session found');
+                handleNoSession();
                 return;
             }
             
-            // User is authenticated
+            // We have a valid session
             console.log('User authenticated:', session.user.email);
-            
-            // Store user globally
             window.currentUser = session.user;
             
-            // Setup auth state change listener
+            // Setup auth listener
             setupAuthListener();
             
             // Load dashboard
@@ -70,78 +40,57 @@
             
         } catch (error) {
             console.error('Auth check error:', error);
-            handleUnauthenticated();
+            handleNoSession();
         }
-    });
+    }
     
-    function handleUnauthenticated() {
+    function handleNoSession() {
         console.log('Handling unauthenticated user...');
         
-        // Check if we're on login page
-        const isLoginPage = window.location.pathname.includes('index.html') || 
-                           window.location.pathname === '/' || 
-                           window.location.pathname === '/index.html' ||
-                           window.location.pathname.includes('login');
+        // Check current page
+        const currentPage = window.location.pathname;
+        const isLoginPage = currentPage.includes('index.html') || 
+                           currentPage === '/' || 
+                           currentPage === '/index.html';
         
-        // Check if we're on a public page (like landing page)
-        const isPublicPage = window.location.pathname.includes('landing') || 
-                            window.location.pathname.includes('about') ||
-                            window.location.pathname.includes('faq');
-        
-        if (!isLoginPage && !isPublicPage) {
-            console.log('Redirecting to login...');
-            
-            // Add a small delay to ensure any UI updates complete
+        // If not on login page and not a public page, redirect
+        if (!isLoginPage) {
+            console.log('Redirecting to login page...');
             setTimeout(() => {
                 window.location.href = 'index.html';
-            }, 500);
+            }, 1000);
         } else {
-            console.log('User is on public page, no redirect needed');
+            console.log('Already on login page');
         }
     }
     
     function setupAuthListener() {
         window.supabase.auth.onAuthStateChange((event, session) => {
-            console.log('Auth state changed:', event);
+            console.log('Auth state change:', event);
             
             switch (event) {
                 case 'SIGNED_IN':
-                    console.log('User signed in');
-                    // If we're on login page, redirect to dashboard
+                    // If on login page, redirect to dashboard
                     if (window.location.pathname.includes('index.html') || 
-                        window.location.pathname === '/' || 
-                        window.location.pathname === '/index.html') {
+                        window.location.pathname === '/') {
                         setTimeout(() => {
                             window.location.href = 'dashboard.html';
-                        }, 1000);
-                    }
-                    break;
-                    
-                case 'SIGNED_OUT':
-                    console.log('User signed out');
-                    // Clear any stored data
-                    localStorage.removeItem('supabase.auth.token');
-                    localStorage.removeItem('supabase.auth.refresh');
-                    
-                    // Set logout flag
-                    localStorage.setItem('justLoggedOut', 'true');
-                    
-                    // Redirect to login unless already there
-                    if (!window.location.pathname.includes('index.html') && 
-                        !window.location.pathname === '/' && 
-                        !window.location.pathname === '/index.html') {
-                        setTimeout(() => {
-                            window.location.href = 'index.html';
                         }, 500);
                     }
                     break;
                     
-                case 'TOKEN_REFRESHED':
-                    console.log('Token refreshed');
-                    break;
+                case 'SIGNED_OUT':
+                    // Clear user data
+                    delete window.currentUser;
                     
-                case 'USER_UPDATED':
-                    console.log('User updated');
+                    // Redirect to login if not already there
+                    if (!window.location.pathname.includes('index.html') && 
+                        window.location.pathname !== '/') {
+                        localStorage.setItem('justLoggedOut', 'true');
+                        setTimeout(() => {
+                            window.location.href = 'index.html';
+                        }, 500);
+                    }
                     break;
             }
         });
@@ -150,57 +99,72 @@
     function loadDashboard() {
         console.log('Loading dashboard components...');
         
-        // Load scripts in correct order
+        // Load essential scripts
         const scripts = [
-            'admin.js',          // Navigation
-            'dashboard-core.js', // Main functionality
-            'dfb.js'             // Chatbot
+            { src: 'admin.js', name: 'Navigation' },
+            { src: 'dashboard-core.js', name: 'Dashboard Core' },
+            { src: 'dfb.js', name: 'Chatbot' }
         ];
         
-        // Load each script sequentially
-        function loadScript(index) {
+        function loadNextScript(index) {
             if (index >= scripts.length) {
                 console.log('All dashboard scripts loaded');
                 return;
             }
             
+            const scriptInfo = scripts[index];
+            console.log(`Loading ${scriptInfo.name}...`);
+            
             const script = document.createElement('script');
-            script.src = scripts[index];
+            script.src = scriptInfo.src;
             script.async = false;
             
             script.onload = function() {
-                console.log('Loaded:', scripts[index]);
-                loadScript(index + 1);
+                console.log(`✓ ${scriptInfo.name} loaded`);
+                loadNextScript(index + 1);
             };
             
             script.onerror = function() {
-                console.error('Failed to load:', scripts[index]);
-                loadScript(index + 1); // Continue with next script
+                console.error(`✗ Failed to load ${scriptInfo.name}`);
+                // Continue with next script even if this one fails
+                loadNextScript(index + 1);
             };
             
             document.head.appendChild(script);
         }
         
         // Start loading scripts
-        loadScript(0);
+        loadNextScript(0);
     }
     
-    function showError(message) {
+    function showAuthError(message) {
         const errorDiv = document.createElement('div');
         errorDiv.style.cssText = `
             position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            padding: 15px;
-            background-color: #e74c3c;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #e74c3c;
             color: white;
+            padding: 15px 25px;
+            border-radius: 5px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 10000;
+            max-width: 90%;
             text-align: center;
-            z-index: 9999;
-            font-family: Arial, sans-serif;
-            font-size: 14px;
         `;
         errorDiv.textContent = message;
         document.body.appendChild(errorDiv);
+        
+        // Auto-remove after 5 seconds
+        setTimeout(() => {
+            errorDiv.style.opacity = '0';
+            errorDiv.style.transition = 'opacity 0.5s';
+            setTimeout(() => errorDiv.remove(), 500);
+        }, 5000);
     }
+    
+    // Start auth check
+    checkAuth();
+    
 })();

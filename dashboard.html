@@ -9,26 +9,9 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/supabase.min.js"></script>
     <script src="init-supabase.js"></script>
     <!-- Load optional config.js (contains Supabase credentials). If not found, auth.js/server.js use defaults. -->
-    <script>
-        (function() {
-            const script = document.createElement('script');
-            script.src = 'config.js';
-            script.onerror = () => console.warn('config.js not found; using default Supabase credentials');
-            script.onload = () => console.log('✓ config.js loaded');
-            document.head.appendChild(script);
-        })();
-    </script>
-    
-    <!-- Frontend API base: leave blank for same-origin, or set to your API root. -->
-    <script>
-        // Determine API base. Prefer an explicitly set `window.API_BASE_URL`,
-        // then `window.SUPABASE_CONFIG.apiBase` (from config.js), otherwise
-        // default to empty string (same-origin).
-        window.API_BASE_URL = window.API_BASE_URL || (window.SUPABASE_CONFIG && window.SUPABASE_CONFIG.apiBase) || '';
-    </script>
 
     <!-- Load the dashboard controller (uses API endpoints defined by window.API_BASE_URL) -->
-    <script src="server.js" defer></script>
+    <!-- <script src="server.js" defer></script> -->
 
     <link rel="icon" href="android-chrome-512x512.png">
     <link rel="stylesheet" href="dashboard.css">
