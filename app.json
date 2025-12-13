@@ -1,0 +1,27 @@
+{
+  "name": "greenqash",
+  "version": "1.0.0",
+  "description": "GreenQash - Earn money through social media tasks",
+  "main": "api/index.js",
+  "scripts": {
+    "start": "node api/index.js",
+    "dev": "nodemon api/index.js",
+    "serve": "npx http-server -p 8080 -c-1",
+    "start-all": "concurrently \"npm run serve\" \"npm run dev\"",
+    "test": "echo \"No tests specified\" && exit 0"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.56.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "http-server": "^14.1.1",
+    "nodemon": "^3.0.1"
+  },
+  "keywords": ["earning", "tasks", "social-media", "uganda"],
+  "author": "GreenQash Team",
+  "license": "ISC"
+}
