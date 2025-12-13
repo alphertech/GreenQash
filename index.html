@@ -10,7 +10,21 @@
     <script type="module" src="auth.js"></script>
     <link rel="stylesheet" href="indexed.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
+    <!-- In index.html head -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/supabase.min.js"></script>
+    <script src="config.js"></script>
+    <script>
+        // Initialize Supabase for login page
+        document.addEventListener('DOMContentLoaded', function () {
+            if (!window.supabase && window.SUPABASE_CONFIG) {
+                window.supabase = supabase.createClient(
+                    window.SUPABASE_CONFIG.url,
+                    window.SUPABASE_CONFIG.anonKey
+                );
+                console.log('Supabase initialized for login page');
+            }
+        });
+    </script>
 </head>
 
 <body>
