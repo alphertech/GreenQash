@@ -1,175 +1,191 @@
-// init-supabase.js - FIXED VERSION
+// init-supabase.js - SIMPLE WORKING VERSION
 (function() {
-    console.log('Starting application initialization...');
+    console.log('🚀 Starting GreenQash...');
     
-    // Wait for DOM to be ready
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', init);
-    } else {
-        // DOM already loaded
-        setTimeout(init, 100);
-    }
+    // Wait for DOM
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('DOM ready, initializing...');
+        initSupabase();
+    });
     
-    function init() {
-        console.log('DOM ready, initializing Supabase...');
-        loadSupabase();
-    }
-    
-    // Function to try loading Supabase from multiple sources
-    function loadSupabase() {
-        console.log('Attempting to load Supabase...');
+    function initSupabase() {
+        console.log('Initializing Supabase...');
         
-        const sources = [
-            {
-                name: 'CDN (Primary)',
-                url: 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/supabase.min.js',
-                timeout: 5000
-            },
-            {
-                name: 'Local',
-                url: 'supabase-local.js',
-                timeout: 3000
-            }
-        ];
-        
-        function trySource(index) {
-            if (index >= sources.length) {
-                // All sources failed
-                console.error('All Supabase sources failed');
-                showError('Failed to load required libraries. Please check your internet connection.');
-                return;
-            }
-            
-            const source = sources[index];
-            console.log(`Trying source: ${source.name}`);
-            
-            const script = document.createElement('script');
-            script.src = source.url;
-            
-            const timeoutId = setTimeout(() => {
-                console.log(`Source ${source.name} timed out`);
-                if (script.parentNode) {
-                    script.parentNode.removeChild(script);
-                }
-                trySource(index + 1);
-            }, source.timeout);
-            
-            script.onload = function() {
-                clearTimeout(timeoutId);
-                console.log(`Successfully loaded from ${source.name}`);
-                
-                // Check if supabase object is available
-                setTimeout(() => {
-                    if (typeof supabase === 'undefined') {
-                        console.error('Supabase loaded but not defined');
-                        trySource(index + 1);
-                        return;
-                    }
-                    
-                    // Success! Load config
-                    loadConfig();
-                }, 100);
-            };
-            
-            script.onerror = function() {
-                clearTimeout(timeoutId);
-                console.log(`Failed to load from ${source.name}`);
-                trySource(index + 1);
-            };
-            
-            document.head.appendChild(script);
-        }
-        
-        // Start with first source
-        trySource(0);
-    }
-    
-    function loadConfig() {
-        console.log('Loading configuration...');
-        
-        // First try to load from config.js
-        const configScript = document.createElement('script');
-        configScript.src = 'config.js';
-        
-        configScript.onload = function() {
-            console.log('Configuration loaded from config.js');
-            
-            // Check if config exists
-            if (!window.SUPABASE_CONFIG) {
-                console.warn('No SUPABASE_CONFIG found, using defaults');
-                window.SUPABASE_CONFIG = getDefaultConfig();
-            }
-            
-            initializeSupabaseClient();
-        };
-        
-        configScript.onerror = function() {
-            console.warn('config.js not found, using defaults');
-            window.SUPABASE_CONFIG = getDefaultConfig();
-            initializeSupabaseClient();
-        };
-        
-        document.head.appendChild(configScript);
-    }
-    
-    function getDefaultConfig() {
-        return {
-            url: 'https://kwghulqonljulmvlcfnz.supabase.co',
-            anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt3Z2h1bHFvbmxqdWxtdmxjZm56Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM5NzcyMDcsImV4cCI6MjA3OTU1MzIwN30.hebcPqAvo4B23kx4gdWuXTJhmx7p8zSHHEYSkPzPhcM',
-            apiBase: ''
-        };
-    }
-    
-    function initializeSupabaseClient() {
-        console.log('Initializing Supabase client...');
-        
-        try {
-            // Create Supabase client
-            window.supabase = supabase.createClient(
-                window.SUPABASE_CONFIG.url,
-                window.SUPABASE_CONFIG.anonKey,
-                {
-                    auth: {
-                        autoRefreshToken: true,
-                        persistSession: true,
-                        detectSessionInUrl: true
-                    }
-                }
-            );
-            
-            console.log('✓ Supabase client initialized successfully');
-            
-            // Load auth middleware
-            setTimeout(loadAuthMiddleware, 100);
-            
-        } catch (error) {
-            console.error('Error initializing Supabase client:', error);
-            showError('Application initialization failed: ' + error.message);
-        }
-    }
-    
-    function loadAuthMiddleware() {
-        console.log('Loading auth middleware...');
-        
+        // Create script element
         const script = document.createElement('script');
-        script.src = 'auth-middleware.js';
+        
+        // Use THIS working CDN URL (confirmed working):
+        script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/supabase.min.js';
         
         script.onload = function() {
-            console.log('✓ Auth middleware loaded');
+            console.log('✓ Supabase loaded successfully');
+            initializeApp();
         };
         
-        script.onerror = function() {
-            console.error('Failed to load auth middleware');
-            showError('Critical error: Authentication system failed to load.');
+        script.onerror = function(e) {
+            console.error('✗ Failed to load Supabase:', e);
+            
+            // Try alternative URL
+            console.log('Trying alternative URL...');
+            const altScript = document.createElement('script');
+            altScript.src = 'https://unpkg.com/@supabase/supabase-js@2';
+            
+            altScript.onload = function() {
+                console.log('✓ Supabase loaded from alternative URL');
+                initializeApp();
+            };
+            
+            altScript.onerror = function() {
+                console.error('✗ All CDNs failed');
+                showError(`
+                    <h3>⚠️ Network Issue Detected</h3>
+                    <p>Unable to load required libraries. This could be due to:</p>
+                    <ul>
+                        <li>Internet connection problem</li>
+                        <li>Firewall blocking CDN</li>
+                        <li>Ad blocker interfering</li>
+                    </ul>
+                    <p><strong>Quick fix:</strong> Try refreshing the page or check your internet connection.</p>
+                    <button onclick="location.reload()">🔄 Refresh Now</button>
+                `);
+            };
+            
+            document.head.appendChild(altScript);
         };
         
         document.head.appendChild(script);
     }
     
+    function initializeApp() {
+        console.log('Creating Supabase client...');
+        
+        // ALWAYS use these hardcoded values (no config.js dependency)
+        const SUPABASE_URL = 'https://kwghulqonljulmvlcfnz.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt3Z2h1bHFvbmxqdWxtdmxjZm56Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM5NzcyMDcsImV4cCI6MjA3OTU1MzIwN30.hebcPqAvo4B23kx4gdWuXTJhmx7p8zSHHEYSkPzPhcM';
+        
+        try {
+            // Create Supabase client
+            window.supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+                auth: {
+                    autoRefreshToken: true,
+                    persistSession: true,
+                    detectSessionInUrl: true
+                }
+            });
+            
+            console.log('✓ Supabase client created');
+            console.log('URL:', SUPABASE_URL);
+            
+            // Check if user is logged in
+            checkAuth();
+            
+        } catch (error) {
+            console.error('Error creating Supabase client:', error);
+            showError('Failed to initialize database connection: ' + error.message);
+        }
+    }
+    
+    async function checkAuth() {
+        try {
+            console.log('Checking authentication...');
+            
+            const { data: { session }, error } = await window.supabase.auth.getSession();
+            
+            if (error) {
+                console.error('Auth error:', error);
+                // Still continue, might be first visit
+            }
+            
+            const currentPath = window.location.pathname;
+            const isLoginPage = currentPath.includes('index.html') || currentPath === '/' || currentPath === '/index.html';
+            
+            if (session) {
+                console.log('✓ User authenticated:', session.user.email);
+                window.currentUser = session.user;
+                
+                if (isLoginPage) {
+                    // Already logged in, go to dashboard
+                    console.log('Redirecting to dashboard...');
+                    window.location.href = 'dashboard.html';
+                    return;
+                }
+            } else {
+                console.log('No active session found');
+                
+                if (!isLoginPage && !currentPath.includes('index.html')) {
+                    // Not logged in and not on login page
+                    console.log('Redirecting to login...');
+                    window.location.href = 'index.html';
+                    return;
+                }
+            }
+            
+            // Load appropriate page scripts
+            if (isLoginPage) {
+                loadLoginScripts();
+            } else {
+                loadDashboardScripts();
+            }
+            
+        } catch (error) {
+            console.error('Auth check failed:', error);
+            
+            // Still try to load the page
+            if (window.location.pathname.includes('dashboard.html')) {
+                loadDashboardScripts();
+            }
+        }
+    }
+    
+    function loadLoginScripts() {
+        console.log('Loading login scripts...');
+        
+        // Load login.js if exists
+        const script = document.createElement('script');
+        script.src = 'login.js';
+        script.onerror = function() {
+            console.log('login.js not found, continuing without it');
+        };
+        document.head.appendChild(script);
+    }
+    
+    function loadDashboardScripts() {
+        console.log('Loading dashboard scripts...');
+        
+        // Load scripts in order
+        const scripts = [
+            'admin.js',          // Navigation first
+            'dashboard-core.js', // Main functionality
+            'dfb.js'             // Chatbot last
+        ];
+        
+        function loadScript(index) {
+            if (index >= scripts.length) {
+                console.log('✓ All dashboard scripts loaded');
+                return;
+            }
+            
+            const script = document.createElement('script');
+            script.src = scripts[index];
+            
+            script.onload = function() {
+                console.log('✓ Loaded:', scripts[index]);
+                loadScript(index + 1);
+            };
+            
+            script.onerror = function() {
+                console.warn('⚠ Failed to load:', scripts[index]);
+                loadScript(index + 1); // Continue anyway
+            };
+            
+            document.head.appendChild(script);
+        }
+        
+        loadScript(0);
+    }
+    
     function showError(message) {
-        // Create error element
         const errorDiv = document.createElement('div');
-        errorDiv.id = 'app-error';
         errorDiv.style.cssText = `
             position: fixed;
             top: 0;
@@ -181,23 +197,14 @@
             text-align: center;
             z-index: 9999;
             font-family: Arial, sans-serif;
-            font-size: 14px;
         `;
-        errorDiv.innerHTML = `
-            ${message}
-            <button onclick="location.reload()" style="margin-left: 10px; padding: 5px 10px; background: white; color: #e74c3c; border: none; border-radius: 3px; cursor: pointer;">
-                Refresh
-            </button>
-        `;
+        errorDiv.innerHTML = message;
         
-        // Ensure document.body exists
-        if (document.body) {
-            document.body.appendChild(errorDiv);
-        } else {
-            // Wait for body to be available
-            document.addEventListener('DOMContentLoaded', function() {
-                document.body.appendChild(errorDiv);
-            });
-        }
+        document.body.appendChild(errorDiv);
+    }
+    
+    // If DOM already loaded, run immediately
+    if (document.readyState === 'interactive' || document.readyState === 'complete') {
+        initSupabase();
     }
 })();

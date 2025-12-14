@@ -5,18 +5,23 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SkyLink</title>
-    <!-- Load Supabase FIRST -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/supabase.min.js"></script>
+    <!-- In dashboard.html head -->
+    <script>
+        // Simple inline check
+        console.log('Dashboard loading...');
+    </script>
+    
+    <!-- Load Supabase directly from working CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/supabase.min.js"></script>
+    
+    <!-- Load our scripts -->
+    <script src="config.js"></script>
     <script src="init-supabase.js"></script>
     <script src="admin.js"></script>
-    <!-- After other scripts -->
-    <script src="api-client.js"></script>
     <script src="dashboard-core.js"></script>
-    <!-- Load optional config.js (contains Supabase credentials). If not found, auth.js/server.js use defaults. -->
-
-    <!-- Load the dashboard controller (uses API endpoints defined by window.API_BASE_URL) -->
-    <!-- <script src="server.js" defer></script> -->
-
+    <script src="dfb.js"></script>
+    
+    <link rel="stylesheet" href="dashboard.css">
     <link rel="icon" href="android-chrome-512x512.png">
     <link rel="stylesheet" href="dashboard.css">
 </head>

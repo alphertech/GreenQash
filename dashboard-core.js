@@ -1,95 +1,134 @@
-// dashboard-core.js - SIMPLIFIED VERSION (No API dependency)
+// dashboard-core.js - SIMPLE WORKING VERSION
 (function() {
     console.log('Dashboard core starting...');
     
-    let currentUser = null;
-    let userProfile = null;
-    let earningsData = null;
+    // Wait a bit for everything to initialize
+    setTimeout(initDashboard, 500);
     
-    // Wait for everything to be ready
-    function initDashboard() {
+    async function initDashboard() {
         console.log('Initializing dashboard...');
         
-        // Check if we have Supabase
+        // Check if Supabase is available
         if (!window.supabase) {
-            console.log('Waiting for Supabase...');
+            console.error('Supabase not available yet, waiting...');
             setTimeout(initDashboard, 500);
             return;
         }
         
-        // Get current user
-        window.supabase.auth.getUser().then(({ data: { user }, error }) => {
-            if (error) {
-                console.error('Error getting user:', error);
-                return;
-            }
+        try {
+            // Get current user
+            const { data: { user }, error } = await window.supabase.auth.getUser();
             
-            if (!user) {
-                console.log('No user found, redirecting to login...');
+            if (error || !user) {
+                console.error('No authenticated user:', error);
                 window.location.href = 'index.html';
                 return;
             }
             
-            currentUser = user;
-            console.log('User authenticated:', user.email);
+            console.log('User found:', user.email);
+            window.currentUser = user;
             
             // Load user data
-            loadUserData();
+            await loadUserData(user);
             
-        }).catch(error => {
-            console.error('Auth error:', error);
-        });
+            // Setup UI
+            setupUI();
+            
+            console.log('✓ Dashboard initialized successfully');
+            
+        } catch (error) {
+            console.error('Dashboard init error:', error);
+            showMessage('Error loading dashboard. Please refresh.', 'error');
+        }
     }
     
-    async function loadUserData() {
+    async function loadUserData(user) {
+        console.log('Loading user data...');
+        
         try {
-            console.log('Loading user data...');
-            
-            // Load user profile
-            const { data: profile, error: profileError } = await window.supabase
+            // Try to get user profile from database
+            const { data: userData, error: userError } = await window.supabase
                 .from('users')
                 .select('*')
-                .eq('email_address', currentUser.email)
+                .eq('email_address', user.email)
                 .maybeSingle();
             
-            if (profileError) {
-                console.error('Error loading profile:', profileError);
+            if (userError) {
+                console.error('Error loading user profile:', userError);
             }
             
-            userProfile = profile;
-            
-            // Load earnings
-            const { data: earnings, error: earningsError } = await window.supabase
+            // Try to get earnings
+            const { data: earningsData, error: earningsError } = await window.supabase
                 .from('earnings')
                 .select('*')
-                .eq('id', currentUser.id)
+                .eq('id', user.id)
                 .maybeSingle();
             
             if (earningsError) {
                 console.error('Error loading earnings:', earningsError);
             }
             
-            earningsData = earnings;
+            // Store data globally
+            window.userData = userData || {};
+            window.earningsData = earningsData || {
+                youtube: 0,
+                tiktok: 0,
+                trivia: 0,
+                refferal: 0,
+                bonus: 0,
+                all_time_earn: 0,
+                total_withdrawn: 0
+            };
             
-            console.log('Data loaded:', { userProfile, earningsData });
-            
-            // Update UI
-            updateUI();
-            
-            // Setup event listeners
-            setupEventListeners();
+            console.log('User data loaded:', {
+                profile: window.userData,
+                earnings: window.earningsData
+            });
             
         } catch (error) {
-            console.error('Error loading data:', error);
-            showMessage('Error loading data. Please refresh.', 'error');
+            console.error('Error in loadUserData:', error);
+            // Use default data
+            window.userData = {};
+            window.earningsData = {
+                youtube: 0,
+                tiktok: 0,
+                trivia: 0,
+                refferal: 0,
+                bonus: 0,
+                all_time_earn: 0,
+                total_withdrawn: 0
+            };
         }
     }
     
-    function updateUI() {
-        console.log('Updating UI...');
+    function setupUI() {
+        console.log('Setting up UI...');
         
-        // Update username
-        const username = getUsername();
+        // Update username everywhere
+        updateUsername();
+        
+        // Update email
+        updateEmail();
+        
+        // Update earnings/stats
+        updateStats();
+        
+        // Setup event listeners
+        setupEventListeners();
+    }
+    
+    function updateUsername() {
+        const user = window.currentUser;
+        const userData = window.userData;
+        
+        let username = 'User';
+        if (userData.user_name) username = userData.user_name;
+        else if (user.user_metadata?.full_name) username = user.user_metadata.full_name;
+        else if (user.email) username = user.email.split('@')[0];
+        
+        console.log('Setting username to:', username);
+        
+        // Update all username elements
         document.querySelectorAll('#user_name').forEach(el => {
             if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
                 el.value = username;
@@ -97,9 +136,11 @@
                 el.textContent = username;
             }
         });
+    }
+    
+    function updateEmail() {
+        const email = window.currentUser.email || '';
         
-        // Update email
-        const email = currentUser.email || '';
         document.querySelectorAll('#email_address, .emailAdress').forEach(el => {
             if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
                 el.value = email;
@@ -107,50 +148,26 @@
                 el.textContent = email;
             }
         });
+    }
+    
+    function updateStats() {
+        const earnings = window.earningsData;
         
-        // Update greeting
-        updateGreeting();
-        
-        // Update earnings
-        if (earningsData) {
-            updateEarnings();
+        if (!earnings) {
+            console.log('No earnings data to display');
+            return;
         }
         
-        // Update referral link
-        updateReferralLink();
-    }
-    
-    function getUsername() {
-        if (userProfile?.user_name) return userProfile.user_name;
-        if (currentUser.user_metadata?.full_name) return currentUser.user_metadata.full_name;
-        if (currentUser.email) return currentUser.email.split('@')[0];
-        return 'User';
-    }
-    
-    function updateGreeting() {
-        const hour = new Date().getHours();
-        let greeting = '';
-        
-        if (hour < 12) greeting = "Good Morning";
-        else if (hour < 16) greeting = "Good Afternoon";
-        else greeting = "Good Evening";
-        
-        const greetingElement = document.getElementById("greetings");
-        if (greetingElement) {
-            greetingElement.textContent = greeting + "! ";
-        }
-    }
-    
-    function updateEarnings() {
+        // Update all stat elements
         const stats = {
-            'youtube': earningsData.youtube || 0,
-            'tiktok': earningsData.tiktok || 0,
-            'trivia': earningsData.trivia || 0,
-            'refferal': earningsData.refferal || 0,
-            'bonus': earningsData.bonus || 0,
-            'total_income': earningsData.all_time_earn || 0,
-            'withdrawn': earningsData.total_withdrawn || 0,
-            'walletQash': (earningsData.all_time_earn || 0) - (earningsData.total_withdrawn || 0)
+            'youtube': earnings.youtube || 0,
+            'tiktok': earnings.tiktok || 0,
+            'trivia': earnings.trivia || 0,
+            'refferal': earnings.refferal || 0,
+            'bonus': earnings.bonus || 0,
+            'total_income': earnings.all_time_earn || 0,
+            'withdrawn': earnings.total_withdrawn || 0,
+            'walletQash': (earnings.all_time_earn || 0) - (earnings.total_withdrawn || 0)
         };
         
         Object.entries(stats).forEach(([id, value]) => {
@@ -162,45 +179,10 @@
         });
     }
     
-    function updateReferralLink() {
-        const linkInput = document.getElementById('link');
-        if (linkInput && currentUser) {
-            const referralLink = `${window.location.origin}/ref/${currentUser.id}`;
-            linkInput.value = referralLink;
-            
-            // Setup copy button
-            const copyBtn = document.getElementById('CopyLink');
-            if (copyBtn) {
-                copyBtn.addEventListener('click', async () => {
-                    try {
-                        await navigator.clipboard.writeText(referralLink);
-                        
-                        // Show notification
-                        const notification = document.getElementById('notification');
-                        if (notification) {
-                            notification.classList.add('show');
-                            setTimeout(() => notification.classList.remove('show'), 2000);
-                        }
-                        
-                        // Visual feedback
-                        copyBtn.textContent = 'Copied!';
-                        copyBtn.classList.add('copied');
-                        setTimeout(() => {
-                            copyBtn.textContent = 'Copy Link';
-                            copyBtn.classList.remove('copied');
-                        }, 2000);
-                        
-                    } catch (err) {
-                        console.error('Copy failed:', err);
-                        showMessage('Failed to copy link', 'error');
-                    }
-                });
-            }
-        }
-    }
-    
     function setupEventListeners() {
-        // Task claim buttons
+        console.log('Setting up event listeners...');
+        
+        // Task claims
         setupTaskClaims();
         
         // Settings save
@@ -214,15 +196,21 @@
     }
     
     function setupTaskClaims() {
-        document.getElementById('claim')?.addEventListener('click', () => handleTaskClaim('tiktok'));
-        document.getElementById('claimYoutube')?.addEventListener('click', () => handleTaskClaim('youtube'));
+        // TikTok claim
+        const tiktokBtn = document.getElementById('claim');
+        if (tiktokBtn) {
+            tiktokBtn.addEventListener('click', () => handleTaskClaim('tiktok'));
+        }
+        
+        // YouTube claim
+        const youtubeBtn = document.getElementById('claimYoutube');
+        if (youtubeBtn) {
+            youtubeBtn.addEventListener('click', () => handleTaskClaim('youtube'));
+        }
     }
     
     async function handleTaskClaim(taskType) {
-        if (!currentUser) {
-            showMessage('Please login first', 'error');
-            return;
-        }
+        console.log('Claiming task:', taskType);
         
         const button = document.getElementById(taskType === 'youtube' ? 'claimYoutube' : 'claim');
         if (!button) return;
@@ -231,46 +219,19 @@
             button.disabled = true;
             button.textContent = 'Processing...';
             
-            // Check cooldown
-            const storageKey = `nextClaim_${taskType}_${currentUser.id}`;
-            const nextClaimTime = localStorage.getItem(storageKey);
-            
-            if (nextClaimTime && Date.now() < Number(nextClaimTime)) {
-                const remaining = Number(nextClaimTime) - Date.now();
-                const hours = Math.ceil(remaining / (1000 * 60 * 60));
-                showMessage(`Please wait ${hours} hours before claiming again`, 'warning');
-                button.disabled = false;
-                button.textContent = 'Claim Reward';
-                return;
-            }
-            
             const rewardAmount = 1000;
-            
-            // Get current earnings or create default
-            let currentEarnings = earningsData;
-            if (!currentEarnings) {
-                currentEarnings = {
-                    id: currentUser.id,
-                    youtube: 0,
-                    tiktok: 0,
-                    trivia: 0,
-                    refferal: 0,
-                    bonus: 0,
-                    all_time_earn: 0,
-                    total_withdrawn: 0
-                };
-            }
+            const earnings = window.earningsData;
             
             // Calculate new values
-            const currentValue = currentEarnings[taskType] || 0;
+            const currentValue = earnings[taskType] || 0;
             const newValue = currentValue + rewardAmount;
-            const newTotal = (currentEarnings.all_time_earn || 0) + rewardAmount;
+            const newTotal = (earnings.all_time_earn || 0) + rewardAmount;
             
-            // Update earnings in database
+            // Update database
             const { error } = await window.supabase
                 .from('earnings')
                 .upsert({
-                    id: currentUser.id,
+                    id: window.currentUser.id,
                     [taskType]: newValue,
                     all_time_earn: newTotal
                 }, {
@@ -280,19 +241,13 @@
             if (error) throw error;
             
             // Update local data
-            earningsData = {
-                ...earningsData,
-                [taskType]: newValue,
-                all_time_earn: newTotal
-            };
+            earnings[taskType] = newValue;
+            earnings.all_time_earn = newTotal;
             
             // Update UI
-            updateEarnings();
+            updateStats();
             
-            // Set cooldown (48 hours)
-            const nextClaim = Date.now() + (48 * 60 * 60 * 1000);
-            localStorage.setItem(storageKey, nextClaim.toString());
-            
+            // Visual feedback
             button.textContent = 'Claimed!';
             button.style.backgroundColor = '#95a5a6';
             
@@ -302,15 +257,12 @@
             console.error('Task claim error:', error);
             button.disabled = false;
             button.textContent = 'Claim Reward';
-            showMessage('Error claiming reward: ' + error.message, 'error');
+            showMessage('Error: ' + error.message, 'error');
         }
     }
     
     async function saveSettings() {
-        if (!currentUser) {
-            showMessage('Please login first', 'error');
-            return;
-        }
+        console.log('Saving settings...');
         
         const username = document.querySelector('#settings-section #user_name')?.value;
         const email = document.querySelector('#settings-section #email_address')?.value;
@@ -323,49 +275,31 @@
         
         try {
             // Update users table
-            const { error: userError } = await window.supabase
+            const { error } = await window.supabase
                 .from('users')
                 .upsert({
-                    uuid: currentUser.id,
+                    uuid: window.currentUser.id,
                     user_name: username,
                     email_address: email
                 }, {
                     onConflict: 'uuid'
                 });
             
-            if (userError) throw userError;
-            
-            // Update payment info
-            const { error: paymentError } = await window.supabase
-                .from('payment_information')
-                .upsert({
-                    id: currentUser.id,
-                    mobile_number: phone,
-                    email: email
-                }, {
-                    onConflict: 'id'
-                });
-            
-            if (paymentError) throw paymentError;
+            if (error) throw error;
             
             showMessage('Settings saved successfully!', 'success');
             
-            // Reload data
-            await loadUserData();
+            // Update UI
+            updateUsername();
             
         } catch (error) {
             console.error('Save settings error:', error);
-            showMessage('Error saving settings: ' + error.message, 'error');
+            showMessage('Error: ' + error.message, 'error');
         }
     }
     
     async function handleWithdrawal(e) {
         e.preventDefault();
-        
-        if (!currentUser) {
-            showMessage('Please login first', 'error');
-            return;
-        }
         
         const amount = parseFloat(e.target.querySelector('input[type="number"]').value);
         const paymentMethod = e.target.querySelector('select').value;
@@ -382,7 +316,8 @@
             return;
         }
         
-        const available = (earningsData?.all_time_earn || 0) - (earningsData?.total_withdrawn || 0);
+        const earnings = window.earningsData;
+        const available = (earnings.all_time_earn || 0) - (earnings.total_withdrawn || 0);
         
         if (amount > available) {
             showMessage(`Insufficient balance. Available: UGX ${available.toLocaleString()}`, 'error');
@@ -394,69 +329,46 @@
             const { error } = await window.supabase
                 .from('withdrawal_requests')
                 .insert({
-                    id: currentUser.id,
+                    id: window.currentUser.id,
                     amount: amount,
                     payment_method: paymentMethod,
                     phone_number: accountDetails,
-                    email: currentUser.email,
+                    email: window.currentUser.email,
                     status: 'pending'
                 });
             
             if (error) throw error;
             
             // Update total withdrawn
-            const newTotalWithdrawn = (earningsData?.total_withdrawn || 0) + amount;
+            const newTotalWithdrawn = (earnings.total_withdrawn || 0) + amount;
             
             await window.supabase
                 .from('earnings')
                 .update({ total_withdrawn: newTotalWithdrawn })
-                .eq('id', currentUser.id);
+                .eq('id', window.currentUser.id);
             
             // Update local data
-            if (earningsData) {
-                earningsData.total_withdrawn = newTotalWithdrawn;
-            }
+            earnings.total_withdrawn = newTotalWithdrawn;
             
             // Update UI
-            updateEarnings();
+            updateStats();
             e.target.reset();
             
             showMessage(`Withdrawal request submitted for UGX ${amount.toLocaleString()}`, 'success');
             
         } catch (error) {
             console.error('Withdrawal error:', error);
-            showMessage('Error processing withdrawal: ' + error.message, 'error');
+            showMessage('Error: ' + error.message, 'error');
         }
     }
     
     async function handleTrivia(e) {
         e.preventDefault();
         
-        if (!currentUser) {
-            showMessage('Please login first', 'error');
-            return;
-        }
-        
-        // Check if already submitted today
-        const lastTriviaKey = `lastTrivia_${currentUser.id}`;
-        const lastTrivia = localStorage.getItem(lastTriviaKey);
-        const today = new Date().toDateString();
-        
-        if (lastTrivia === today) {
-            showMessage('You have already completed trivia today', 'warning');
-            return;
-        }
-        
         // Calculate score
-        const correctAnswers = {
-            q1: 'c',
-            q2: 'b', 
-            q3: 'c',
-            q4: 'b',
-            q5: 'b'
-        };
-        
+        const correctAnswers = { q1: 'c', q2: 'b', q3: 'c', q4: 'b', q5: 'b' };
         let score = 0;
+        
         Object.keys(correctAnswers).forEach(q => {
             const selected = document.querySelector(`input[name="${q}"]:checked`);
             if (selected && selected.value === correctAnswers[q]) {
@@ -464,28 +376,18 @@
             }
         });
         
-        // Calculate earnings
         const amountEarned = score >= 3 ? 1500 : score * 300;
         
         try {
-            // Get current earnings
-            let currentEarnings = earningsData;
-            if (!currentEarnings) {
-                currentEarnings = {
-                    id: currentUser.id,
-                    trivia: 0,
-                    all_time_earn: 0
-                };
-            }
-            
-            const newTriviaValue = (currentEarnings.trivia || 0) + amountEarned;
-            const newTotal = (currentEarnings.all_time_earn || 0) + amountEarned;
+            const earnings = window.earningsData;
+            const newTriviaValue = (earnings.trivia || 0) + amountEarned;
+            const newTotal = (earnings.all_time_earn || 0) + amountEarned;
             
             // Update database
             const { error } = await window.supabase
                 .from('earnings')
                 .upsert({
-                    id: currentUser.id,
+                    id: window.currentUser.id,
                     trivia: newTriviaValue,
                     all_time_earn: newTotal
                 }, {
@@ -495,17 +397,11 @@
             if (error) throw error;
             
             // Update local data
-            earningsData = {
-                ...earningsData,
-                trivia: newTriviaValue,
-                all_time_earn: newTotal
-            };
+            earnings.trivia = newTriviaValue;
+            earnings.all_time_earn = newTotal;
             
             // Update UI
-            updateEarnings();
-            
-            // Mark as completed for today
-            localStorage.setItem(lastTriviaKey, today);
+            updateStats();
             
             // Disable form
             const submitBtn = e.target.querySelector('button[type="submit"]');
@@ -518,12 +414,12 @@
             
         } catch (error) {
             console.error('Trivia error:', error);
-            showMessage('Error saving trivia results: ' + error.message, 'error');
+            showMessage('Error: ' + error.message, 'error');
         }
     }
     
     function showMessage(message, type = 'info') {
-        // Create notification element
+        // Create notification
         const notification = document.createElement('div');
         notification.textContent = message;
         notification.style.cssText = `
@@ -531,7 +427,7 @@
             top: 20px;
             right: 20px;
             padding: 12px 20px;
-            background-color: ${type === 'success' ? '#2ecc71' : type === 'error' ? '#e74c3c' : type === 'warning' ? '#f39c12' : '#3498db'};
+            background: ${type === 'success' ? '#2ecc71' : type === 'error' ? '#e74c3c' : type === 'warning' ? '#f39c12' : '#3498db'};
             color: white;
             border-radius: 6px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.15);
@@ -560,7 +456,4 @@
         }
     `;
     document.head.appendChild(style);
-    
-    // Start initialization
-    setTimeout(initDashboard, 1000);
 })();
