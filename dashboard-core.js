@@ -242,7 +242,7 @@
     function updateReferralLink() {
         const linkInput = document.getElementById('link');
         if (linkInput && currentUser) {
-            const referralLink = `${window.location.origin}/ref/${currentUser.id}`;
+            const referralLink = `${window.location.origin}/ref/${currentUser.id}/${user_name}`;
             linkInput.value = referralLink;
             
             console.log('Referral link set:', referralLink);
