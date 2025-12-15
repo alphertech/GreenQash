@@ -197,13 +197,13 @@ const displayUserData = (data) => {
     console.log('Displaying user data:', data);
     
     // Display user data
-    if (data.user) {
-        setElementText('user_name', data.user.user_name || 'Not set');
-        setElementText('email_address', data.user.email_address || 'Not set');
-        setElementText('status', data.user.status || 'Not active');
-        setElementText('rank', data.user.rank || 'User');
-        setElementText('last_login', formatDate(data.user.last_login));
-        setElementText('total_income', formatNumber(data.user.total_income));
+    if (data.users) {
+        setElementText('user_name', data.users.user_name || 'Not set');
+        setElementText('email_address', data.users.email_address || 'Not set');
+        setElementText('status', data.users.status || 'Not active');
+        setElementText('rank', data.users.rank || 'User');
+        setElementText('last_login', formatDate(data.users.last_login));
+        setElementText('total_income', formatNumber(data.users.total_income));
     }
     
     // Display earnings data
