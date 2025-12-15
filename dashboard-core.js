@@ -401,7 +401,7 @@
                 return;
             }
             
-            const rewardAmount = 1000;
+            const rewardAmount = 500;
             
             // Get current earnings or create new record
             let currentEarnings = earningsData;
@@ -594,84 +594,270 @@
         });
     }
     
-    function setupWithdrawalForm() {
-        const form = document.getElementById('withdrawalForm');
-        if (!form) return;
+  function setupWithdrawalForm() {
+    const form = document.getElementById('withdrawalForm');
+    if (!form) return;
+    
+    // FIX: First ensure the select has correct options
+    const walletSelect = form.querySelector('.form-group:nth-child(2) select');
+    if (walletSelect) {
+        // Check if options show numbers instead of text
+        const hasNumberOptions = Array.from(walletSelect.options).some(option => 
+            !isNaN(parseInt(option.textContent.trim())) && option.textContent.trim() !== ''
+        );
         
-        form.addEventListener('submit', async (e) => {
-            e.preventDefault();
+        if (hasNumberOptions) {
+            console.log('FIXING: Options show numbers instead of text. Restoring correct options...');
             
-            if (!userId) {
-                showMessage('User data not loaded', 'error');
-                return;
-            }
+            // Clear and restore correct options
+            walletSelect.innerHTML = '';
             
-            const amountInput = form.querySelector('input[type="number"]');
-            const amount = parseFloat(amountInput.value);
-            const paymentMethod = form.querySelector('select').value;
-            const accountDetails = document.getElementById('account_number')?.value;
+            const correctOptions = [
+                { id: 'bonus', text: 'Bonus' },
+                { id: 'trivia', text: 'Trivia' },
+                { id: 'youtube', text: 'Youtube' },
+                { id: 'tiktok', text: 'TikTok' },
+                { id: 'referral', text: 'Refferals' }
+            ];
             
-            // Validation
-            if (!amount || amount < 59000) {
-                showMessage('Minimum withdrawal is UGX 59,000', 'warning');
-                return;
-            }
-            
-            if (!accountDetails) {
-                showMessage('Please enter account details', 'warning');
-                return;
-            }
-            
-            const allTimeEarn = earningsData?.all_time_earn || userProfile?.total_income || 0;
-            const totalWithdrawn = earningsData?.total_withdrawn || 0;
-            const available = allTimeEarn - totalWithdrawn;
-            
-            if (amount > available) {
-                showMessage(`Insufficient balance. Available: UGX ${available.toLocaleString()}`, 'error');
-                return;
-            }
-            
-            try {
-                // Create withdrawal request
-                const { error } = await window.supabase
-                    .from('withdrawal_requests')
-                    .insert({
-                        id: userId,
-                        amount: amount,
-                        payment_method: paymentMethod,
-                        phone_number: accountDetails,
-                        email: currentUser.email,
-                        status: 'pending'
-                    });
-                
-                if (error) throw error;
-                
-                // Update total withdrawn in earnings table
-                const newTotalWithdrawn = totalWithdrawn + amount;
-                
-                await window.supabase
-                    .from('earnings')
-                    .update({ total_withdrawn: newTotalWithdrawn })
-                    .eq('id', userId);
-                
-                // Update local data
-                if (earningsData) {
-                    earningsData.total_withdrawn = newTotalWithdrawn;
-                }
-                
-                // Update UI
-                updateEarningsStats();
-                form.reset();
-                
-                showMessage(`Withdrawal request submitted for UGX ${amount.toLocaleString()}`, 'success');
-                
-            } catch (error) {
-                console.error('Withdrawal error:', error);
-                showMessage('Error processing withdrawal: ' + error.message, 'error');
-            }
-        });
+            correctOptions.forEach(opt => {
+                const option = document.createElement('option');
+                option.id = opt.id;
+                option.value = opt.id;
+                option.textContent = opt.text;
+                walletSelect.appendChild(option);
+            });
+        }
     }
     
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        if (!userId) {
+            showMessage('User data not loaded', 'error');
+            return;
+        }
+        
+        // Get form values
+        const amountInput = form.querySelector('input[type="number"]');
+        const amount = parseFloat(amountInput.value);
+        
+        // Get wallet select
+        const walletSelect = form.querySelector('.form-group:nth-child(2) select');
+        if (!walletSelect) {
+            showMessage('Wallet selection not found', 'error');
+            return;
+        }
+        
+        // DOUBLE CHECK: Ensure options are correct before proceeding
+        const selectedOption = walletSelect.options[walletSelect.selectedIndex];
+        const walletId = selectedOption.id || selectedOption.value;
+        
+        // If walletId is a number (like 8000, 56000), we need to get the real wallet type
+        let actualWalletId = walletId;
+        if (!isNaN(parseInt(walletId))) {
+            // This means the option was showing a number instead of proper text
+            // We need to determine which wallet this number represents
+            console.log('WARNING: Option ID is a number:', walletId);
+            
+            // Try to match the number to a wallet based on current balances
+            if (earningsData) {
+                if (earningsData.bonus == walletId) actualWalletId = 'bonus';
+                else if (earningsData.trivia == walletId) actualWalletId = 'trivia';
+                else if (earningsData.youtube == walletId) actualWalletId = 'youtube';
+                else if (earningsData.tiktok == walletId) actualWalletId = 'tiktok';
+                else if (earningsData.refferal == walletId) actualWalletId = 'referral';
+                else {
+                    showMessage('Cannot determine wallet type. Please refresh and try again.', 'error');
+                    return;
+                }
+            } else {
+                showMessage('Cannot determine wallet type. Please refresh and try again.', 'error');
+                return;
+            }
+        }
+        
+        const paymentMethodSelect = form.querySelector('.form-group:nth-child(3) select');
+        const paymentMethod = paymentMethodSelect ? paymentMethodSelect.value : '';
+        
+        const accountDetails = document.getElementById('account_number')?.value;
+        
+        // Validation
+        if (!amount || amount < 59000) {
+            showMessage('Minimum withdrawal amount is UGX 59,000', 'warning');
+            return;
+        }
+        
+        if (!accountDetails) {
+            showMessage('Please enter account details', 'warning');
+            return;
+        }
+        
+        if (!actualWalletId) {
+            showMessage('Please select a wallet', 'error');
+            return;
+        }
+        
+        // Map option IDs to database column names
+        const columnMap = {
+            'bonus': 'bonus',
+            'trivia': 'trivia',
+            'youtube': 'youtube',
+            'tiktok': 'tiktok',
+            'referral': 'refferal'
+        };
+        
+        const dbColumn = columnMap[actualWalletId];
+        
+        if (!dbColumn) {
+            showMessage('Invalid wallet selection', 'error');
+            return;
+        }
+        
+        try {
+            // 1. Get current balance
+            const { data: earnings, error: fetchError } = await window.supabase
+                .from('earnings')
+                .select(`id, ${dbColumn}, all_time_earn, total_withdrawn`)
+                .eq('id', userId)
+                .single();
+            
+            if (fetchError) throw fetchError;
+            if (!earnings) throw new Error('No earnings data found');
+            
+            const currentBalance = earnings[dbColumn] || 0;
+            const allTimeEarn = earnings.all_time_earn || 0;
+            const totalWithdrawn = earnings.total_withdrawn || 0;
+            
+            // 2. Validate balance
+            if (amount > currentBalance) {
+                showMessage(`Insufficient balance. Available: UGX ${currentBalance.toLocaleString()}`, 'error');
+                return;
+            }
+            
+            // Check if wallet has minimum balance
+            if (currentBalance < 59000) {
+                showMessage(`Minimum withdrawal is UGX 59,000. Your wallet has UGX ${currentBalance.toLocaleString()}`, 'warning');
+                return;
+            }
+            
+            // 3. Calculate new values
+            const newBalance = currentBalance - amount;
+            const newAllTimeEarn = allTimeEarn - amount;
+            const newTotalWithdrawn = totalWithdrawn + amount;
+            
+            // 4. Update earnings table
+            const { error: updateEarningsError } = await window.supabase
+                .from('earnings')
+                .update({
+                    [dbColumn]: newBalance,
+                    all_time_earn: newAllTimeEarn,
+                    total_withdrawn: newTotalWithdrawn
+                })
+                .eq('id', userId);
+            
+            if (updateEarningsError) throw updateEarningsError;
+            
+            // 5. Update users table total_income
+            const { error: updateUserError } = await window.supabase
+                .from('users')
+                .update({ total_income: newAllTimeEarn })
+                .eq('id', userId);
+            
+            if (updateUserError) {
+                console.warn('Users table update failed:', updateUserError);
+            }
+            
+            // 6. Create withdrawal request
+            const phoneNumber = parseInt(accountDetails) || 0;
+            const { error: withdrawalError } = await window.supabase
+                .from('withdrawal_requests')
+                .insert({
+                    id: userId,
+                    amount: amount,
+                    payment_method: paymentMethod,
+                    phone_number: phoneNumber,
+                    email: currentUser?.email || '',
+                    status: 'pending',
+                    wallet_type: dbColumn // Store the database column name
+                });
+            
+            if (withdrawalError) throw withdrawalError;
+            
+            // 7. Update local data
+            if (earningsData) {
+                earningsData[dbColumn] = newBalance;
+                earningsData.all_time_earn = newAllTimeEarn;
+                earningsData.total_withdrawn = newTotalWithdrawn;
+            }
+            
+            if (userProfile) {
+                userProfile.total_income = newAllTimeEarn;
+            }
+            
+            // 8. Update UI and reset form
+            if (typeof updateEarningsStats === 'function') {
+                updateEarningsStats();
+            }
+            
+            form.reset();
+            showMessage(`Withdrawal request submitted for UGX ${amount.toLocaleString()}`, 'success');
+            
+        } catch (error) {
+            console.error('Withdrawal error:', error);
+            showMessage('Error: ' + error.message, 'error');
+        }
+    });
+}
+// Add this function to your initDashboard or setupEventListeners
+function protectWithdrawalForm() {
+    const form = document.getElementById('withdrawalForm');
+    if (!form) return;
+    
+    const walletSelect = form.querySelector('.form-group:nth-child(2) select');
+    if (!walletSelect) return;
+    
+    // Store original options
+    const originalOptions = [
+        { id: 'bonus', text: 'Bonus' },
+        { id: 'trivia', text: 'Trivia' },
+        { id: 'youtube', text: 'Youtube' },
+        { id: 'tiktok', text: 'TikTok' },
+        { id: 'referral', text: 'Refferals' }
+    ];
+    
+    // Monitor for changes
+    const observer = new MutationObserver(() => {
+        const currentOptions = Array.from(walletSelect.options);
+        const hasNumbers = currentOptions.some(opt => !isNaN(parseInt(opt.textContent.trim())));
+        
+        if (hasNumbers) {
+            console.log('Blocking attempt to change options to numbers');
+            walletSelect.innerHTML = '';
+            originalOptions.forEach(opt => {
+                const option = document.createElement('option');
+                option.id = opt.id;
+                option.value = opt.id;
+                option.textContent = opt.text;
+                walletSelect.appendChild(option);
+            });
+        }
+    });
+    
+    observer.observe(walletSelect, { childList: true, subtree: true });
+    }
+    function setupEventListeners() {
+    console.log('Setting up event listeners for user ID:', userId);
+    
+    setupTaskClaims();
+    setupSettingsSave();
+    setupWithdrawalForm();
+    protectWithdrawalForm(); // ADD THIS LINE
+    setupExportButton();
+    setupRefreshButtons();
+    setupTriviaForm();
+    setupActivation();
+}
     function setupExportButton() {
         const exportBtn = document.getElementById('export-data');
         if (!exportBtn) return;
@@ -886,7 +1072,7 @@
                         .from('users')
                         .update({ 
                             status: 'active',
-                            rank: 'activated_user'
+                            rank: 'user'
                         })
                         .eq('id', userId);
                     
