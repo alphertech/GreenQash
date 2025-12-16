@@ -239,7 +239,22 @@
         });
     }
     
-    // ========== UPGRADED REFERRAL LINK GENERATOR ==========
+    // ========== GITHUB PAGES COMPATIBLE REFERRAL SYSTEM ==========
+
+// Configuration for GitHub Pages
+const GITHUB_PAGES_CONFIG = {
+    // Your GitHub Pages URL (e.g., https://username.github.io/repo-name)
+    baseUrl: window.location.origin,
+    
+    // Repository name if using project site
+    repoName: window.location.pathname.split('/')[1] || '',
+    
+    // Check if we're on GitHub Pages
+    isGitHubPages: window.location.hostname.includes('github.io'),
+    
+    // Site name for sharing
+    siteName: 'SkyLink'
+};
 
 // Generate and display referral link
 async function updateReferralLink() {
@@ -254,7 +269,7 @@ async function updateReferralLink() {
         const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
         if (authError || !authUser) {
             console.error('User not authenticated:', authError);
-            linkInput.value = `${getSiteUrl()}/ref/guest`;
+            linkInput.value = `${getGitHubPagesUrl()}/#/ref/guest`;
             return;
         }
 
@@ -267,7 +282,7 @@ async function updateReferralLink() {
 
         if (userError || !userData) {
             console.error('Error fetching user data:', userError);
-            linkInput.value = `${getSiteUrl()}/ref/${authUser.id}`;
+            linkInput.value = `${getGitHubPagesUrl()}/#/ref/${authUser.id}`;
             return;
         }
 
@@ -276,8 +291,8 @@ async function updateReferralLink() {
         const userName = userData.user_name || authUser.email?.split('@')[0] || 'user';
         const encodedName = encodeURIComponent(userName.replace(/\s+/g, '-'));
         
-        // Create referral link
-        const referralLink = `${getSiteUrl()}/ref/${userId}/${encodedName}`;
+        // Create referral link for GitHub Pages
+        const referralLink = `${getGitHubPagesUrl()}/#/ref/${userId}/${encodedName}`;
         linkInput.value = referralLink;
         
         console.log('✅ Referral link generated:', referralLink);
@@ -300,67 +315,156 @@ async function updateReferralLink() {
         console.error('Error generating referral link:', error);
         const linkInput = document.getElementById('link');
         if (linkInput) {
-            linkInput.value = `${getSiteUrl()}/ref/error`;
+            linkInput.value = `${getGitHubPagesUrl()}/#/ref/error`;
         }
     }
 }
 
-// Get site URL dynamically
-function getSiteUrl() {
-    // Try to get from config first
+// Get GitHub Pages compatible URL
+function getGitHubPagesUrl() {
+    // Check for custom domain configuration
     if (window.SUPABASE_CONFIG && window.SUPABASE_CONFIG.siteUrl) {
-        return window.SUPABASE_CONFIG.siteUrl.replace(/\/$/, '');
+        const customUrl = window.SUPABASE_CONFIG.siteUrl.replace(/\/$/, '');
+        // Ensure it's using https for GitHub Pages
+        return customUrl.replace(/^http:/, 'https:');
+    }
+    
+    // For GitHub Pages project site
+    if (GITHUB_PAGES_CONFIG.repoName && GITHUB_PAGES_CONFIG.isGitHubPages) {
+        const base = window.location.origin;
+        // If we're in a project repository, include repo name
+        if (window.location.pathname.split('/')[1] === GITHUB_PAGES_CONFIG.repoName) {
+            return `${base}/${GITHUB_PAGES_CONFIG.repoName}`;
+        }
     }
     
     // Fallback to current origin
-    return window.location.origin || 'https://skylink.com';
+    return window.location.origin;
 }
 
-// Setup copy button functionality
-function setupCopyButton(referralLink) {
-    const copyBtn = document.getElementById('CopyLink');
-    if (!copyBtn) return;
-    
-    // Remove existing listeners
-    const newCopyBtn = copyBtn.cloneNode(true);
-    copyBtn.parentNode.replaceChild(newCopyBtn, copyBtn);
-    
-    newCopyBtn.addEventListener('click', async () => {
-        try {
-            await navigator.clipboard.writeText(referralLink);
+// GitHub Pages compatible referral link parsing
+function parseGitHubPagesReferral() {
+    try {
+        const hash = window.location.hash.substring(1); // Remove the #
+        
+        // Parse the hash as a path
+        const parts = hash.split('/');
+        
+        if (parts.length > 1 && parts[1] === 'ref') {
+            const refIndex = parts.indexOf('ref');
+            const refPath = parts.slice(refIndex + 1).join('/');
             
-            // Show notification
-            showLinkNotification('Link copied to clipboard!', 'success');
-            
-            // Visual feedback
-            newCopyBtn.textContent = 'Copied!';
-            newCopyBtn.classList.add('copied');
-            setTimeout(() => {
-                newCopyBtn.textContent = 'Copy Link';
-                newCopyBtn.classList.remove('copied');
-            }, 2000);
-            
-            console.log('✅ Link copied to clipboard');
-            
-        } catch (err) {
-            console.error('Copy failed:', err);
-            showLinkNotification('Failed to copy link', 'error');
-            
-            // Fallback for older browsers
-            const linkInput = document.getElementById('link');
-            if (linkInput) {
-                linkInput.select();
-                linkInput.setSelectionRange(0, 99999);
-                document.execCommand('copy');
-                showLinkNotification('Link copied!', 'success');
+            // Split the referral path
+            const refParts = refPath.split('/');
+            if (refParts.length >= 1) {
+                const inviterId = parseInt(refParts[0]);
+                const inviterName = refParts[1] ? decodeURIComponent(refParts[1]) : null;
+                
+                if (inviterId && !isNaN(inviterId)) {
+                    return {
+                        inviter_id: inviterId,
+                        inviter_name: inviterName,
+                        source: 'github_pages_url'
+                    };
+                }
             }
         }
-    });
+        
+        return null;
+    } catch (error) {
+        console.error('Error parsing GitHub Pages referral:', error);
+        return null;
+    }
 }
 
-// Setup social media sharing
+// Handle referral registration for GitHub Pages
+async function handleGitHubPagesReferralRegistration() {
+    try {
+        let referralData = null;
+        
+        // First try to parse from GitHub Pages hash routing
+        const hashReferral = parseGitHubPagesReferral();
+        if (hashReferral) {
+            referralData = hashReferral;
+        }
+        
+        // If no hash referral, check URL parameters (for direct links)
+        if (!referralData) {
+            const urlParams = new URLSearchParams(window.location.search);
+            const refParam = urlParams.get('ref');
+            
+            if (refParam) {
+                const parts = refParam.split('/');
+                if (parts.length >= 1) {
+                    const inviterId = parseInt(parts[0]);
+                    const inviterName = parts[1] ? decodeURIComponent(parts[1]) : null;
+                    
+                    if (inviterId && !isNaN(inviterId)) {
+                        referralData = {
+                            inviter_id: inviterId,
+                            inviter_name: inviterName,
+                            source: 'url_param'
+                        };
+                    }
+                }
+            }
+        }
+        
+        // If still no referral data, check localStorage for recent clicks
+        if (!referralData) {
+            const stored = localStorage.getItem('referral_click');
+            if (stored) {
+                referralData = JSON.parse(stored);
+            }
+        }
+        
+        // Store referral data for use during registration
+        if (referralData) {
+            localStorage.setItem('pending_referral', JSON.stringify(referralData));
+            console.log('✅ Referral data captured:', referralData);
+            
+            // Show message to user
+            const messageEl = document.getElementById('referral-message');
+            if (messageEl) {
+                messageEl.textContent = `You were referred by ${referralData.inviter_name || 'a friend'}!`;
+                messageEl.style.display = 'block';
+            }
+            
+            // Optional: Update page URL to clean it up (remove referral info)
+            cleanGitHubPagesUrl();
+        }
+        
+    } catch (error) {
+        console.error('Error handling referral registration:', error);
+    }
+}
+
+// Clean up GitHub Pages URL after capturing referral
+function cleanGitHubPagesUrl() {
+    if (GITHUB_PAGES_CONFIG.isGitHubPages) {
+        try {
+            // Remove referral from hash
+            if (window.location.hash.includes('/ref/')) {
+                // Get current hash and clean it
+                const hash = window.location.hash;
+                const cleanHash = hash.replace(/\/ref\/[^\/]+\/?[^\/]*/, '');
+                
+                // Update URL without refreshing page
+                window.history.replaceState(
+                    {}, 
+                    document.title, 
+                    window.location.pathname + window.location.search + (cleanHash || '#')
+                );
+            }
+        } catch (error) {
+            console.warn('Could not clean GitHub Pages URL:', error);
+        }
+    }
+}
+
+// Enhanced social sharing setup for GitHub Pages
 function setupSocialSharing(referralLink, userName) {
-    const shareText = `Join me on SkyLink and start earning! Use my referral link: ${referralLink}`;
+    const shareText = `Join me on ${GITHUB_PAGES_CONFIG.siteName} and start earning! Use my referral link: ${referralLink}`;
     const encodedText = encodeURIComponent(shareText);
     const encodedUrl = encodeURIComponent(referralLink);
     
@@ -387,7 +491,7 @@ function setupSocialSharing(referralLink, userName) {
     // Twitter/X
     const twitterBtn = document.getElementById('shareTwitter');
     if (twitterBtn) {
-        const twitterText = encodeURIComponent(`Join ${userName} on SkyLink and start earning!`);
+        const twitterText = encodeURIComponent(`Join ${userName} on ${GITHUB_PAGES_CONFIG.siteName} and start earning!`);
         twitterBtn.href = `https://twitter.com/intent/tweet?text=${twitterText}&url=${encodedUrl}`;
         twitterBtn.addEventListener('click', (e) => {
             e.preventDefault();
@@ -408,8 +512,8 @@ function setupSocialSharing(referralLink, userName) {
     // Email
     const emailBtn = document.getElementById('shareEmail');
     if (emailBtn) {
-        const subject = encodeURIComponent('Join me on SkyLink!');
-        const body = encodeURIComponent(`Hi,\n\nJoin me on SkyLink and start earning money by completing simple tasks!\n\nUse my referral link: ${referralLink}\n\nBest regards,\n${userName}`);
+        const subject = encodeURIComponent(`Join me on ${GITHUB_PAGES_CONFIG.siteName}!`);
+        const body = encodeURIComponent(`Hi,\n\nJoin me on ${GITHUB_PAGES_CONFIG.siteName} and start earning money by completing simple tasks!\n\nUse my referral link: ${referralLink}\n\nBest regards,\n${userName}`);
         emailBtn.href = `mailto:?subject=${subject}&body=${body}`;
     }
     
@@ -418,289 +522,219 @@ function setupSocialSharing(referralLink, userName) {
     if (smsBtn) {
         smsBtn.href = `sms:?body=${encodedText}`;
     }
+    
+    // Copy link fallback for sharing
+    setupShareFallback(referralLink);
 }
 
-// Show notification for link actions
-function showLinkNotification(message, type = 'info') {
-    // Remove existing notification
-    const existing = document.querySelector('.link-notification');
-    if (existing) existing.remove();
-    
-    // Create new notification
-    const notification = document.createElement('div');
-    notification.className = `link-notification ${type}`;
-    notification.textContent = message;
-    notification.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        padding: 12px 20px;
-        background-color: ${type === 'success' ? '#2ecc71' : type === 'error' ? '#e74c3c' : '#3498db'};
-        color: white;
-        border-radius: 6px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        z-index: 10000;
-        animation: slideIn 0.3s ease;
-    `;
-    
-    document.body.appendChild(notification);
-    
-    // Remove after 3 seconds
-    setTimeout(() => {
-        notification.style.animation = 'slideOut 0.3s ease';
-        setTimeout(() => notification.remove(), 300);
-    }, 3000);
-}
-
-// ========== REFERRAL REGISTRATION HANDLER ==========
-// Add this to your registration page
-
-async function handleReferralRegistration() {
-    try {
-        // Get referral data from URL or localStorage
-        const urlParams = new URLSearchParams(window.location.search);
-        const refParam = urlParams.get('ref');
-        
-        let referralData = null;
-        
-        // Try to get from URL
-        if (refParam) {
-            const parts = refParam.split('/');
-            if (parts.length >= 1) {
-                const inviterId = parseInt(parts[0]);
-                const inviterName = parts[1] ? decodeURIComponent(parts[1]) : null;
-                
-                if (inviterId && !isNaN(inviterId)) {
-                    referralData = {
-                        inviter_id: inviterId,
-                        inviter_name: inviterName,
-                        source: 'url'
-                    };
-                }
+// Setup share fallback for environments without Web Share API
+function setupShareFallback(referralLink) {
+    const shareBtn = document.getElementById('shareNative');
+    if (shareBtn && navigator.share) {
+        shareBtn.style.display = 'flex';
+        shareBtn.addEventListener('click', async () => {
+            try {
+                await navigator.share({
+                    title: `Join me on ${GITHUB_PAGES_CONFIG.siteName}`,
+                    text: `Join me on ${GITHUB_PAGES_CONFIG.siteName} and start earning!`,
+                    url: referralLink,
+                });
+            } catch (err) {
+                console.log('Share cancelled or failed:', err);
             }
-        }
-        
-        // If no URL param, check localStorage
-        if (!referralData) {
-            const stored = localStorage.getItem('referral_click');
-            if (stored) {
-                referralData = JSON.parse(stored);
-            }
-        }
-        
-        // Store referral data for use during registration
-        if (referralData) {
-            localStorage.setItem('pending_referral', JSON.stringify(referralData));
-            console.log('✅ Referral data captured:', referralData);
-            
-            // Show message to user
-            if (document.getElementById('referral-message')) {
-                document.getElementById('referral-message').textContent = 
-                    `You were referred by ${referralData.inviter_name || 'a friend'}!`;
-            }
-        }
-        
-    } catch (error) {
-        console.error('Error handling referral registration:', error);
+        });
     }
 }
 
-// Function to save referral after user registers
-async function saveReferralAfterRegistration(newUserId, newUserName) {
-    try {
-        const pendingReferral = localStorage.getItem('pending_referral');
-        if (!pendingReferral) return null;
-        
-        const referralData = JSON.parse(pendingReferral);
-        
-        // Save to referrals table
-        const { data, error } = await supabase
-            .from('refferals')
-            .insert({
-                inviter_id: referralData.inviter_id,
-                referred_id: newUserId,
-                referred_name: newUserName,
-                source: referralData.source || 'direct',
-                created_at: new Date().toISOString()
-            })
-            .select()
-            .single();
-        
-        if (error) {
-            console.error('Error saving referral:', error);
-            return null;
-        }
-        
-        // Clear pending referral
-        localStorage.removeItem('pending_referral');
-        
-        console.log('✅ Referral saved:', data);
-        
-        // Determine secondary beneficiary (if any)
-        await determineSecondaryBenefit(referralData.inviter_id, newUserId);
-        
-        return data;
-        
-    } catch (error) {
-        console.error('Error in saveReferralAfterRegistration:', error);
-        return null;
-    }
-}
-
-// Determine secondary benefit (Level 2 referral)
-async function determineSecondaryBenefit(inviterId, referredId) {
-    try {
-        // Find who invited the inviter (if any)
-        const { data: inviterReferral, error } = await supabase
-            .from('refferals')
-            .select('inviter_id')
-            .eq('referred_id', inviterId)
-            .maybeSingle();
-        
-        if (error) throw error;
-        
-        if (inviterReferral && inviterReferral.inviter_id) {
-            // Update the new referral with secondary beneficiary
-            await supabase
-                .from('refferals')
-                .update({ secondary_benefit: inviterReferral.inviter_id })
-                .eq('referred_id', referredId);
-            
-            console.log(`✅ Secondary benefit assigned to user ${inviterReferral.inviter_id}`);
-        }
-        
-    } catch (error) {
-        console.error('Error determining secondary benefit:', error);
-    }
-}
-
-// Track referral link clicks
-function trackReferralClick(inviterId, inviterName) {
+// Track referral link clicks (GitHub Pages compatible)
+function trackGitHubPagesReferralClick(inviterId, inviterName) {
     const clickData = {
         inviter_id: inviterId,
         inviter_name: inviterName,
         clicked_at: new Date().toISOString(),
         user_agent: navigator.userAgent,
-        referrer: document.referrer
+        referrer: document.referrer,
+        page_url: window.location.href,
+        is_github_pages: GITHUB_PAGES_CONFIG.isGitHubPages
     };
     
     localStorage.setItem('referral_click', JSON.stringify(clickData));
+    
+    // Also send to analytics if available
+    logReferralClickAnalytics(clickData);
+    
     console.log('✅ Referral click tracked:', clickData);
 }
 
-// ========== INITIALIZE ==========
-
-// Initialize referral system
-async function initializeReferralSystem() {
-    // Update referral link
-    await updateReferralLink();
-    
-    // Check if we're on a referral link
-    if (window.location.pathname.includes('/ref/')) {
-        handleReferralRegistration();
+// Log referral analytics
+async function logReferralClickAnalytics(clickData) {
+    try {
+        // Send to Supabase if user is available
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (user) {
+            await supabase
+                .from('referral_analytics')
+                .insert({
+                    inviter_id: clickData.inviter_id,
+                    visitor_user_id: user.id,
+                    user_agent: clickData.user_agent,
+                    referrer: clickData.referrer,
+                    page_url: clickData.page_url,
+                    clicked_at: clickData.clicked_at
+                });
+        }
+    } catch (error) {
+        console.error('Error logging analytics:', error);
+        // Non-critical, so don't throw
     }
-    
-    // Add CSS for social icons
-    addSocialSharingStyles();
 }
 
-// Add CSS for social sharing
-function addSocialSharingStyles() {
+// Initialize referral system for GitHub Pages
+async function initializeGitHubPagesReferralSystem() {
+    console.log('🚀 Initializing GitHub Pages Referral System...');
+    
+    // Add GitHub Pages specific styles
+    addGitHubPagesStyles();
+    
+    // Update referral link for current user
+    await updateReferralLink();
+    
+    // Check for referral links on page load
+    if (window.location.hash.includes('/ref/') || window.location.search.includes('ref=')) {
+        handleGitHubPagesReferralRegistration();
+    }
+    
+    // Listen for hash changes (GitHub Pages routing)
+    window.addEventListener('hashchange', () => {
+        if (window.location.hash.includes('/ref/')) {
+            handleGitHubPagesReferralRegistration();
+        }
+    });
+    
+    // Listen for popstate (browser back/forward)
+    window.addEventListener('popstate', () => {
+        if (window.location.hash.includes('/ref/')) {
+            handleGitHubPagesReferralRegistration();
+        }
+    });
+}
+
+// Add GitHub Pages specific styles
+function addGitHubPagesStyles() {
     const styles = `
-        @keyframes slideIn {
-            from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
-        }
-        
-        @keyframes slideOut {
-            from { transform: translateX(0); opacity: 1; }
-            to { transform: translateX(100%); opacity: 0; }
-        }
-        
-        .social-sharing {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin: 20px 0;
-            justify-content: center;
-        }
-        
-        .social-btn {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 44px;
-            height: 44px;
-            border-radius: 50%;
-            color: white;
-            text-decoration: none;
-            transition: all 0.3s ease;
-            font-size: 18px;
-        }
-        
-        .social-btn:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-        }
-        
-        .whatsapp { background: #25D366; }
-        .facebook { background: #1877F2; }
-        .twitter { background: #1DA1F2; }
-        .telegram { background: #0088CC; }
-        .email { background: #EA4335; }
-        .sms { background: #34B7F1; }
-        
-        .copy-section {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-        
-        #link {
-            flex: 1;
-            padding: 12px 15px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
+        .github-pages-notice {
+            background: #f0f8ff;
+            border-left: 4px solid #0366d6;
+            padding: 12px 16px;
+            margin: 15px 0;
+            border-radius: 4px;
             font-size: 14px;
-            background: #f9f9f9;
         }
         
-        #CopyLink {
-            background: #2ecc71;
-            color: white;
-            border: none;
-            padding: 12px 20px;
-            border-radius: 8px;
+        .github-pages-notice a {
+            color: #0366d6;
+            text-decoration: underline;
+        }
+        
+        /* Ensure referral links work in single-page apps */
+        a[href*="#/ref/"] {
             cursor: pointer;
-            font-weight: bold;
-            transition: all 0.3s ease;
-            white-space: nowrap;
         }
         
-        #CopyLink:hover {
-            background: #27ae60;
+        /* Loading state for referral system */
+        .referral-loading {
+            opacity: 0.7;
+            pointer-events: none;
+            position: relative;
         }
         
-        #CopyLink.copied {
-            background: #3498db;
+        .referral-loading::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            transform: translate(-50%, -50%);
         }
         
-        .social-section h3 {
-            text-align: center;
-            margin: 20px 0 10px;
-            color: #333;
+        @keyframes spin {
+            0% { transform: translate(-50%, -50%) rotate(0deg); }
+            100% { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+        
+        /* Enhanced notification for GitHub Pages */
+        .link-notification.github-pages {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: 1px solid rgba(255,255,255,0.2);
         }
     `;
     
-    if (!document.querySelector('#social-sharing-styles')) {
+    if (!document.querySelector('#github-pages-styles')) {
         const styleEl = document.createElement('style');
-        styleEl.id = 'social-sharing-styles';
+        styleEl.id = 'github-pages-styles';
         styleEl.textContent = styles;
         document.head.appendChild(styleEl);
     }
 }
 
+// Create referral QR code for mobile sharing
+function createReferralQRCode(referralLink, containerId = 'qrCodeContainer') {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    
+    // Clear container
+    container.innerHTML = '';
+    
+    // Create QR code using a simple API
+    const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(referralLink)}`;
+    
+    const qrImg = document.createElement('img');
+    qrImg.src = qrCodeUrl;
+    qrImg.alt = 'Scan to join with referral link';
+    qrImg.style.borderRadius = '8px';
+    qrImg.style.boxShadow = '0 4px 8px rgba(0,0,0,0.1)';
+    
+    const qrCaption = document.createElement('p');
+    qrCaption.textContent = 'Scan QR code to share';
+    qrCaption.style.fontSize = '12px';
+    qrCaption.style.color = '#666';
+    qrCaption.style.marginTop = '8px';
+    qrCaption.style.textAlign = 'center';
+    
+    container.appendChild(qrImg);
+    container.appendChild(qrCaption);
+}
+
+// Export functions for use in other modules
+window.ReferralSystem = {
+    initialize: initializeGitHubPagesReferralSystem,
+    updateReferralLink,
+    handleRegistration: handleGitHubPagesReferralRegistration,
+    saveReferral: saveReferralAfterRegistration,
+    createQRCode: createReferralQRCode,
+    trackClick: trackGitHubPagesReferralClick
+};
+
+// Auto-initialize if script is loaded in main context
+if (typeof supabase !== 'undefined') {
+    document.addEventListener('DOMContentLoaded', () => {
+        initializeGitHubPagesReferralSystem();
+    });
+}
+
+// Keep your existing functions (setupCopyButton, showLinkNotification, 
+// saveReferralAfterRegistration, determineSecondaryBenefit) unchanged
+// They will work with the GitHub Pages compatible system
 // Start when page loads
+
+
+
 document.addEventListener('DOMContentLoaded', function() {
     setTimeout(initializeReferralSystem, 1000);
 });

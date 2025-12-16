@@ -21,6 +21,25 @@
     <script src="dashboard-core.js"></script>
     <script src="dfb.js"></script>
     
+<script>
+    // Handle GitHub Pages redirect
+    (function () {
+        var redirect = sessionStorage.redirect;
+        delete sessionStorage.redirect;
+        if (redirect && redirect != location.href) {
+            history.replaceState(null, null, redirect);
+        }
+    })();
+
+    // Initialize Supabase
+    const SUPABASE_CONFIG = {
+        supabaseUrl: 'https://kwghulqonljulmvlcfnz.supabase.co',
+        supabaseAnonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt3Z2h1bHFvbmxqdWxtdmxjZm56Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM5NzcyMDcsImV4cCI6MjA3OTU1MzIwN30.hebcPqAvo4B23kx4gdWuXTJhmx7p8zSHHEYSkPzPhcM',
+        siteUrl: 'https://alphertech.github.io/GreenQash/' // Your GitHub Pages URL
+    };
+</script>
+
+
     <link rel="stylesheet" href="dashboard.css">
     <link rel="icon" href="android-chrome-512x512.png">
     <link rel="stylesheet" href="dashboard.css">
