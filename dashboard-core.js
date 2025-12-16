@@ -1126,469 +1126,693 @@ function protectWithdrawalForm() {
 
 
     //ACTIVITY MONITORING SYSTEM
-    // ========== GUARANTEED WORKING ACTIVITY TRACKER ==========
-// Add this to greenqash.js - IT WILL WORK
+    // ========== 24-HOUR ACTIVITY TRACKER ==========
+// Add this to greenqash.js
 
-// Wait for DOM to be fully loaded
-document.addEventListener('DOMContentLoaded', function() {
-    setTimeout(initializeActivitySystem, 1000);
-});
-
-function initializeActivitySystem() {
-    console.log('🚀 Initializing activity system...');
+// Activity tracking with 24-hour persistence
+const ActivityTracker24 = {
+    // Initialize
+    init: function() {
+        console.log('⏰ 24-Hour Activity Tracker starting...');
+        
+        // Load and display activities
+        this.loadAndDisplay();
+        
+        // Setup event listeners
+        this.setupListeners();
+        
+        // Setup auto-cleanup every 5 minutes
+        setInterval(() => this.cleanupOld(), 5 * 60 * 1000);
+        
+        // Clean up on startup (but don't delete fresh ones)
+        setTimeout(() => this.cleanupOld(), 2000);
+        
+        // Add test functions
+        this.addTestFunctions();
+        
+        console.log('✅ 24-Hour tracker ready');
+    },
     
-    // Create the activity tracker object
-    window.ActivityTracker = {
-        // Record an activity
-        record: function(task, activity, amount = 0, status = 'Completed') {
-            console.log('📝 Recording:', task);
+    // Record activity with 24-hour expiry
+    record: function(task, activity, amount = 0, status = 'Completed') {
+        console.log('📝 Recording 24-hour activity:', task);
+        
+        const activityObj = {
+            id: Date.now() + Math.random().toString(36).substr(2, 9),
+            timestamp: new Date().toISOString(),
+            expiry: Date.now() + (24 * 60 * 60 * 1000), // 24 hours from now
+            task: task,
+            activity: activity,
+            amount: amount,
+            status: status,
+            user: this.getUserId() || 'anonymous'
+        };
+        
+        // Save to localStorage
+        this.saveToStorage(activityObj);
+        
+        // Display immediately
+        this.displayInTable(activityObj);
+        
+        return activityObj;
+    },
+    
+    // Get user ID for persistence
+    getUserId: function() {
+        // Try to get user ID from various sources
+        try {
+            // Check if user is logged in via your existing code
+            if (window.currentUser) return window.currentUser.id;
+            if (window.userData?.authUser?.id) return window.userData.authUser.id;
             
-            // Create activity
-            const newActivity = {
-                id: Date.now(),
-                timestamp: new Date().toISOString(),
-                task: task,
-                activity: activity,
-                amount: amount,
-                status: status
+            // Use localStorage user ID
+            const storedUser = localStorage.getItem('current_user_id');
+            if (storedUser) return storedUser;
+            
+            // Create a persistent anonymous ID
+            let anonId = localStorage.getItem('anonymous_user_id');
+            if (!anonId) {
+                anonId = 'anon_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                localStorage.setItem('anonymous_user_id', anonId);
+            }
+            return anonId;
+            
+        } catch (error) {
+            console.error('Error getting user ID:', error);
+            return 'anonymous';
+        }
+    },
+    
+    // Save activity to localStorage with user grouping
+    saveToStorage: function(activity) {
+        try {
+            // Get user ID
+            const userId = this.getUserId();
+            
+            // Get existing activities for this user
+            const storageKey = `activities_${userId}`;
+            let userActivities = [];
+            
+            const stored = localStorage.getItem(storageKey);
+            if (stored) {
+                userActivities = JSON.parse(stored);
+                if (!Array.isArray(userActivities)) userActivities = [];
+            }
+            
+            // Add new activity
+            userActivities.unshift(activity);
+            
+            // Keep max 100 activities per user
+            if (userActivities.length > 100) {
+                userActivities = userActivities.slice(0, 100);
+            }
+            
+            // Save back to localStorage
+            localStorage.setItem(storageKey, JSON.stringify(userActivities));
+            
+            // Also save to global activities (for compatibility)
+            this.saveToGlobal(activity);
+            
+            console.log(`💾 Saved activity for user: ${userId}`);
+            
+        } catch (error) {
+            console.error('Error saving activity:', error);
+        }
+    },
+    
+    // Also save to global activities (backup)
+    saveToGlobal: function(activity) {
+        try {
+            const globalKey = 'all_activities_24h';
+            let allActivities = [];
+            
+            const stored = localStorage.getItem(globalKey);
+            if (stored) {
+                allActivities = JSON.parse(stored);
+                if (!Array.isArray(allActivities)) allActivities = [];
+            }
+            
+            // Add with user identifier
+            const globalActivity = {
+                ...activity,
+                userId: this.getUserId(),
+                savedAt: Date.now()
             };
             
-            // Save to localStorage
-            this.saveActivity(newActivity);
+            allActivities.unshift(globalActivity);
             
-            // Update display
-            this.displayActivity(newActivity);
+            // Keep max 500 activities globally
+            if (allActivities.length > 500) {
+                allActivities = allActivities.slice(0, 500);
+            }
             
-            return newActivity;
-        },
+            localStorage.setItem(globalKey, JSON.stringify(allActivities));
+            
+        } catch (error) {
+            console.error('Error saving to global:', error);
+        }
+    },
+    
+    // Load and display activities for current user
+    loadAndDisplay: function() {
+        console.log('📂 Loading 24-hour activities...');
         
-        // Save activity to localStorage
-        saveActivity: function(activity) {
-            try {
-                // Get existing activities
-                let activities = [];
-                const stored = localStorage.getItem('userActivities');
-                if (stored) {
-                    activities = JSON.parse(stored);
-                    if (!Array.isArray(activities)) activities = [];
-                }
-                
-                // Add new activity
-                activities.unshift(activity);
-                
-                // Limit to 100 activities max
-                if (activities.length > 100) {
-                    activities = activities.slice(0, 100);
-                }
-                
-                // Save back
-                localStorage.setItem('userActivities', JSON.stringify(activities));
-                console.log('💾 Saved to localStorage');
-                
-            } catch (error) {
-                console.error('Error saving activity:', error);
-            }
-        },
+        // Get user ID
+        const userId = this.getUserId();
+        const storageKey = `activities_${userId}`;
         
-        // Display an activity in the table
-        displayActivity: function(activity) {
-            const tbody = document.getElementById('recent-activity-tbody');
-            if (!tbody) {
-                console.error('Table body not found! Looking for #recent-activity-tbody');
-                this.findAndUpdateTable();
-                return;
-            }
-            
-            // Remove "no activities" message if present
-            if (tbody.innerHTML.includes('No recent activities')) {
-                tbody.innerHTML = '';
-            }
-            
-            // Create row
-            const row = this.createTableRow(activity);
-            
-            // Insert at top
-            if (tbody.firstChild) {
-                tbody.insertBefore(row, tbody.firstChild);
-            } else {
-                tbody.appendChild(row);
-            }
-            
-            console.log('✅ Displayed in table');
-        },
+        let userActivities = [];
         
-        // Create table row HTML
-        createTableRow: function(activity) {
-            const row = document.createElement('tr');
-            
-            // Format time
-            const time = new Date(activity.timestamp);
-            const timeString = time.toLocaleTimeString([], { 
-                hour: '2-digit', 
-                minute: '2-digit' 
-            });
-            
-            // Format amount
-            let amountText = 'UGX 0';
-            if (activity.amount > 0) {
-                amountText = `UGX ${activity.amount.toLocaleString()}`;
-            } else if (activity.amount < 0) {
-                amountText = `-UGX ${Math.abs(activity.amount).toLocaleString()}`;
+        try {
+            const stored = localStorage.getItem(storageKey);
+            if (stored) {
+                userActivities = JSON.parse(stored);
+                if (!Array.isArray(userActivities)) userActivities = [];
+            }
+        } catch (error) {
+            console.error('Error loading activities:', error);
+        }
+        
+        console.log(`Found ${userActivities.length} activities for user ${userId}`);
+        
+        // Clean expired activities
+        userActivities = this.filterExpired(userActivities);
+        
+        // Save back if any were removed
+        if (userActivities.length > 0) {
+            localStorage.setItem(storageKey, JSON.stringify(userActivities));
+        }
+        
+        // Display in table
+        this.displayAllInTable(userActivities);
+    },
+    
+    // Filter out expired activities
+    filterExpired: function(activities) {
+        const now = Date.now();
+        const valid = activities.filter(activity => {
+            // Check if activity has expiry time
+            if (activity.expiry && activity.expiry > now) {
+                return true;
             }
             
-            // Status class
-            let statusClass = 'status-completed';
-            if (activity.status === 'Paid') statusClass = 'status-active';
-            if (activity.status === 'Pending') statusClass = 'status-pending';
-            if (activity.status === 'Saved') statusClass = 'status-saved';
-            
-            row.innerHTML = `
-                <td>${timeString}</td>
-                <td>${activity.task}</td>
-                <td>${activity.activity}</td>
-                <td>${amountText}</td>
-                <td><span class="${statusClass}">${activity.status}</span></td>
-            `;
-            
-            return row;
-        },
-        
-        // Load and display all activities
-        loadAllActivities: function() {
-            console.log('📂 Loading activities from storage...');
-            
-            try {
-                const stored = localStorage.getItem('userActivities');
-                if (!stored) {
-                    console.log('No activities in storage');
-                    return;
-                }
-                
-                const activities = JSON.parse(stored);
-                if (!Array.isArray(activities)) {
-                    console.error('Invalid activities data');
-                    return;
-                }
-                
-                console.log(`Found ${activities.length} activities`);
-                this.displayAllActivities(activities);
-                
-            } catch (error) {
-                console.error('Error loading activities:', error);
-            }
-        },
-        
-        // Display all activities in table
-        displayAllActivities: function(activities) {
-            const tbody = this.findTableBody();
-            if (!tbody) return;
-            
-            // Clear table
-            tbody.innerHTML = '';
-            
-            if (activities.length === 0) {
-                tbody.innerHTML = `
-                    <tr>
-                        <td colspan="5">No recent activities. Complete tasks to earn!</td>
-                    </tr>
-                `;
-                return;
+            // If no expiry, check if timestamp is within 24 hours
+            if (activity.timestamp) {
+                const activityTime = new Date(activity.timestamp).getTime();
+                return (now - activityTime) < (24 * 60 * 60 * 1000);
             }
             
-            // Add each activity
-            activities.forEach(activity => {
-                const row = this.createTableRow(activity);
-                tbody.appendChild(row);
-            });
-            
-            console.log(`✅ Displayed ${activities.length} activities`);
-        },
+            return false; // Invalid activity
+        });
         
-        // Find the table body (multiple attempts)
-        findTableBody: function() {
-            // Try different selectors
-            const selectors = [
-                '#recent-activity tbody',
-                '#recent-activity-tbody',
-                '.admin-section.active #recent-activity tbody',
-                'table#recent-activity tbody'
-            ];
+        const expiredCount = activities.length - valid.length;
+        if (expiredCount > 0) {
+            console.log(`🧹 Removed ${expiredCount} expired activities`);
+        }
+        
+        return valid;
+    },
+    
+    // Clean up old activities
+    cleanupOld: function() {
+        console.log('🔄 Running 24-hour cleanup...');
+        
+        try {
+            // Get user ID
+            const userId = this.getUserId();
+            const storageKey = `activities_${userId}`;
             
-            for (const selector of selectors) {
-                const element = document.querySelector(selector);
-                if (element) {
-                    console.log('Found table with selector:', selector);
-                    return element;
-                }
+            // Load user activities
+            let userActivities = [];
+            const stored = localStorage.getItem(storageKey);
+            if (stored) {
+                userActivities = JSON.parse(stored);
+                if (!Array.isArray(userActivities)) userActivities = [];
             }
             
-            console.error('Could not find activity table!');
-            return null;
-        },
-        
-        // Find and update table
-        findAndUpdateTable: function() {
-            const tbody = this.findTableBody();
-            if (tbody) {
-                // Force reload all activities
-                this.loadAllActivities();
+            // Filter expired
+            const validActivities = this.filterExpired(userActivities);
+            
+            // Save back if changed
+            if (validActivities.length !== userActivities.length) {
+                localStorage.setItem(storageKey, JSON.stringify(validActivities));
+                // Refresh display
+                this.displayAllInTable(validActivities);
             }
-        },
-        
-        // Clean up old activities
-        cleanup: function() {
-            try {
-                const stored = localStorage.getItem('userActivities');
-                if (!stored) return;
-                
-                const activities = JSON.parse(stored);
-                if (!Array.isArray(activities)) return;
-                
-                const twentyFourHoursAgo = Date.now() - (24 * 60 * 60 * 1000);
-                const filtered = activities.filter(activity => {
+            
+            // Also clean global activities
+            this.cleanupGlobal();
+            
+        } catch (error) {
+            console.error('Error in cleanup:', error);
+        }
+    },
+    
+    // Clean up global activities
+    cleanupGlobal: function() {
+        try {
+            const globalKey = 'all_activities_24h';
+            let allActivities = [];
+            
+            const stored = localStorage.getItem(globalKey);
+            if (stored) {
+                allActivities = JSON.parse(stored);
+                if (!Array.isArray(allActivities)) allActivities = [];
+            }
+            
+            const now = Date.now();
+            const valid = allActivities.filter(activity => {
+                if (activity.expiry && activity.expiry > now) return true;
+                if (activity.timestamp) {
                     const activityTime = new Date(activity.timestamp).getTime();
-                    return activityTime > twentyFourHoursAgo;
-                });
-                
-                if (filtered.length < activities.length) {
-                    localStorage.setItem('userActivities', JSON.stringify(filtered));
-                    console.log(`🧹 Cleaned up ${activities.length - filtered.length} old activities`);
-                    this.displayAllActivities(filtered);
+                    return (now - activityTime) < (24 * 60 * 60 * 1000);
                 }
-                
-            } catch (error) {
-                console.error('Error cleaning up:', error);
-            }
-        },
-        
-        // Set up event listeners
-        setupEventListeners: function() {
-            console.log('🔧 Setting up event listeners...');
-            
-            // Track TikTok claim
-            this.setupClickListener('claim', 'TikTok Task', 'Watched TikTok video', 1000, 'Paid');
-            
-            // Track YouTube claim
-            this.setupClickListener('claimYoutube', 'YouTube Task', 'Watched YouTube video', 1000, 'Paid');
-            
-            // Track withdrawal
-            this.setupFormListener('withdrawalForm', 'Withdrawal Request', 'Requested funds withdrawal', -1, 'Pending');
-            
-            // Track trivia
-            this.setupFormListener('quizForm', 'Trivia Quiz', 'Completed daily trivia', 1500, 'Paid');
-            
-            // Track settings save
-            const saveBtn = document.getElementById('saveSettings');
-            if (saveBtn) {
-                saveBtn.addEventListener('click', () => {
-                    this.record('Account Settings', 'Updated account information', 0, 'Saved');
-                });
-            }
-            
-            // Track activation
-            const activateBtn = document.getElementById('activate');
-            if (activateBtn) {
-                activateBtn.addEventListener('click', function() {
-                    setTimeout(() => {
-                        if (this.disabled || this.textContent.includes('Activated')) {
-                            window.ActivityTracker.record('Account Activation', 'Activated account', -20000, 'Completed');
-                        }
-                    }, 1000);
-                });
-            }
-            
-            // Track referral copy
-            const copyBtn = document.getElementById('CopyLink');
-            if (copyBtn) {
-                copyBtn.addEventListener('click', function() {
-                    setTimeout(() => {
-                        if (this.textContent.includes('Copied')) {
-                            window.ActivityTracker.record('Referral', 'Copied referral link', 0, 'Completed');
-                        }
-                    }, 100);
-                });
-            }
-            
-            console.log('✅ Event listeners setup complete');
-        },
-        
-        // Helper: Setup click listener for claim buttons
-        setupClickListener: function(buttonId, task, activity, amount, status) {
-            const button = document.getElementById(buttonId);
-            if (!button) {
-                console.log(`Button #${buttonId} not found`);
-                return;
-            }
-            
-            button.addEventListener('click', function() {
-                setTimeout(() => {
-                    if (this.disabled || this.textContent.includes('Claimed')) {
-                        window.ActivityTracker.record(task, activity, amount, status);
-                    }
-                }, 300);
+                return false;
             });
             
-            console.log(`✅ Listener added to #${buttonId}`);
-        },
-        
-        // Helper: Setup form listener
-        setupFormListener: function(formId, task, activity, amount, status) {
-            const form = document.getElementById(formId);
-            if (!form) {
-                console.log(`Form #${formId} not found`);
-                return;
+            if (valid.length !== allActivities.length) {
+                localStorage.setItem(globalKey, JSON.stringify(valid));
+                console.log(`Cleaned global: ${allActivities.length} → ${valid.length}`);
             }
             
-            form.addEventListener('submit', function(e) {
-                // Get amount from form if needed
-                let finalAmount = amount;
-                if (formId === 'withdrawalForm') {
-                    const amountInput = this.querySelector('input[type="number"]');
-                    if (amountInput) {
-                        finalAmount = -parseFloat(amountInput.value);
-                    }
-                }
-                
-                setTimeout(() => {
-                    window.ActivityTracker.record(task, activity, finalAmount, status);
-                }, 500);
-            });
-            
-            console.log(`✅ Listener added to #${formId}`);
-        },
+        } catch (error) {
+            console.error('Error cleaning global:', error);
+        }
+    },
+    
+    // Display activity in table
+    displayInTable: function(activity) {
+        const tbody = this.getTableBody();
+        if (!tbody) return;
         
-        // Initialize everything
-        init: function() {
-            console.log('🎯 ActivityTracker INIT');
-            
-            // Clean up old activities
-            this.cleanup();
-            
-            // Load existing activities
-            this.loadAllActivities();
-            
-            // Setup event listeners
-            this.setupEventListeners();
-            
-            // Setup cleanup interval
-            setInterval(() => this.cleanup(), 60 * 60 * 1000);
-            
-            console.log('✅ ActivityTracker ready!');
+        // Remove "no activities" message
+        if (tbody.innerHTML.includes('No recent activities')) {
+            tbody.innerHTML = '';
         }
-    };
-    
-    // Initialize the tracker
-    window.ActivityTracker.init();
-    
-    // Add test function
-    window.testActivity = function() {
-        window.ActivityTracker.record(
-            'Test Task',
-            'Testing the activity system',
-            5000,
-            'Paid'
-        );
-        alert('✅ Test activity added! Check the Recent Activity table.');
-    };
-    
-    window.clearActivities = function() {
-        localStorage.removeItem('userActivities');
-        window.ActivityTracker.loadAllActivities();
-        alert('🧹 All activities cleared!');
-    };
-    
-    window.showActivities = function() {
-        const stored = localStorage.getItem('userActivities');
-        console.log('Stored activities:', stored ? JSON.parse(stored) : 'None');
-    };
-}
-
-// ========== DIRECT TABLE MANIPULATION ==========
-// Add this as a failsafe - it will FORCE activities to appear
-
-function forceActivityToTable() {
-    console.log('⚡ FORCE: Adding activity directly to table');
-    
-    // Find the table
-    const tables = document.querySelectorAll('table');
-    let activityTable = null;
-    
-    tables.forEach(table => {
-        if (table.innerHTML.includes('Recent Activity') || table.id === 'recent-activity') {
-            activityTable = table;
+        
+        // Create row
+        const row = this.createTableRow(activity);
+        
+        // Insert at top
+        if (tbody.firstChild) {
+            tbody.insertBefore(row, tbody.firstChild);
+        } else {
+            tbody.appendChild(row);
         }
-    });
+    },
     
-    if (!activityTable) {
-        console.error('No activity table found!');
-        return;
+    // Display all activities in table
+    displayAllInTable: function(activities) {
+        const tbody = this.getTableBody();
+        if (!tbody) return;
+        
+        // Clear table
+        tbody.innerHTML = '';
+        
+        if (!activities || activities.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="5">No recent activities. Complete tasks to earn!</td>
+                </tr>
+            `;
+            return;
+        }
+        
+        // Sort by time (newest first)
+        activities.sort((a, b) => {
+            return new Date(b.timestamp) - new Date(a.timestamp);
+        });
+        
+        // Add each activity
+        activities.forEach(activity => {
+            const row = this.createTableRow(activity);
+            tbody.appendChild(row);
+        });
+        
+        console.log(`✅ Displayed ${activities.length} activities`);
+    },
+    
+    // Get table body
+    getTableBody: function() {
+        // Try multiple selectors
+        const selectors = [
+            '#recent-activity tbody',
+            'table#recent-activity tbody',
+            '.admin-section.active table tbody',
+            'table:has(th:contains("Time")) tbody'
+        ];
+        
+        for (const selector of selectors) {
+            const element = document.querySelector(selector);
+            if (element) {
+                return element;
+            }
+        }
+        
+        // Create table if it doesn't exist
+        return this.createFallbackTable();
+    },
+    
+    // Create fallback table
+    createFallbackTable: function() {
+        console.log('Creating fallback activity table');
+        
+        // Find or create container
+        let container = document.querySelector('#dashboard-section, .admin-section.active');
+        if (!container) {
+            container = document.querySelector('main');
+        }
+        
+        if (!container) {
+            console.error('No container found for table');
+            return null;
+        }
+        
+        // Create table HTML
+        const tableHTML = `
+            <div class="section-header">
+                <h2 class="section-title">Recent Activity (24H)</h2>
+            </div>
+            <table id="recent-activity">
+                <thead>
+                    <tr>
+                        <th>Time</th>
+                        <th>Task</th>
+                        <th>Activity</th>
+                        <th>Amount</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td colspan="5">Loading activities...</td>
+                    </tr>
+                </tbody>
+            </table>
+        `;
+        
+        // Add to container
+        const div = document.createElement('div');
+        div.innerHTML = tableHTML;
+        container.appendChild(div);
+        
+        return div.querySelector('tbody');
+    },
+    
+    // Create table row
+    createTableRow: function(activity) {
+        const row = document.createElement('tr');
+        
+        // Format time
+        const time = new Date(activity.timestamp);
+        const timeString = time.toLocaleTimeString([], {
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+        
+        // Format amount
+        let amountText = 'UGX 0';
+        if (activity.amount > 0) {
+            amountText = `UGX ${activity.amount.toLocaleString()}`;
+        } else if (activity.amount < 0) {
+            amountText = `-UGX ${Math.abs(activity.amount).toLocaleString()}`;
+        }
+        
+        // Status class
+        let statusClass = 'status-completed';
+        if (activity.status === 'Paid') statusClass = 'status-active';
+        if (activity.status === 'Pending') statusClass = 'status-pending';
+        if (activity.status === 'Saved') statusClass = 'status-saved';
+        
+        // Calculate time remaining
+        const now = Date.now();
+        const expiry = activity.expiry || (new Date(activity.timestamp).getTime() + (24 * 60 * 60 * 1000));
+        const hoursLeft = Math.max(0, Math.round((expiry - now) / (60 * 60 * 1000)));
+        
+        row.innerHTML = `
+            <td>${timeString}</td>
+            <td>${activity.task}</td>
+            <td>${activity.activity}</td>
+            <td>${amountText}</td>
+            <td>
+                <span class="${statusClass}">${activity.status}</span>
+                <small style="display:block;font-size:10px;color:#666;">Expires in ${hoursLeft}h</small>
+            </td>
+        `;
+        
+        return row;
+    },
+    
+    // Setup event listeners
+    setupListeners: function() {
+        console.log('🔧 Setting up 24-hour activity listeners');
+        
+        // TikTok
+        this.setupButtonListener('claim', 'TikTok Task', 'Watched TikTok video', 1000, 'Paid');
+        
+        // YouTube
+        this.setupButtonListener('claimYoutube', 'YouTube Task', 'Watched YouTube video', 1000, 'Paid');
+        
+        // Withdrawal
+        this.setupFormListener('withdrawalForm', 'Withdrawal Request', 'Requested funds withdrawal', -59000, 'Pending');
+        
+        // Trivia
+        this.setupFormListener('quizForm', 'Trivia Quiz', 'Completed daily trivia', 1500, 'Paid');
+        
+        // Settings
+        const saveBtn = document.getElementById('saveSettings');
+        if (saveBtn) {
+            saveBtn.addEventListener('click', () => {
+                this.record('Account Settings', 'Updated account information', 0, 'Saved');
+            });
+        }
+        
+        // Activation
+        const activateBtn = document.getElementById('activate');
+        if (activateBtn) {
+            activateBtn.addEventListener('click', function() {
+                setTimeout(() => {
+                    if (this.disabled || this.textContent.includes('Activated')) {
+                        ActivityTracker24.record('Account Activation', 'Activated account', -20000, 'Completed');
+                    }
+                }, 1000);
+            });
+        }
+        
+        // Referral
+        const copyBtn = document.getElementById('CopyLink');
+        if (copyBtn) {
+            copyBtn.addEventListener('click', function() {
+                setTimeout(() => {
+                    if (this.textContent.includes('Copied')) {
+                        ActivityTracker24.record('Referral', 'Copied referral link', 0, 'Completed');
+                    }
+                }, 100);
+            });
+        }
+    },
+    
+    // Setup button listener
+    setupButtonListener: function(buttonId, task, activity, amount, status) {
+        const button = document.getElementById(buttonId);
+        if (!button) {
+            console.log(`Button #${buttonId} not found`);
+            return;
+        }
+        
+        button.addEventListener('click', function() {
+            setTimeout(() => {
+                if (this.disabled || this.textContent.includes('Claimed')) {
+                    ActivityTracker24.record(task, activity, amount, status);
+                }
+            }, 300);
+        });
+    },
+    
+    // Setup form listener
+    setupFormListener: function(formId, task, activity, amount, status) {
+        const form = document.getElementById(formId);
+        if (!form) {
+            console.log(`Form #${formId} not found`);
+            return;
+        }
+        
+        form.addEventListener('submit', function(e) {
+            let finalAmount = amount;
+            
+            if (formId === 'withdrawalForm') {
+                const amountInput = this.querySelector('input[type="number"]');
+                if (amountInput) {
+                    finalAmount = -parseFloat(amountInput.value);
+                }
+            }
+            
+            setTimeout(() => {
+                ActivityTracker24.record(task, activity, finalAmount, status);
+            }, 500);
+        });
+    },
+    
+    // Add test functions to window
+    addTestFunctions: function() {
+        window.test24hActivity = function() {
+            const activity = ActivityTracker24.record(
+                '24H Test',
+                'Testing 24-hour persistence',
+                5000,
+                'Paid'
+            );
+            
+            alert(`✅ 24-hour activity recorded!\nExpires in 24 hours.\nID: ${activity.id}`);
+            
+            // Show expiry time
+            const expiry = new Date(activity.expiry);
+            console.log('Activity expires at:', expiry.toLocaleString());
+            console.log('User ID:', ActivityTracker24.getUserId());
+        };
+        
+        window.showAllActivities = function() {
+            const userId = ActivityTracker24.getUserId();
+            const storageKey = `activities_${userId}`;
+            const stored = localStorage.getItem(storageKey);
+            
+            if (stored) {
+                const activities = JSON.parse(stored);
+                console.log(`📊 Activities for ${userId}:`, activities);
+                
+                // Show expiry info
+                activities.forEach((act, i) => {
+                    const expiry = new Date(act.expiry);
+                    const now = new Date();
+                    const hoursLeft = (act.expiry - Date.now()) / (60 * 60 * 1000);
+                    console.log(`${i+1}. ${act.task} - Expires: ${expiry.toLocaleTimeString()} (${hoursLeft.toFixed(1)}h left)`);
+                });
+            } else {
+                console.log('No activities stored');
+            }
+        };
+        
+        window.clear24hActivities = function() {
+            const userId = ActivityTracker24.getUserId();
+            const storageKey = `activities_${userId}`;
+            localStorage.removeItem(storageKey);
+            localStorage.removeItem('all_activities_24h');
+            
+            ActivityTracker24.loadAndDisplay();
+            alert('🧹 All 24-hour activities cleared!');
+        };
+        
+        window.checkExpiry = function() {
+            const userId = ActivityTracker24.getUserId();
+            const storageKey = `activities_${userId}`;
+            const stored = localStorage.getItem(storageKey);
+            
+            if (stored) {
+                const activities = JSON.parse(stored);
+                const now = Date.now();
+                
+                activities.forEach((act, i) => {
+                    const expiry = act.expiry;
+                    const expired = expiry < now;
+                    const timeLeft = expired ? 'EXPIRED' : `${((expiry - now) / (60 * 60 * 1000)).toFixed(1)}h`;
+                    
+                    console.log(`${i+1}. ${act.task} - ${expired ? '❌' : '✅'} ${timeLeft}`);
+                });
+            }
+        };
     }
-    
-    // Get or create tbody
-    let tbody = activityTable.querySelector('tbody');
-    if (!tbody) {
-        tbody = document.createElement('tbody');
-        activityTable.appendChild(tbody);
-    }
-    
-    // Create test row
-    const row = document.createElement('tr');
-    const now = new Date();
-    const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    
-    row.innerHTML = `
-        <td>${timeString}</td>
-        <td>FORCE TEST</td>
-        <td>Manual table injection</td>
-        <td>UGX 10,000</td>
-        <td><span class="status-active">Paid</span></td>
+};
+
+// ========== START THE TRACKER ==========
+// Start after page loads
+
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(() => {
+        // Store current user ID for persistence
+        if (window.currentUser) {
+            localStorage.setItem('current_user_id', window.currentUser.id);
+        } else if (window.userData?.authUser?.id) {
+            localStorage.setItem('current_user_id', window.userData.authUser.id);
+        }
+        
+        // Initialize tracker
+        ActivityTracker24.init();
+        
+        // Also add to window for testing
+        window.ActivityTracker24 = ActivityTracker24;
+        
+        console.log('⏰ 24-Hour tracker loaded. Test with: test24hActivity()');
+        
+    }, 2000);
+});
+
+// ========== CSS FOR STATUS BADGES ==========
+// Add this CSS if not already present
+
+if (!document.querySelector('#activity-24h-styles')) {
+    const style = document.createElement('style');
+    style.id = 'activity-24h-styles';
+    style.textContent = `
+        .status-active {
+            background: #2ecc71;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            display: inline-block;
+        }
+        .status-pending {
+            background: #f39c12;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            display: inline-block;
+        }
+        .status-completed {
+            background: #3498db;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            display: inline-block;
+        }
+        .status-saved {
+            background: #9b59b6;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            display: inline-block;
+        }
+        
+        /* Highlight expiring activities */
+        tr.expiring-soon {
+            background-color: #fff9e6;
+        }
+        tr.expired {
+            opacity: 0.6;
+            background-color: #f9f9f9;
+        }
     `;
-    
-    // Add to table
-    if (tbody.firstChild) {
-        tbody.insertBefore(row, tbody.firstChild);
-    } else {
-        tbody.appendChild(row);
-    }
-    
-    console.log('✅ FORCE: Activity added directly to table');
-    alert('✅ Activity FORCE added to table!');
+    document.head.appendChild(style);
 }
-
-// Test the force function
-setTimeout(() => {
-    window.forceActivity = forceActivityToTable;
-    console.log('Force function ready. Type: forceActivity()');
-}, 2000);
 
 // ========== INTEGRATION WITH YOUR CODE ==========
-// In your initializeFeatures function, add this:
+// In your initializeFeatures function:
 
 async function initializeFeatures() {
     // ... existing code ...
     
     // Initialize features that require authentication
     await Promise.all([
-        initializeNavigation(),
-        initializeGreeting(),
-        initializeUserData(user),
-        initializeTasks(user),
-        initializeTrivia(user),
-        initializeSettings(user),
-        initializeActivities(user),
-        initializeActivation(user),
-        initializeCopyLink(user),
-        initializeChat(),
-        initializeWithdrawal(user),
-        initializeQuiz(),
-        initializeRefreshButtons(),
-        initializeExportButton(user),
-        initializeDownlines(user),
-        initializeStatistics(user)
+        // ... your existing initializations ...
     ]);
     
-    // ADD THIS LINE (but ActivityTracker should auto-initialize):
-    console.log('Features initialized, ActivityTracker should be running');
+    // Store user ID for activity tracking
+    if (user && user.id) {
+        localStorage.setItem('current_user_id', user.id);
+    }
     
     // Start real-time updates
     initializeRealtimeUpdates(user.id);
