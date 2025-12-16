@@ -291,27 +291,79 @@
                                 border-radius: 0 0 8px 8px;
                             }
                         }
+                        .social-btn{
+                        margin: 10px;
+                        width: 60px;
+                        }
                     </style>
-                    <div class="container">
-                        <div class="logo">GreenQash</div>
-                        <h1>Invite Your Friends</h1>
-                        <p class="description">Share your unique referral link with friends and earn rewards when they
-                            join!</p>
-
-                        <form id="copylink">
-                            <input type="text" id="link" name="link" value="https://greenqash.com/ref/user123">
-                            <button type="button" id="CopyLink">Copy Link</button>
-                        </form>
-
-                        <div class="instructions">
-                            <h3>How to invite friends:</h3>
-                            <ol>
-                                <li>Click the "Copy Link" button to copy your unique referral link</li>
-                                <li>Share the link with your friends via message, email, or social media</li>
-                                <li>When your friends sign up using your link, you'll both receive rewards!</li>
-                            </ol>
+                <div class="container">
+                    <div class="logo">SKYLINK</div>
+                    <h1>Invite Your Friends</h1>
+                    <p class="description">Share your unique referral link with friends and earn rewards when they join!</p>
+                
+                    <!-- Copy Link Section -->
+                    <div class="copy-section">
+                        <input type="text" id="link" name="link" placeholder="Your referral link will appear here..." readonly>
+                        <button type="button" id="CopyLink">Copy Link</button>
+                    </div>
+                
+                    <!-- Social Sharing Section -->
+                    <div class="social-section">
+                        <h3>Share via:</h3>
+                        <div class="social-sharing">
+                            <!-- WhatsApp -->
+                            <a href="#" id="shareWhatsApp" class="social-btn whatsapp" title="Share on WhatsApp">
+                                <i class="fab fa-whatsapp"></i>
+                            </a>
+                
+                            <!-- Facebook -->
+                            <a href="#" id="shareFacebook" class="social-btn facebook" title="Share on Facebook">
+                                <i class="fab fa-facebook-f"></i>
+                            </a>
+                
+                            <!-- Twitter/X -->
+                            <a href="#" id="shareTwitter" class="social-btn twitter" title="Share on Twitter/X">
+                                <i class="fab fa-twitter"></i>
+                            </a>
+                
+                            <!-- Telegram -->
+                            <a href="#" id="shareTelegram" class="social-btn telegram" title="Share on Telegram">
+                                <i class="fab fa-telegram-plane"></i>
+                            </a>
+                
+                            <!-- Email -->
+                            <a href="#" id="shareEmail" class="social-btn email" title="Share via Email">
+                                <i class="fas fa-envelope"></i>
+                            </a>
+                
+                            <!-- SMS -->
+                            <a href="#" id="shareSMS" class="social-btn sms" title="Share via SMS">
+                                <i class="fas fa-sms"></i>
+                            </a>
                         </div>
                     </div>
+                
+                    <div class="instructions">
+                        <h3>How to invite friends:</h3>
+                        <ol>
+                            <li>Copy your unique referral link or share directly via social media</li>
+                            <li>Share with friends via WhatsApp, Facebook, Twitter, Telegram, Email, or SMS</li>
+                            <li>When friends sign up using your link, you earn UGX 7,000 (Level 1) and UGX 4,000 (Level 2)!</li>
+                        </ol>
+                
+                        <!-- Referral Earnings Info -->
+                        <div class="earnings-info" style="margin-top: 15px; padding: 10px; background: #f8f9fa; border-radius: 6px;">
+                            <h4 style="margin: 0 0 5px 0; color: #2c3e50;">Earnings Breakdown:</h4>
+                            <ul style="margin: 0; padding-left: 20px;">
+                                <li><strong>Level 1:</strong> UGX 7,000 per active referral</li>
+                                <li><strong>Level 2:</strong> UGX 4,000 per secondary referral</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Font Awesome for icons (add to head) -->
+                <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
                     <div class="notification" id="notification">Link copied to clipboard!</div>
                 </div>
@@ -333,34 +385,6 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <!-- <tr>
-                            <td>10:42 AM</td>
-                            <td>TikTok Like</td>
-                            <td>Completed</td>
-                            <td>$0.50</td>
-                            <td><span class="status-active">Paid</span></td>
-                        </tr>
-                        <tr>
-                            <td>Yesterday</td>
-                            <td>Youtube View</td>
-                            <td>Completed</td>
-                            <td>$1.20</td>
-                            <td><span class="status-active">Paid</span></td>
-                        </tr>
-                        <tr>
-                            <td>2 days ago</td>
-                            <td>Trivia Quiz</td>
-                            <td>8/10 Correct</td>
-                            <td>$2.00</td>
-                            <td><span class="status-active">Paid</span></td>
-                        </tr>
-                        <tr>
-                            <td>3 days ago</td>
-                            <td>Referral Bonus</td>
-                            <td>New signup</td>
-                            <td>$5.00</td>
-                            <td><span class="status-active">Paid</span></td>
-                        </tr> -->
                     </tbody>
                 </table>
             </div>

@@ -239,46 +239,471 @@
         });
     }
     
-    function updateReferralLink() {
+    // ========== UPGRADED REFERRAL LINK GENERATOR ==========
+
+// Generate and display referral link
+async function updateReferralLink() {
+    try {
         const linkInput = document.getElementById('link');
-        if (linkInput && currentUser) {
-            const referralLink = `${window.location.origin}/ref/${currentUser.id}/${user_name}`;
-            linkInput.value = referralLink;
-            
-            console.log('Referral link set:', referralLink);
-            
-            // Setup copy button
-            const copyBtn = document.getElementById('CopyLink');
-            if (copyBtn) {
-                copyBtn.addEventListener('click', async () => {
-                    try {
-                        await navigator.clipboard.writeText(referralLink);
-                        
-                        // Show notification
-                        const notification = document.getElementById('notification');
-                        if (notification) {
-                            notification.classList.add('show');
-                            setTimeout(() => notification.classList.remove('show'), 2000);
-                        }
-                        
-                        // Visual feedback
-                        copyBtn.textContent = 'Copied!';
-                        copyBtn.classList.add('copied');
-                        setTimeout(() => {
-                            copyBtn.textContent = 'Copy Link';
-                            copyBtn.classList.remove('copied');
-                        }, 2000);
-                        
-                        console.log('Link copied to clipboard');
-                        
-                    } catch (err) {
-                        console.error('Copy failed:', err);
-                        showMessage('Failed to copy link', 'error');
-                    }
-                });
-            }
+        if (!linkInput) {
+            console.error('Link input not found');
+            return;
+        }
+
+        // Get current user
+        const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
+        if (authError || !authUser) {
+            console.error('User not authenticated:', authError);
+            linkInput.value = `${getSiteUrl()}/ref/guest`;
+            return;
+        }
+
+        // Get user details from database
+        const { data: userData, error: userError } = await supabase
+            .from('users')
+            .select('id, user_name, email_address')
+            .or(`email_address.eq.${authUser.email},uuid.eq.${authUser.id}`)
+            .maybeSingle();
+
+        if (userError || !userData) {
+            console.error('Error fetching user data:', userError);
+            linkInput.value = `${getSiteUrl()}/ref/${authUser.id}`;
+            return;
+        }
+
+        // Generate referral link with user ID and name
+        const userId = userData.id; // Numeric ID from users table
+        const userName = userData.user_name || authUser.email?.split('@')[0] || 'user';
+        const encodedName = encodeURIComponent(userName.replace(/\s+/g, '-'));
+        
+        // Create referral link
+        const referralLink = `${getSiteUrl()}/ref/${userId}/${encodedName}`;
+        linkInput.value = referralLink;
+        
+        console.log('✅ Referral link generated:', referralLink);
+        
+        // Store referral data for registration tracking
+        localStorage.setItem('referral_data', JSON.stringify({
+            inviter_id: userId,
+            inviter_name: userName,
+            referral_link: referralLink,
+            generated_at: new Date().toISOString()
+        }));
+
+        // Setup copy functionality
+        setupCopyButton(referralLink);
+        
+        // Setup social sharing
+        setupSocialSharing(referralLink, userName);
+
+    } catch (error) {
+        console.error('Error generating referral link:', error);
+        const linkInput = document.getElementById('link');
+        if (linkInput) {
+            linkInput.value = `${getSiteUrl()}/ref/error`;
         }
     }
+}
+
+// Get site URL dynamically
+function getSiteUrl() {
+    // Try to get from config first
+    if (window.SUPABASE_CONFIG && window.SUPABASE_CONFIG.siteUrl) {
+        return window.SUPABASE_CONFIG.siteUrl.replace(/\/$/, '');
+    }
+    
+    // Fallback to current origin
+    return window.location.origin || 'https://skylink.com';
+}
+
+// Setup copy button functionality
+function setupCopyButton(referralLink) {
+    const copyBtn = document.getElementById('CopyLink');
+    if (!copyBtn) return;
+    
+    // Remove existing listeners
+    const newCopyBtn = copyBtn.cloneNode(true);
+    copyBtn.parentNode.replaceChild(newCopyBtn, copyBtn);
+    
+    newCopyBtn.addEventListener('click', async () => {
+        try {
+            await navigator.clipboard.writeText(referralLink);
+            
+            // Show notification
+            showLinkNotification('Link copied to clipboard!', 'success');
+            
+            // Visual feedback
+            newCopyBtn.textContent = 'Copied!';
+            newCopyBtn.classList.add('copied');
+            setTimeout(() => {
+                newCopyBtn.textContent = 'Copy Link';
+                newCopyBtn.classList.remove('copied');
+            }, 2000);
+            
+            console.log('✅ Link copied to clipboard');
+            
+        } catch (err) {
+            console.error('Copy failed:', err);
+            showLinkNotification('Failed to copy link', 'error');
+            
+            // Fallback for older browsers
+            const linkInput = document.getElementById('link');
+            if (linkInput) {
+                linkInput.select();
+                linkInput.setSelectionRange(0, 99999);
+                document.execCommand('copy');
+                showLinkNotification('Link copied!', 'success');
+            }
+        }
+    });
+}
+
+// Setup social media sharing
+function setupSocialSharing(referralLink, userName) {
+    const shareText = `Join me on SkyLink and start earning! Use my referral link: ${referralLink}`;
+    const encodedText = encodeURIComponent(shareText);
+    const encodedUrl = encodeURIComponent(referralLink);
+    
+    // WhatsApp
+    const whatsappBtn = document.getElementById('shareWhatsApp');
+    if (whatsappBtn) {
+        whatsappBtn.href = `https://wa.me/?text=${encodedText}`;
+        whatsappBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            window.open(`https://wa.me/?text=${encodedText}`, '_blank');
+        });
+    }
+    
+    // Facebook
+    const facebookBtn = document.getElementById('shareFacebook');
+    if (facebookBtn) {
+        facebookBtn.href = `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}&quote=${encodedText}`;
+        facebookBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`, '_blank', 'width=600,height=400');
+        });
+    }
+    
+    // Twitter/X
+    const twitterBtn = document.getElementById('shareTwitter');
+    if (twitterBtn) {
+        const twitterText = encodeURIComponent(`Join ${userName} on SkyLink and start earning!`);
+        twitterBtn.href = `https://twitter.com/intent/tweet?text=${twitterText}&url=${encodedUrl}`;
+        twitterBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            window.open(`https://twitter.com/intent/tweet?text=${twitterText}&url=${encodedUrl}`, '_blank', 'width=600,height=400');
+        });
+    }
+    
+    // Telegram
+    const telegramBtn = document.getElementById('shareTelegram');
+    if (telegramBtn) {
+        telegramBtn.href = `https://t.me/share/url?url=${encodedUrl}&text=${encodedText}`;
+        telegramBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            window.open(`https://t.me/share/url?url=${encodedUrl}&text=${encodedText}`, '_blank');
+        });
+    }
+    
+    // Email
+    const emailBtn = document.getElementById('shareEmail');
+    if (emailBtn) {
+        const subject = encodeURIComponent('Join me on SkyLink!');
+        const body = encodeURIComponent(`Hi,\n\nJoin me on SkyLink and start earning money by completing simple tasks!\n\nUse my referral link: ${referralLink}\n\nBest regards,\n${userName}`);
+        emailBtn.href = `mailto:?subject=${subject}&body=${body}`;
+    }
+    
+    // SMS
+    const smsBtn = document.getElementById('shareSMS');
+    if (smsBtn) {
+        smsBtn.href = `sms:?body=${encodedText}`;
+    }
+}
+
+// Show notification for link actions
+function showLinkNotification(message, type = 'info') {
+    // Remove existing notification
+    const existing = document.querySelector('.link-notification');
+    if (existing) existing.remove();
+    
+    // Create new notification
+    const notification = document.createElement('div');
+    notification.className = `link-notification ${type}`;
+    notification.textContent = message;
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 12px 20px;
+        background-color: ${type === 'success' ? '#2ecc71' : type === 'error' ? '#e74c3c' : '#3498db'};
+        color: white;
+        border-radius: 6px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        z-index: 10000;
+        animation: slideIn 0.3s ease;
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Remove after 3 seconds
+    setTimeout(() => {
+        notification.style.animation = 'slideOut 0.3s ease';
+        setTimeout(() => notification.remove(), 300);
+    }, 3000);
+}
+
+// ========== REFERRAL REGISTRATION HANDLER ==========
+// Add this to your registration page
+
+async function handleReferralRegistration() {
+    try {
+        // Get referral data from URL or localStorage
+        const urlParams = new URLSearchParams(window.location.search);
+        const refParam = urlParams.get('ref');
+        
+        let referralData = null;
+        
+        // Try to get from URL
+        if (refParam) {
+            const parts = refParam.split('/');
+            if (parts.length >= 1) {
+                const inviterId = parseInt(parts[0]);
+                const inviterName = parts[1] ? decodeURIComponent(parts[1]) : null;
+                
+                if (inviterId && !isNaN(inviterId)) {
+                    referralData = {
+                        inviter_id: inviterId,
+                        inviter_name: inviterName,
+                        source: 'url'
+                    };
+                }
+            }
+        }
+        
+        // If no URL param, check localStorage
+        if (!referralData) {
+            const stored = localStorage.getItem('referral_click');
+            if (stored) {
+                referralData = JSON.parse(stored);
+            }
+        }
+        
+        // Store referral data for use during registration
+        if (referralData) {
+            localStorage.setItem('pending_referral', JSON.stringify(referralData));
+            console.log('✅ Referral data captured:', referralData);
+            
+            // Show message to user
+            if (document.getElementById('referral-message')) {
+                document.getElementById('referral-message').textContent = 
+                    `You were referred by ${referralData.inviter_name || 'a friend'}!`;
+            }
+        }
+        
+    } catch (error) {
+        console.error('Error handling referral registration:', error);
+    }
+}
+
+// Function to save referral after user registers
+async function saveReferralAfterRegistration(newUserId, newUserName) {
+    try {
+        const pendingReferral = localStorage.getItem('pending_referral');
+        if (!pendingReferral) return null;
+        
+        const referralData = JSON.parse(pendingReferral);
+        
+        // Save to referrals table
+        const { data, error } = await supabase
+            .from('refferals')
+            .insert({
+                inviter_id: referralData.inviter_id,
+                referred_id: newUserId,
+                referred_name: newUserName,
+                source: referralData.source || 'direct',
+                created_at: new Date().toISOString()
+            })
+            .select()
+            .single();
+        
+        if (error) {
+            console.error('Error saving referral:', error);
+            return null;
+        }
+        
+        // Clear pending referral
+        localStorage.removeItem('pending_referral');
+        
+        console.log('✅ Referral saved:', data);
+        
+        // Determine secondary beneficiary (if any)
+        await determineSecondaryBenefit(referralData.inviter_id, newUserId);
+        
+        return data;
+        
+    } catch (error) {
+        console.error('Error in saveReferralAfterRegistration:', error);
+        return null;
+    }
+}
+
+// Determine secondary benefit (Level 2 referral)
+async function determineSecondaryBenefit(inviterId, referredId) {
+    try {
+        // Find who invited the inviter (if any)
+        const { data: inviterReferral, error } = await supabase
+            .from('refferals')
+            .select('inviter_id')
+            .eq('referred_id', inviterId)
+            .maybeSingle();
+        
+        if (error) throw error;
+        
+        if (inviterReferral && inviterReferral.inviter_id) {
+            // Update the new referral with secondary beneficiary
+            await supabase
+                .from('refferals')
+                .update({ secondary_benefit: inviterReferral.inviter_id })
+                .eq('referred_id', referredId);
+            
+            console.log(`✅ Secondary benefit assigned to user ${inviterReferral.inviter_id}`);
+        }
+        
+    } catch (error) {
+        console.error('Error determining secondary benefit:', error);
+    }
+}
+
+// Track referral link clicks
+function trackReferralClick(inviterId, inviterName) {
+    const clickData = {
+        inviter_id: inviterId,
+        inviter_name: inviterName,
+        clicked_at: new Date().toISOString(),
+        user_agent: navigator.userAgent,
+        referrer: document.referrer
+    };
+    
+    localStorage.setItem('referral_click', JSON.stringify(clickData));
+    console.log('✅ Referral click tracked:', clickData);
+}
+
+// ========== INITIALIZE ==========
+
+// Initialize referral system
+async function initializeReferralSystem() {
+    // Update referral link
+    await updateReferralLink();
+    
+    // Check if we're on a referral link
+    if (window.location.pathname.includes('/ref/')) {
+        handleReferralRegistration();
+    }
+    
+    // Add CSS for social icons
+    addSocialSharingStyles();
+}
+
+// Add CSS for social sharing
+function addSocialSharingStyles() {
+    const styles = `
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        @keyframes slideOut {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(100%); opacity: 0; }
+        }
+        
+        .social-sharing {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 20px 0;
+            justify-content: center;
+        }
+        
+        .social-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            color: white;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            font-size: 18px;
+        }
+        
+        .social-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        .whatsapp { background: #25D366; }
+        .facebook { background: #1877F2; }
+        .twitter { background: #1DA1F2; }
+        .telegram { background: #0088CC; }
+        .email { background: #EA4335; }
+        .sms { background: #34B7F1; }
+        
+        .copy-section {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        #link {
+            flex: 1;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            background: #f9f9f9;
+        }
+        
+        #CopyLink {
+            background: #2ecc71;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+        
+        #CopyLink:hover {
+            background: #27ae60;
+        }
+        
+        #CopyLink.copied {
+            background: #3498db;
+        }
+        
+        .social-section h3 {
+            text-align: center;
+            margin: 20px 0 10px;
+            color: #333;
+        }
+    `;
+    
+    if (!document.querySelector('#social-sharing-styles')) {
+        const styleEl = document.createElement('style');
+        styleEl.id = 'social-sharing-styles';
+        styleEl.textContent = styles;
+        document.head.appendChild(styleEl);
+    }
+}
+
+// Start when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(initializeReferralSystem, 1000);
+});
     
     function updateProfileSection() {
         console.log('Updating profile section...');
@@ -2330,7 +2755,7 @@ async function calculateReferralNetwork(user) {
                         ...referredUser,
                         referral_id: referral.referral_id,
                         level: 1,
-                        earnings: 8000,
+                        earnings: 7000,
                         referral_date: referral.created_at
                     });
                 }
@@ -2346,7 +2771,7 @@ async function calculateReferralNetwork(user) {
                         ...referredUser,
                         referral_id: referral.referral_id,
                         level: 2,
-                        earnings: 5000,
+                        earnings: 4000,
                         referral_date: referral.created_at
                     });
                 }
@@ -2356,7 +2781,7 @@ async function calculateReferralNetwork(user) {
         // 6. Calculate totals
         const l1Count = downlines.filter(d => d.level === 1 && d.status === 'active').length;
         const l2Count = downlines.filter(d => d.level === 2 && d.status === 'active').length;
-        const totalEarnings = (l1Count * 8000) + (l2Count * 5000);
+        const totalEarnings = (l1Count * 7000) + (l2Count * 4000);
 
         console.log(`Active referrals: ${l1Count} L1 + ${l2Count} L2 = UGX ${totalEarnings}`);
 
