@@ -1723,6 +1723,1004 @@ const ActivityTracker24 = {
     }
 };
 
+    //DISPLAY PENDING WITHDRAWALS IN DASHBOARD FUNCTION
+    // ========== FIXED PENDING WITHDRAWALS CALCULATOR ==========
+
+// Calculate and display pending withdrawals for current user
+async function calculatePendingWithdrawals(user) {
+    try {
+        console.log('💰 Calculating pending withdrawals for user:', user?.id);
+        
+        if (!user) {
+            console.error('User object is required');
+            updatePendingWithdrawalsDisplay(0);
+            return 0;
+        }
+
+        // First, get the numeric user ID from users table using email or UUID
+        const numericUserId = await getNumericUserId(user);
+        
+        if (!numericUserId) {
+            console.error('Could not find numeric user ID');
+            updatePendingWithdrawalsDisplay(0);
+            return 0;
+        }
+
+        console.log('Using numeric user ID:', numericUserId);
+
+        // Query withdrawal_requests table for pending withdrawals
+        const { data, error } = await supabase
+            .from('withdrawal_requests')
+            .select('amount, status, id, created_at')
+            .eq('id', numericUserId)  // Use NUMERIC ID here
+            .eq('status', 'pending');
+
+        if (error) {
+            console.error('Error fetching pending withdrawals:', error);
+            updatePendingWithdrawalsDisplay(0);
+            return 0;
+        }
+
+        // Calculate total amount
+        let totalPendingAmount = 0;
+        let pendingCount = 0;
+        
+        if (data && data.length > 0) {
+            data.forEach(withdrawal => {
+                if (withdrawal.status === 'pending' && withdrawal.amount) {
+                    totalPendingAmount += Number(withdrawal.amount);
+                    pendingCount++;
+                }
+            });
+        }
+
+        console.log(`📊 Found ${pendingCount} pending withdrawals totaling UGX ${totalPendingAmount.toLocaleString()}`);
+
+        // Update display
+        updatePendingWithdrawalsDisplay(totalPendingAmount);
+        
+        // Return the total amount
+        return totalPendingAmount;
+
+    } catch (error) {
+        console.error('Error in calculatePendingWithdrawals:', error);
+        updatePendingWithdrawalsDisplay(0);
+        return 0;
+    }
+}
+
+// Get numeric user ID from users table using auth user info
+async function getNumericUserId(authUser) {
+    try {
+        if (!authUser) return null;
+        
+        console.log('Looking up numeric ID for auth user:', authUser.email);
+        
+        // Try to find user by email (most reliable)
+        const { data: userByEmail, error: emailError } = await supabase
+            .from('users')
+            .select('id')
+            .eq('email_address', authUser.email)
+            .maybeSingle();
+        
+        if (!emailError && userByEmail) {
+            console.log('Found user by email:', userByEmail.id);
+            return userByEmail.id;
+        }
+        
+        // Try by UUID if available
+        if (authUser.id) {
+            const { data: userByUuid, error: uuidError } = await supabase
+                .from('users')
+                .select('id')
+                .eq('uuid', authUser.id)
+                .maybeSingle();
+            
+            if (!uuidError && userByUuid) {
+                console.log('Found user by UUID:', userByUuid.id);
+                return userByUuid.id;
+            }
+        }
+        
+        // Try by ID directly (might be already numeric)
+        const { data: userById, error: idError } = await supabase
+            .from('users')
+            .select('id')
+            .eq('id', authUser.id)
+            .maybeSingle();
+        
+        if (!idError && userById) {
+            console.log('Found user by ID:', userById.id);
+            return userById.id;
+        }
+        
+        console.error('Could not find numeric user ID');
+        return null;
+        
+    } catch (error) {
+        console.error('Error getting numeric user ID:', error);
+        return null;
+    }
+}
+
+// Update the display with pending withdrawals amount
+function updatePendingWithdrawalsDisplay(amount) {
+    // Find all elements that should show pending withdrawals
+    const displayElements = [
+        document.getElementById('pendingWithdrawals'),
+        document.querySelector('[data-pending-withdrawals]'),
+        document.querySelector('.stat-value#pendingWithdrawals')
+    ];
+
+    displayElements.forEach(element => {
+        if (element) {
+            // Format the amount with commas
+            element.textContent = typeof amount === 'number' 
+                ? amount.toLocaleString('en-US') 
+                : '0';
+            
+            // Add tooltip
+            element.title = `Total pending: UGX ${amount.toLocaleString()}`;
+        }
+    });
+
+    // Also update in any other places that might show this
+    const allPendingElements = document.querySelectorAll('#pendingWithdrawals, .pending-withdrawals');
+    allPendingElements.forEach(el => {
+        if (el && el.textContent !== amount.toLocaleString()) {
+            el.textContent = amount.toLocaleString('en-US');
+        }
+    });
+}
+
+// Load pending withdrawals when user data is loaded
+async function loadPendingWithdrawals(user) {
+    if (!user) {
+        console.error('User not available for pending withdrawals');
+        return;
+    }
+
+    try {
+        const pendingAmount = await calculatePendingWithdrawals(user);
+        
+        // Also update wallet balance display (subtract pending from available)
+        await updateWalletBalanceWithPending(user, pendingAmount);
+        
+    } catch (error) {
+        console.error('Error loading pending withdrawals:', error);
+    }
+}
+
+// Update wallet balance considering pending withdrawals
+async function updateWalletBalanceWithPending(user, pendingAmount) {
+    try {
+        // Get numeric user ID
+        const numericUserId = await getNumericUserId(user);
+        if (!numericUserId) return;
+        
+        // Get current earnings
+        const { data: earnings, error } = await supabase
+            .from('earnings')
+            .select('all_time_earn, total_withdrawn')
+            .eq('id', numericUserId)
+            .maybeSingle();
+
+        if (error) throw error;
+
+        if (earnings) {
+            const allTimeEarn = earnings.all_time_earn || 0;
+            const totalWithdrawn = earnings.total_withdrawn || 0;
+            
+            // Calculate available balance (excluding pending withdrawals)
+            const availableBalance = allTimeEarn - totalWithdrawn - pendingAmount;
+            
+            // Update wallet display
+            const walletElement = document.getElementById('walletQash');
+            if (walletElement) {
+                walletElement.textContent = Math.max(0, availableBalance).toLocaleString('en-US');
+                walletElement.title = `Available: UGX ${availableBalance.toLocaleString()}\n(Pending: UGX ${pendingAmount.toLocaleString()})`;
+            }
+        }
+    } catch (error) {
+        console.error('Error updating wallet balance:', error);
+    }
+}
+
+// Refresh pending withdrawals (can be called manually)
+async function refreshPendingWithdrawals() {
+    try {
+        const { data: { user }, error } = await supabase.auth.getUser();
+        if (error) throw error;
+        
+        if (user) {
+            await calculatePendingWithdrawals(user);
+            
+            // Show notification if function exists
+            if (typeof showNotification === 'function') {
+                showNotification('Pending withdrawals refreshed', 'success');
+            } else {
+                console.log('Pending withdrawals refreshed');
+            }
+        }
+    } catch (error) {
+        console.error('Error refreshing pending withdrawals:', error);
+        
+        // Show notification if function exists
+        if (typeof showNotification === 'function') {
+            showNotification('Error refreshing pending withdrawals', 'error');
+        }
+    }
+}
+
+// ========== INTEGRATION WITH EXISTING CODE ==========
+
+// Update your initializeFeatures function
+async function initializeFeatures() {
+    // ... existing code ...
+    
+    // Check authentication
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+        window.location.href = 'index.html';
+        return;
+    }
+
+    // Initialize features that require authentication
+    await Promise.all([
+        initializeNavigation(),
+        initializeGreeting(),
+        initializeUserData(user),
+        initializeTasks(user),
+        initializeTrivia(user),
+        initializeSettings(user),
+        initializeActivities(user),
+        initializeActivation(user),
+        initializeCopyLink(user),
+        initializeChat(),
+        initializeWithdrawal(user),
+        initializeQuiz(),
+        initializeRefreshButtons(),
+        initializeExportButton(user),
+        initializeDownlines(user),
+        initializeStatistics(user),
+        // FIXED: Pass user object instead of just ID
+        loadPendingWithdrawals(user)
+    ]);
+    
+    // Start real-time updates
+    initializeRealtimeUpdates(user.id);
+    
+    // Also set up real-time updates for withdrawal requests
+    initializeWithdrawalUpdates(user);
+}
+
+// Real-time updates for withdrawal status changes
+function initializeWithdrawalUpdates(user) {
+    if (!user) return;
+    
+    // We need to get numeric ID first
+    getNumericUserId(user).then(numericUserId => {
+        if (!numericUserId) return;
+        
+        const withdrawalChannel = supabase
+            .channel('withdrawal_changes')
+            .on(
+                'postgres_changes',
+                {
+                    event: '*', // INSERT, UPDATE, DELETE
+                    schema: 'public',
+                    table: 'withdrawal_requests',
+                    filter: `id=eq.${numericUserId}`
+                },
+                () => {
+                    console.log('Withdrawal request changed, refreshing...');
+                    calculatePendingWithdrawals(user);
+                }
+            )
+            .subscribe();
+        
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', () => {
+            supabase.removeChannel(withdrawalChannel);
+        });
+    });
+}
+
+// ========== ADDITIONAL HELPER FUNCTIONS ==========
+
+// Get detailed pending withdrawals info
+async function getPendingWithdrawalsDetails(user) {
+    try {
+        const numericUserId = await getNumericUserId(user);
+        if (!numericUserId) return [];
+        
+        const { data, error } = await supabase
+            .from('withdrawal_requests')
+            .select('*')
+            .eq('id', numericUserId)
+            .eq('status', 'pending')
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        return data || [];
+    } catch (error) {
+        console.error('Error getting withdrawal details:', error);
+        return [];
+    }
+}
+
+// Display pending withdrawals in a table or list
+async function displayPendingWithdrawalsList(user) {
+    try {
+        const pendingWithdrawals = await getPendingWithdrawalsDetails(user);
+        
+        if (pendingWithdrawals.length === 0) {
+            return '<p>No pending withdrawals</p>';
+        }
+        
+        let html = `
+            <div class="pending-withdrawals-list">
+                <h4>Pending Withdrawals (${pendingWithdrawals.length})</h4>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Amount</th>
+                            <th>Method</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+        
+        pendingWithdrawals.forEach(withdrawal => {
+            const date = new Date(withdrawal.created_at).toLocaleDateString();
+            html += `
+                <tr>
+                    <td>${date}</td>
+                    <td>UGX ${Number(withdrawal.amount).toLocaleString()}</td>
+                    <td>${withdrawal.payment_method || 'N/A'}</td>
+                    <td><span class="status-pending">${withdrawal.status}</span></td>
+                </tr>
+            `;
+        });
+        
+        const total = pendingWithdrawals.reduce((sum, w) => sum + Number(w.amount), 0);
+        html += `
+                    </tbody>
+                </table>
+                <p><strong>Total Pending:</strong> UGX ${total.toLocaleString()}</p>
+            </div>
+        `;
+        
+        return html;
+    } catch (error) {
+        console.error('Error displaying withdrawals:', error);
+        return '<p>Error loading pending withdrawals</p>';
+    }
+}
+
+// ========== SAFE NOTIFICATION FUNCTION ==========
+// Add this if showNotification doesn't exist
+
+if (typeof showNotification !== 'function') {
+    window.showNotification = function(message, type = 'info') {
+        console.log(`[${type.toUpperCase()}] ${message}`);
+        
+        // Create a simple notification if needed
+        const notification = document.createElement('div');
+        notification.textContent = message;
+        notification.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 12px 20px;
+            background-color: ${type === 'success' ? '#2ecc71' : type === 'error' ? '#e74c3c' : '#3498db'};
+            color: white;
+            border-radius: 6px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 10000;
+        `;
+        
+        document.body.appendChild(notification);
+        
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.parentNode.removeChild(notification);
+            }
+        }, 3000);
+    };
+}
+
+// ========== MANUAL REFRESH BUTTON ==========
+
+function addPendingWithdrawalsRefreshButton() {
+    // Check if button already exists
+    if (document.getElementById('refreshPendingWithdrawals')) return;
+    
+    // Find a good place to add the button
+    const pendingElement = document.getElementById('pendingWithdrawals');
+    if (pendingElement && pendingElement.parentElement) {
+        const refreshBtn = document.createElement('button');
+        refreshBtn.id = 'refreshPendingWithdrawals';
+        refreshBtn.innerHTML = '↻';
+        refreshBtn.title = 'Refresh pending withdrawals';
+        refreshBtn.style.cssText = `
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            font-size: 12px;
+            margin-left: 5px;
+            color: #3498db;
+        `;
+        
+        refreshBtn.addEventListener('click', refreshPendingWithdrawals);
+        
+        pendingElement.parentElement.appendChild(refreshBtn);
+    }
+}
+
+// ========== TEST FUNCTIONS ==========
+
+window.testPendingWithdrawals = async function() {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+        const amount = await calculatePendingWithdrawals(user);
+        console.log('✅ Pending withdrawals test:', amount);
+        alert(`Pending withdrawals: UGX ${amount.toLocaleString()}`);
+    } else {
+        alert('Please log in first');
+    }
+};
+
+window.showPendingDetails = async function() {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+        const details = await getPendingWithdrawalsDetails(user);
+        console.log('📋 Pending details:', details);
+        
+        let message = `Found ${details.length} pending withdrawals:\n\n`;
+        details.forEach((w, i) => {
+            message += `${i+1}. UGX ${Number(w.amount).toLocaleString()} - ${w.payment_method || 'N/A'} - ${new Date(w.created_at).toLocaleDateString()}\n`;
+        });
+        
+        alert(message);
+    }
+};
+
+// ========== DEBUG FUNCTION ==========
+
+window.debugUserIds = async function() {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+        console.log('No auth user found');
+        return;
+    }
+    
+    console.log('=== USER ID DEBUG ===');
+    console.log('Auth user ID (UUID):', user.id);
+    console.log('Auth user email:', user.email);
+    
+    // Try to find numeric ID
+    const numericId = await getNumericUserId(user);
+    console.log('Numeric user ID:', numericId);
+    
+    // Test withdrawal query
+    if (numericId) {
+        const { data, error } = await supabase
+            .from('withdrawal_requests')
+            .select('*')
+            .eq('id', numericId)
+            .limit(1);
+        
+        console.log('Withdrawal test query:', error ? error.message : data);
+    }
+};
+
+// ========== AUTO INITIALIZE ==========
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        setTimeout(() => {
+            addPendingWithdrawalsRefreshButton();
+        }, 2000);
+    });
+}
+
+// Export for manual calling
+window.refreshPendingWithdrawals = refreshPendingWithdrawals;
+window.calculatePendingWithdrawals = calculatePendingWithdrawals;
+
+console.log('✅ Fixed pending withdrawals calculator loaded. Test with: testPendingWithdrawals()');
+console.log('Debug with: debugUserIds()');
+
+    //DISPLAY DOWNLINE INVITES AND RELATED LOGIC IN DOWNLINES TAB
+    // ========== FINAL WORKING REFERRAL SYSTEM ==========
+// For your CORRECTED schema
+
+async function calculateReferralNetwork(user) {
+    try {
+        console.log('👥 Calculating referral network...');
+        
+        if (!user) {
+            console.error('User object is required');
+            updateReferralDisplay(0, 0, 0);
+            return;
+        }
+
+        // Get numeric user ID
+        const numericUserId = await getNumericUserId(user);
+        if (!numericUserId) {
+            console.error('Could not find numeric user ID');
+            updateReferralDisplay(0, 0, 0);
+            return;
+        }
+
+        console.log('Using numeric user ID:', numericUserId);
+
+        // 1. Get Level 1 referrals (where user is the inviter)
+        const { data: l1Referrals, error: l1Error } = await supabase
+            .from('refferals')
+            .select('referral_id, referred_id, created_at')
+            .eq('inviter_id', numericUserId);
+        
+        if (l1Error) {
+            console.error('Error fetching L1 referrals:', l1Error);
+            // Continue anyway with empty array
+        }
+
+        // 2. Get Level 2 referrals (where user gets secondary benefit)
+        const { data: l2Referrals, error: l2Error } = await supabase
+            .from('refferals')
+            .select('referral_id, referred_id, created_at')
+            .eq('secondary_benefit', numericUserId);
+        
+        if (l2Error) {
+            console.error('Error fetching L2 referrals:', l2Error);
+        }
+
+        console.log(`Found ${l1Referrals?.length || 0} L1 referrals and ${l2Referrals?.length || 0} L2 referrals`);
+
+        // 3. Get all referred user IDs
+        const allReferredIds = [];
+        
+        if (l1Referrals) {
+            l1Referrals.forEach(ref => {
+                if (ref.referred_id) allReferredIds.push(ref.referred_id);
+            });
+        }
+        
+        if (l2Referrals) {
+            l2Referrals.forEach(ref => {
+                if (ref.referred_id) allReferredIds.push(ref.referred_id);
+            });
+        }
+        
+        // Remove duplicates
+        const uniqueReferredIds = [...new Set(allReferredIds)];
+        
+        console.log('Unique referred user IDs:', uniqueReferredIds);
+
+        let referredUsers = [];
+        
+        // 4. Get user details for all referred users
+        if (uniqueReferredIds.length > 0) {
+            const { data: usersData, error: usersError } = await supabase
+                .from('users')
+                .select('id, user_name, email_address, created_at, status')
+                .in('id', uniqueReferredIds);
+            
+            if (usersError) {
+                console.error('Error fetching referred users:', usersError);
+            } else {
+                referredUsers = usersData || [];
+            }
+        }
+
+        // 5. Process downlines
+        const downlines = [];
+        
+        // Process L1 referrals
+        if (l1Referrals && referredUsers.length > 0) {
+            l1Referrals.forEach(referral => {
+                const referredUser = referredUsers.find(u => u.id === referral.referred_id);
+                if (referredUser) {
+                    downlines.push({
+                        ...referredUser,
+                        referral_id: referral.referral_id,
+                        level: 1,
+                        earnings: 8000,
+                        referral_date: referral.created_at
+                    });
+                }
+            });
+        }
+        
+        // Process L2 referrals
+        if (l2Referrals && referredUsers.length > 0) {
+            l2Referrals.forEach(referral => {
+                const referredUser = referredUsers.find(u => u.id === referral.referred_id);
+                if (referredUser) {
+                    downlines.push({
+                        ...referredUser,
+                        referral_id: referral.referral_id,
+                        level: 2,
+                        earnings: 5000,
+                        referral_date: referral.created_at
+                    });
+                }
+            });
+        }
+
+        // 6. Calculate totals
+        const l1Count = downlines.filter(d => d.level === 1 && d.status === 'active').length;
+        const l2Count = downlines.filter(d => d.level === 2 && d.status === 'active').length;
+        const totalEarnings = (l1Count * 8000) + (l2Count * 5000);
+
+        console.log(`Active referrals: ${l1Count} L1 + ${l2Count} L2 = UGX ${totalEarnings}`);
+
+        // 7. Update display
+        updateReferralDisplay(l1Count, l2Count, totalEarnings);
+        
+        // 8. Update earnings table
+        await updateReferralEarnings(numericUserId, totalEarnings);
+        
+        // 9. Display downlines table
+        displayDownlinesTable(downlines);
+
+        return {
+            success: true,
+            l1Count: l1Count,
+            l2Count: l2Count,
+            totalEarnings: totalEarnings,
+            downlines: downlines.length
+        };
+
+    } catch (error) {
+        console.error('Error in calculateReferralNetwork:', error);
+        updateReferralDisplay(0, 0, 0);
+        return { success: false, error: error.message };
+    }
+}
+
+// Helper: Get numeric user ID
+async function getNumericUserId(user) {
+    try {
+        if (!user) return null;
+        
+        // Try by email (most reliable)
+        const { data: userByEmail, error: emailError } = await supabase
+            .from('users')
+            .select('id')
+            .eq('email_address', user.email)
+            .maybeSingle();
+        
+        if (!emailError && userByEmail) {
+            return userByEmail.id;
+        }
+        
+        // Try by UUID
+        if (user.id) {
+            const { data: userByUuid, error: uuidError } = await supabase
+                .from('users')
+                .select('id')
+                .eq('uuid', user.id)
+                .maybeSingle();
+            
+            if (!uuidError && userByUuid) {
+                return userByUuid.id;
+            }
+        }
+        
+        console.error('User not found in database');
+        return null;
+        
+    } catch (error) {
+        console.error('Error getting numeric ID:', error);
+        return null;
+    }
+}
+
+// Update display elements
+function updateReferralDisplay(l1Count, l2Count, totalEarnings) {
+    // L1 Users
+    const l1Element = document.getElementById('l1Users');
+    if (l1Element) {
+        l1Element.textContent = l1Count.toString();
+        l1Element.title = `${l1Count} direct referrals × UGX 8,000 = UGX ${(l1Count * 8000).toLocaleString()}`;
+    }
+    
+    // L2 Users
+    const l2Element = document.getElementById('l2Users');
+    if (l2Element) {
+        l2Element.textContent = l2Count.toString();
+        l2Element.title = `${l2Count} secondary referrals × UGX 5,000 = UGX ${(l2Count * 5000).toLocaleString()}`;
+    }
+    
+    // Total Referral Earnings
+    const referralElement = document.getElementById('refferal');
+    if (referralElement) {
+        referralElement.textContent = totalEarnings.toLocaleString('en-US');
+        referralElement.title = `Total referral earnings: UGX ${totalEarnings.toLocaleString()}`;
+    }
+    
+    console.log(`✅ Display updated: L1=${l1Count}, L2=${l2Count}, Total=UGX ${totalEarnings}`);
+}
+
+// Update earnings table
+async function updateReferralEarnings(userId, totalEarnings) {
+    try {
+        console.log(`💾 Updating referral earnings for user ${userId}: UGX ${totalEarnings}`);
+        
+        // Use upsert to create or update
+        const { error } = await supabase
+            .from('earnings')
+            .upsert({
+                id: userId,
+                refferal: totalEarnings,
+                updated_at: new Date().toISOString()
+            }, {
+                onConflict: 'id',
+                ignoreDuplicates: false
+            });
+        
+        if (error) {
+            console.error('Error updating earnings:', error);
+        } else {
+            console.log('✅ Earnings updated successfully');
+        }
+        
+    } catch (error) {
+        console.error('Error in updateReferralEarnings:', error);
+    }
+}
+
+// Display downlines in table
+function displayDownlinesTable(downlines) {
+    const tbody = document.querySelector('#downlines-table tbody');
+    if (!tbody) {
+        console.error('Downlines table body not found');
+        return;
+    }
+
+    // Clear existing rows
+    tbody.innerHTML = '';
+
+    if (!downlines || downlines.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="6">No referrals yet. Share your referral link to earn rewards!</td>
+            </tr>
+        `;
+        return;
+    }
+
+    // Sort: L1 first, then L2, then by date (newest first)
+    downlines.sort((a, b) => {
+        if (a.level !== b.level) return a.level - b.level;
+        return new Date(b.referral_date || b.created_at) - new Date(a.referral_date || a.created_at);
+    });
+
+    // Add each downline
+    downlines.forEach(downline => {
+        const row = document.createElement('tr');
+        
+        // Format date
+        const date = new Date(downline.referral_date || downline.created_at);
+        const dateString = date.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
+        });
+
+        // Status
+        const statusClass = downline.status === 'active' ? 'status-active' : 'status-pending';
+        const statusText = downline.status === 'active' ? 'Active' : 'Pending';
+
+        row.innerHTML = `
+            <td>${downline.user_name || 'Unknown'}</td>
+            <td>${downline.email_address || 'No email'}</td>
+            <td>${dateString}</td>
+            <td><span class="${statusClass}">${statusText}</span></td>
+            <td>${downline.level}</td>
+            <td>UGX ${downline.earnings.toLocaleString()}</td>
+        `;
+        
+        tbody.appendChild(row);
+    });
+
+    console.log(`✅ Displayed ${downlines.length} downlines in table`);
+}
+
+// ========== TEST FUNCTIONS ==========
+
+window.testReferralCalculation = async function() {
+    console.log('🧪 Testing referral calculation...');
+    
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+        alert('Please log in first');
+        return;
+    }
+    
+    const result = await calculateReferralNetwork(user);
+    
+    if (result.success) {
+        alert(`✅ Referral Calculation Successful!\n\n` +
+              `Level 1 Referrals: ${result.l1Count}\n` +
+              `Level 2 Referrals: ${result.l2Count}\n` +
+              `Total Earnings: UGX ${result.totalEarnings.toLocaleString()}\n` +
+              `Total Downlines: ${result.downlines}`);
+    } else {
+        alert(`❌ Error: ${result.error}`);
+    }
+};
+
+window.debugReferralData = async function() {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    
+    const numericId = await getNumericUserId(user);
+    console.log('=== REFERRAL DEBUG ===');
+    console.log('User numeric ID:', numericId);
+    
+    // Check referrals table
+    const { data: allReferrals } = await supabase
+        .from('refferals')
+        .select('*')
+        .limit(10);
+    
+    console.log('Sample referrals:', allReferrals);
+    
+    // Check user's referrals
+    if (numericId) {
+        const { data: userReferrals } = await supabase
+            .from('refferals')
+            .select('*')
+            .or(`inviter_id.eq.${numericId},secondary_benefit.eq.${numericId}`);
+        
+        console.log('User referrals:', userReferrals);
+    }
+};
+
+// ========== REAL-TIME UPDATES ==========
+
+function setupReferralRealtimeUpdates(user) {
+    if (!user) return;
+    
+    getNumericUserId(user).then(numericUserId => {
+        if (!numericUserId) return;
+        
+        // Watch for new referrals
+        const channel = supabase
+            .channel('referral-updates')
+            .on(
+                'postgres_changes',
+                {
+                    event: 'INSERT',
+                    schema: 'public',
+                    table: 'refferals',
+                    filter: `inviter_id=eq.${numericUserId}`
+                },
+                () => {
+                    console.log('New L1 referral detected, refreshing...');
+                    calculateReferralNetwork(user);
+                }
+            )
+            .on(
+                'postgres_changes',
+                {
+                    event: 'INSERT',
+                    schema: 'public',
+                    table: 'refferals',
+                    filter: `secondary_benefit=eq.${numericUserId}`
+                },
+                () => {
+                    console.log('New L2 referral detected, refreshing...');
+                    calculateReferralNetwork(user);
+                }
+            )
+            .subscribe();
+        
+        // Cleanup
+        window.addEventListener('beforeunload', () => {
+            supabase.removeChannel(channel);
+        });
+    });
+}
+
+// ========== MAIN INITIALIZATION ==========
+
+async function initializeReferralSystem() {
+    console.log('🚀 Initializing referral system...');
+    
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+        console.error('No authenticated user');
+        return;
+    }
+    
+    // Calculate and display referrals
+    await calculateReferralNetwork(user);
+    
+    // Setup real-time updates
+    setupReferralRealtimeUpdates(user);
+    
+    // Setup refresh button
+    const refreshBtn = document.getElementById('refresh-downlines');
+    if (refreshBtn && !refreshBtn.dataset.listenerAdded) {
+        refreshBtn.dataset.listenerAdded = 'true';
+        refreshBtn.addEventListener('click', async function() {
+            this.disabled = true;
+            this.textContent = 'Refreshing...';
+            
+            await calculateReferralNetwork(user);
+            
+            setTimeout(() => {
+                this.disabled = false;
+                this.textContent = 'Refresh';
+            }, 1000);
+        });
+    }
+    
+    console.log('✅ Referral system initialized');
+}
+
+// ========== CSS ==========
+
+const styles = `
+    .status-active {
+        background-color: #2ecc71;
+        color: white;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 0.85rem;
+        display: inline-block;
+    }
+    
+    .status-pending {
+        background-color: #f39c12;
+        color: white;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 0.85rem;
+        display: inline-block;
+    }
+    
+    #refresh-downlines {
+        transition: all 0.3s ease;
+    }
+    
+    #refresh-downlines:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+`;
+
+// Add styles
+if (!document.querySelector('#referral-styles')) {
+    const styleEl = document.createElement('style');
+    styleEl.id = 'referral-styles';
+    styleEl.textContent = styles;
+    document.head.appendChild(styleEl);
+}
+
+// ========== AUTO START ==========
+
+// Start when page loads
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        setTimeout(initializeReferralSystem, 2000);
+    });
+} else {
+    setTimeout(initializeReferralSystem, 2000);
+}
+
+console.log('✅ Referral system loaded. Test with: testReferralCalculation()');
+
+    
+    
 // ========== START THE TRACKER ==========
 // Start after page loads
 
