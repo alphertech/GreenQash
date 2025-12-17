@@ -1,5 +1,7 @@
-// auth.js - Updated with referral system integration
+// auth.js - Updated with proper Supabase initialization and error handling
+// Add this before any other script to test
 console.log('Supabase loaded:', typeof window.supabase, typeof createClient);
+
 
 // Configuration
 const CONFIG = {
@@ -39,9 +41,6 @@ const Elements = {
     notification: null,
     togglePasswordButtons: null,
     
-    // Referral elements (added)
-    referralMessage: null,
-    
     initialize() {
         this.showLoginBtn = document.getElementById('showLogin');
         this.showRegisterBtn = document.getElementById('showRegister');
@@ -50,7 +49,6 @@ const Elements = {
         this.registerForm = document.getElementById('registerForm');
         this.notification = document.getElementById('notification');
         this.togglePasswordButtons = document.querySelectorAll('.toggle-password');
-        this.referralMessage = document.getElementById('referral-message'); // Added
         
         // Form inputs
         this.loginEmail = document.getElementById('loginEmail');
@@ -64,167 +62,10 @@ const Elements = {
             showLoginBtn: !!this.showLoginBtn,
             showRegisterBtn: !!this.showRegisterBtn,
             loginForm: !!this.loginForm,
-            registerForm: !!this.registerForm,
-            referralMessage: !!this.referralMessage
+            registerForm: !!this.registerForm
         });
     }
 };
-
-// Referral System (NEW)
-class ReferralSystem {
-    static async handleReferralRegistration() {
-        try {
-            console.log('🔍 Checking for referral data...');
-            
-            // Get referral data from URL
-            const urlParams = new URLSearchParams(window.location.search);
-            const refParam = urlParams.get('ref');
-            
-            let referralData = null;
-            
-            // Parse referral URL format: /ref/{inviter_id}/{inviter_name}
-            if (refParam) {
-                console.log('Found referral parameter:', refParam);
-                
-                // Try to parse as JSON first
-                try {
-                    referralData = JSON.parse(atob(refParam));
-                    console.log('Parsed referral data (JSON):', referralData);
-                } catch (e) {
-                    // If not JSON, try to parse as slash-separated
-                    const parts = refParam.split('/');
-                    if (parts.length >= 2) {
-                        const inviterId = parseInt(parts[0]);
-                        const inviterName = parts[1] ? decodeURIComponent(parts[1]) : null;
-                        
-                        if (inviterId && !isNaN(inviterId)) {
-                            referralData = {
-                                inviter_id: inviterId,
-                                inviter_name: inviterName || `User${inviterId}`,
-                                source: 'url'
-                            };
-                            console.log('Parsed referral data (URL):', referralData);
-                        }
-                    }
-                }
-            }
-            
-            // Store referral data for use during registration
-            if (referralData && referralData.inviter_id) {
-                localStorage.setItem('pending_referral', JSON.stringify(referralData));
-                console.log('✅ Referral data captured:', referralData);
-                
-                // Show message to user
-                if (Elements.referralMessage) {
-                    Elements.referralMessage.textContent = 
-                        `🎉 You were referred by ${referralData.inviter_name || 'a friend'}! Both of you will earn rewards.`;
-                    Elements.referralMessage.style.display = 'block';
-                    Elements.referralMessage.style.backgroundColor = '#e8f5e9';
-                    Elements.referralMessage.style.padding = '10px';
-                    Elements.referralMessage.style.borderRadius = '5px';
-                    Elements.referralMessage.style.margin = '10px 0';
-                }
-                
-                return referralData;
-            }
-            
-            return null;
-            
-        } catch (error) {
-            console.error('Error handling referral registration:', error);
-            return null;
-        }
-    }
-    
-    static async saveReferralAfterRegistration(newUserId, newUserName) {
-        try {
-            console.log('💾 Saving referral after registration...');
-            
-            const pendingReferral = localStorage.getItem('pending_referral');
-            if (!pendingReferral) {
-                console.log('No pending referral found');
-                return null;
-            }
-            
-            const referralData = JSON.parse(pendingReferral);
-            console.log('Processing referral data:', referralData);
-            
-            // Check if referral already exists (prevent duplicates)
-            const { data: existingReferral } = await SupabaseService.getClient()
-                .from('refferals')
-                .select('referral_id')
-                .eq('referred_id', newUserId)
-                .maybeSingle();
-            
-            if (existingReferral) {
-                console.log('Referral already exists for this user');
-                localStorage.removeItem('pending_referral');
-                return existingReferral;
-            }
-            
-            // Save to referrals table
-            const { data, error } = await SupabaseService.getClient()
-                .from('refferals')
-                .insert({
-                    inviter_id: referralData.inviter_id,
-                    referred_id: newUserId,
-                    created_at: new Date().toISOString()
-                })
-                .select()
-                .single();
-            
-            if (error) {
-                console.error('Error saving referral:', error);
-                return null;
-            }
-            
-            // Clear pending referral
-            localStorage.removeItem('pending_referral');
-            
-            console.log('✅ Referral saved successfully:', data);
-            
-            // Determine secondary beneficiary (Level 2)
-            await this.determineSecondaryBenefit(referralData.inviter_id, newUserId);
-            
-            return data;
-            
-        } catch (error) {
-            console.error('Error in saveReferralAfterRegistration:', error);
-            return null;
-        }
-    }
-    
-    static async determineSecondaryBenefit(inviterId, referredId) {
-        try {
-            console.log('🔍 Determining secondary benefit...');
-            
-            // Find who invited the inviter (if any)
-            const { data: inviterReferral, error } = await SupabaseService.getClient()
-                .from('refferals')
-                .select('inviter_id')
-                .eq('referred_id', inviterId)
-                .maybeSingle();
-            
-            if (error) throw error;
-            
-            if (inviterReferral && inviterReferral.inviter_id) {
-                // Update the new referral with secondary beneficiary
-                await SupabaseService.getClient()
-                    .from('refferals')
-                    .update({ 
-                        secondary_benefit: inviterReferral.inviter_id,
-                        updated_at: new Date().toISOString()
-                    })
-                    .eq('referred_id', referredId);
-                
-                console.log(`✅ Secondary benefit assigned to user ${inviterReferral.inviter_id}`);
-            }
-            
-        } catch (error) {
-            console.error('Error determining secondary benefit:', error);
-        }
-    }
-}
 
 // Supabase Service with error handling
 class SupabaseService {
@@ -238,6 +79,8 @@ class SupabaseService {
         
         try {
             console.log('Initializing Supabase...');
+            console.log('Supabase URL:', CONFIG.supabase.url);
+            console.log('Supabase Key length:', CONFIG.supabase.key?.length || 0);
             
             // Wait for Supabase to be available globally
             await this.waitForSupabase();
@@ -253,6 +96,7 @@ class SupabaseService {
             
             if (!supabaseKey || supabaseKey.length < 100) {
                 console.error('Supabase Key is invalid or too short. Please check your configuration.');
+                console.error('Current key:', supabaseKey);
                 
                 // Show user-friendly message
                 if (Elements.notification) {
@@ -311,7 +155,7 @@ class SupabaseService {
             this.isInitialized = false;
             this.client = null;
             
-            // Show user-friendly message
+            // Show user-friendly message based on error type
             let errorMessage = 'Authentication service is temporarily unavailable. Please try again later.';
             
             if (error.message.includes('API key') || error.message.includes('JWT') || error.message.includes('Invalid')) {
@@ -376,9 +220,6 @@ class AuthManager {
         
         // Setup event listeners
         this.setupEventListeners();
-        
-        // Check for referral data on page load
-        await ReferralSystem.handleReferralRegistration();
         
         // Initialize Supabase (non-blocking)
         setTimeout(async () => {
@@ -593,10 +434,7 @@ class AuthManager {
                 email,
                 password,
                 options: {
-                    data: { 
-                        username,
-                        full_name: username 
-                    }
+                    data: { username }
                 }
             });
             
@@ -612,30 +450,17 @@ class AuthManager {
             }
             
             // Create user in public table
-            let userId = null;
             if (data.user) {
-                const publicUser = await this.createUserInPublicTable(data.user, email, username);
-                userId = publicUser?.id || null;
+                await this.createUserInPublicTable(data.user, email, username);
             }
             
-            // Save referral if user came from referral link
-            if (userId) {
-                const referralSaved = await ReferralSystem.saveReferralAfterRegistration(userId, username);
-                
-                if (referralSaved) {
-                    this.showNotification('Account created successfully! You were referred by a friend. Both of you will earn rewards!');
-                } else {
-                    this.showNotification('Account created successfully! Please check your email for verification.');
-                }
-            } else {
-                this.showNotification('Account created successfully! Please check your email for verification.');
-            }
+            this.showNotification('Account created successfully! Please check your email for verification.');
             
             // Reset form and switch to login
             setTimeout(() => {
                 if (Elements.registerForm) Elements.registerForm.reset();
                 this.toggleForms('login');
-            }, 3000);
+            }, 2000);
             
         } catch (error) {
             console.error('Registration error:', error);
@@ -660,48 +485,24 @@ class AuthManager {
     }
     
     async createUserInPublicTable(authUser, email, username = null) {
-        if (!this.supabase) return null;
+        if (!this.supabase) return;
         
         try {
             const finalUsername = username || email.split('@')[0];
             
-            // First check if user already exists
-            const { data: existingUser, error: checkError } = await this.supabase
-                .from('users')
-                .select('id')
-                .eq('email_address', email)
-                .maybeSingle();
-            
-            if (existingUser) {
-                console.log('User already exists in public table:', existingUser);
-                return existingUser;
-            }
-            
-            // Create new user
-            const { data, error } = await this.supabase
+            const { error } = await this.supabase
                 .from('users')
                 .insert([{
                     user_name: finalUsername,
                     email_address: email,
-                    uuid: authUser.id,
-                    rank: 'user',
-                    status: 'not active',
-                    created_at: new Date().toISOString()
-                }])
-                .select()
-                .single();
+                    rank: 'user'
+                }]);
                 
-            if (error) {
+            if (error && error.code !== '23505') {
                 console.error('Error creating public user:', error);
-                return null;
             }
-            
-            console.log('✅ Public user created:', data);
-            return data;
-            
         } catch (error) {
             console.error('Error in createUserInPublicTable:', error);
-            return null;
         }
     }
     
@@ -758,7 +559,6 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
         const authManager = new AuthManager();
         window.authManager = authManager; // Expose for debugging
-        window.ReferralSystem = ReferralSystem; // Expose referral system
     } catch (error) {
         console.error('Failed to initialize auth system:', error);
         if (Elements.notification) {
