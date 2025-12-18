@@ -1,6 +1,6 @@
 // Configuration
-const SUPABASE_URL = window.SUPABASE_CONFIG.url;
-const SUPABASE_ANON_KEY = window.SUPABASE_CONFIG.anonKey;
+const SUPABASE_URL = window.SUPABASE_CONFIG.url || 'https://kwghulqonljulmvlcfnz.supabase.co';
+const SUPABASE_ANON_KEY = window.SUPABASE_CONFIG.anonKey || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt3Z2h1bHFvbmxqdWxtdmxjZm56Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM5NzcyMDcsImV4cCI6MjA3OTU1MzIwN30.hebcPqAvo4B23kx4gdWuXTJhmx7p8zSHHEYSkPzPhcM';
 
 // Initialize Supabase client
 const supabase = window.supabase || null;

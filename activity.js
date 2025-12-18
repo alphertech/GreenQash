@@ -1,8 +1,8 @@
 const { config } = require("dotenv");
 
 // Initialize Supabase
-const supabaseUrl = window.SUPABASE_CONFIG?.url || config.supabaseUrl;
-const supabaseKey = window.SUPABASE_CONFIG?.key || config.supabaseKey;
+const supabaseUrl = window.SUPABASE_CONFIG?.url || 'https://kwghulqonljulmvlcfnz.supabase.co';
+const supabaseKey = window.SUPABASE_CONFIG?.key || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt3Z2h1bHFvbmxqdWxtdmxjZm56Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM5NzcyMDcsImV4cCI6MjA3OTU1MzIwN30.hebcPqAvo4B23kx4gdWuXTJhmx7p8zSHHEYSkPzPhcM';
 const apiBase = window.API_BASE_URL || window.SUPABASE_CONFIG?.apiBase || '';
 
 const supabase = supabase.createClient(supabaseUrl, supabaseKey);

@@ -11,8 +11,8 @@ async function initializeApp() {
         } else {
             // Fallback to default Supabase credentials
             supabase = window.supabase.createClient(
-                "window.SUPABASE_CONFIG.url",
-                "window.SUPABASE_CONFIG.anonKey"
+                "https://your-project.supabase.co",
+                "your-anon-key"
             );
             console.warn('⚠ Using default Supabase credentials. Please configure config.js');
         }
