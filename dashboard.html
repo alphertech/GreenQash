@@ -23,7 +23,6 @@
     
     <link rel="stylesheet" href="dashboard.css">
     <link rel="icon" href="android-chrome-512x512.png">
-    <link rel="stylesheet" href="dashboard.css">
 </head>
 
 <body>
@@ -58,16 +57,16 @@
         <menu id="sideMenu">
             <div class="navLinks" id="navLinks">
                 <!-- <a href="#" class="active" data-section="dashboard">Dashboard Overview</a> -->
-                <a href="#" data-section="dashboard">Dashboard Overview</a>
+                <a href="#" data-section="dashboard">Overview</a>
                 <a href="#" data-section="users">Tiktok <span class="menu-notification"></span></a>
                 <a href="#" data-section="approvals">Youtube <span class="menu-notification"></span></a>
                 <a href="#" data-section="content">Trivia</a>
                 <a href="#" data-section="withdrawals">Downlines <span class="menu-notification"></span></a>
-                <a href="#" data-section="stats">Request Withdraw</a>
-                <a href="#" data-section="chats" style="color: blue;">FarmBoy [AI Assistant]</a>
-                <a href="#" data-section="events">Upcoming events</a>
-                <a href="#" data-section="settings">System Settings</a>
-                <a href="#" data-section="profile">Your Profile</a>
+                <a href="#" data-section="stats">Withdraw</a>
+                <a href="#" data-section="chats" style="color: blue;">AI Assistant</a>
+                <a href="#" data-section="events">Events</a>
+                <a href="#" data-section="settings">Settings</a>
+                <a href="#" data-section="profile">Profile</a>
                 <a href="#" data-section="activation">Activate</a>
                 <a href="#" id="logout">Logout</a>
             </div>
@@ -101,14 +100,14 @@
             <div class="admin-section active" id="dashboard-section">
                 <div class="stats-grid">
                     <div class="stat-card" id="total-users">
-                        <div style="display:flex;align-items:center;gap:0.5rem;">
+                        <div style="display:flex;align-items:center;text-align:center;gap:0.5rem;">
                             <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
                                 <circle cx="12" cy="12" r="10" fill="#2ecc71" /><text x="12" y="16" text-anchor="middle"
                                     font-size="8" fill="#fff">UGX</text>
                             </svg>
                             <div class="stat-label">Total</div>
                         </div>
-                        <div class="stat-value" id="total_income">Loading...</div>
+                        <div class="stat-value" id="total_income">Fetching...</div>
                     </div>
                     <div class="stat-card" id="active-today">
                         <div style="display:flex;align-items:center;gap:0.5rem;">
@@ -118,7 +117,7 @@
                             </svg>
                             <div class="stat-label">Youtube</div>
                         </div>
-                        <div class="stat-value" id="youtube">0</div>
+                        <div class="stat-value" id="youtube">Fetching...</div>
                     </div>
                     <div class="stat-card" id="pending-approvals">
                         <div style="display:flex;align-items:center;gap:0.5rem;">
@@ -129,7 +128,7 @@
                             </svg>
                             <div class="stat-label">Tiktok</div>
                         </div>
-                        <div class="stat-value" id="tiktok">0</div>
+                        <div class="stat-value" id="tiktok">Fetching...</div>
                     </div>
                     <div class="stat-card" id="withdrawal-stats">
                         <div style="display:flex;align-items:center;gap:0.5rem;">
@@ -139,7 +138,7 @@
                             </svg>
                             <div class="stat-label">Trivia</div>
                         </div>
-                        <div class="stat-value" id="trivia">0</div>
+                        <div class="stat-value" id="trivia">Fetching...</div>
                     </div>
                     <div class="stat-card" id="referral-network">
                         <div style="display:flex;align-items:center;gap:0.5rem;">
@@ -149,7 +148,7 @@
                             </svg>
                             <div class="stat-label">Referrals</div>
                         </div>
-                        <div class="stat-value" id="refferal">0</div>
+                        <div class="stat-value" id="refferal">Fetching...</div>
                     </div>
                     <div class="stat-card" id="help-requests">
                         <div style="display:flex;align-items:center;gap:0.5rem;">
@@ -159,7 +158,7 @@
                             </svg>
                             <div class="stat-label">Bonus</div>
                         </div>
-                        <div class="stat-value" id="bonus">0</div>
+                        <div class="stat-value" id="bonus">Fetching...</div>
                     </div>
                 </div>
 
@@ -177,7 +176,7 @@
 
                         .logo {
                             color: #2ecc71;
-                            font-size: 22px;
+                            font-size: 18px;
                             font-weight: bold;
                             margin-bottom: 20px;
                         }
@@ -185,7 +184,7 @@
                         h1 {
                             color: #333;
                             margin-bottom: 10px;
-                            font-size: 16px;
+                            font-size: 14px;
                         }
 
                         .description {
@@ -365,7 +364,7 @@
                 <!-- Font Awesome for icons (add to head) -->
                 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
-                    <div class="notification" id="notification">Link copied to clipboard!</div>
+                    <div class="notification" id="notification">Link copied Successfully!</div>
                 </div>
 
                 <div class="section-header">
@@ -405,7 +404,7 @@
                                 <h5>Sponsored by Nike</h5>
                             </div>
                             <div class="rightInfo">
-                                <h6>Reward: UGX 1000</h6>
+                                <h6>Reward: UGX 250</h6>
                             </div>
                         </div>
                         <div class="body">
@@ -432,7 +431,7 @@
                                 <h5>Sponsored by Adidas</h5>
                             </div>
                             <div class="rightInfo">
-                                <h6>Reward: UGX 1000</h6>
+                                <h6>Reward: UGX 250</h6>
                             </div>
                         </div>
                         <div class="body">
@@ -473,7 +472,7 @@
                                 <h5>Sponsored by Coca-Cola</h5>
                             </div>
                             <div class="rightInfo">
-                                <h6>Reward: UGX 500</h6>
+                                <h6>Reward: UGX 250</h6>
                             </div>
                         </div>
                         <div class="body">
@@ -500,7 +499,7 @@
                                 <h5>Sponsored by Pepsi</h5>
                             </div>
                             <div class="rightInfo">
-                                <h6>Reward: UGX 1000</h6>
+                                <h6>Reward: UGX 250</h6>
                             </div>
                         </div>
                         <div class="body">
@@ -528,7 +527,7 @@
                 <div class="section-header">
                     <h2 class="section-title">Daily Trivia Challenge</h2>
                     <div class="section-actions">
-                        <span class="stat-label">Prize: UGX 1500 for 3+ correct</span>
+                        <span class="stat-label">Prize: UGX 1200 for 3+ correct</span>
                     </div>
                 </div>
 
@@ -614,42 +613,33 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <!-- <tr>
-                            <td>john_doe</td>
-                            <td>john.doe@example.com</td>
-                            <td>2023-10-15</td>
-                            <td class="status-active">Active</td>
-                            <td>1</td>
-                            <td>$25.00</td>
-                        </tr> -->
-
                     </tbody>
                 </table>
 
                 <div class="section-header" style="margin-top: 2rem;">
-                    <h3 class="section-title">Referral Earnings Summary</h3>
+                    <h3 class="section-title">Referral Summary</h3>
                 </div>
 
                 <div class="stats-grid">
                     <div class="stat-card">
                         <div class="stat-label">Direct Referrals</div>
                         <div class="stat-value" id="l1Users"></div>
-                        <div class="stat-label">Active users</div>
+                        <div class="stat-label">Users</div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-label">Sub Network</div>
+                        <div class="stat-label">Sub-Invites</div>
                         <div class="stat-value" id="l2Users"></div>
-                        <div class="stat-label">All levels</div>
+                        <div class="stat-label">Level 2</div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-label">Total Active Refferals</div>
+                        <div class="stat-label">Total Active</div>
                         <div class="stat-value" id="referral"></div>
                         <div class="stat-label">From referrals</div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-label">Available Bonus</div>
-                        <div class="stat-value" id="bonus">0</div>
-                        <div class="stat-label">Ready to withdraw</div>
+                        <div class="stat-value" id="bonus">Fetching...</div>
+                        <div class="stat-label">Rewarded</div>
                     </div>
                 </div>
             </div>
@@ -662,12 +652,12 @@
 
                 <div class="stats-grid">
                     <div class="stat-card">
-                        <div class="stat-label">Available Balance</div>
+                        <div class="stat-label">Total Balance</div>
                         <div class="stat-value" id="total_income"></div>
-                        <div class="stat-label">Ready to withdraw</div>
+                        <div class="stat-label">Available</div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-label">Pending Withdrawals</div>
+                        <div class="stat-label">Pending</div>
                         <div class="stat-value" id="pendingWithdrawals">0</div>
                         <div class="stat-label">Processing</div>
                     </div>
@@ -677,9 +667,9 @@
                         <div class="stat-label">Lifetime</div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-label">Next Payment Date</div>
+                        <div class="stat-label">Next Payment</div>
                         <div class="stat-value">15th June</div>
-                        <div class="stat-label">Monthly payout</div>
+                        <div class="stat-label">Weekly payout</div>
                     </div>
                 </div>
 
@@ -796,7 +786,7 @@
                     <h3>Quick help</h3>
                     <details>
                         <summary>View earning details</summary>
-                        <p>Earn 8,000 Ugx when someone joins using your invitation link.<br>
+                        <p>Earn 7,000 Ugx when someone joins using your invitation link.<br>
                             Earn 4,000 Ugx when the person you invited also invites another.<br>
                             Activate with Ugx 20,000 only</p>
                     </details>
@@ -842,11 +832,11 @@
                 <div class="stat-card">
                     <div class="stat-label">Promotion</div>
                     <div class="stat-value">+25%</div>
-                    <div class="stat-label">Extra on referrals this week</div>
+                    <div class="stat-label">Extra on referrals</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-label">Remaining</div>
-                    <div class="stat-value">5 days</div>
+                    <div class="stat-value" id="payoutCountdown" >5 days</div>
                     <div class="stat-label">To next payout</div>
                 </div>
             </div>

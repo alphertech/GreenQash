@@ -111,23 +111,23 @@ function createMobileMenuToggle() {
         }
 
         .header {
-            padding: 15px;
+            padding: 10px;
             margin-top: 60px;
         }
 
         .header h1 {
-            font-size: 22px;
+            font-size: 16px;
         }
 
         .admin-avatar {
             width: 40px;
             height: 40px;
-            font-size: 16px;
+            font-size: 14px;
         }
 
         .logout-btn {
             padding: 8px 15px;
-            font-size: 14px;
+            font-size: 12px;
         }
 
         .section-container {
@@ -140,7 +140,7 @@ function createMobileMenuToggle() {
         }
 
         .section-title {
-            font-size: 20px;
+            font-size: 14px;
         }
 
         .charts-grid {
@@ -158,11 +158,11 @@ function createMobileMenuToggle() {
         }
 
         .stat-card {
-            padding: 20px;
+            padding: 15px;
         }
 
         .stat-value {
-            font-size: 28px;
+            font-size: 20px;
         }
 
         table {
@@ -173,8 +173,8 @@ function createMobileMenuToggle() {
 
         th,
         td {
-            padding: 12px 8px;
-            font-size: 14px;
+            padding: 6px 4px;
+            font-size: 12px;
         }
 
         .modal {
@@ -190,7 +190,7 @@ function createMobileMenuToggle() {
         .filters {
             flex-direction: column;
             gap: 10px;
-            padding: 15px;
+            padding: 10px;
         }
 
         .quick-actions {
@@ -203,7 +203,7 @@ function createMobileMenuToggle() {
         }
 
         .quick-action-btn i {
-            font-size: 24px;
+            font-size: 14px;
         }
 
         .stats-mini {
@@ -220,7 +220,7 @@ function createMobileMenuToggle() {
 
         .header {
             flex-direction: column;
-            gap: 15px;
+            gap: 10px;
             text-align: center;
         }
 
@@ -256,14 +256,14 @@ function createMobileMenuToggle() {
         }
 
         .page-btn {
-            padding: 6px 12px;
-            font-size: 14px;
+            padding: 3px 6px;
+            font-size: 12px;
         }
     }
 
     /* Mobile search improvement */
     .search-box input {
-        font-size: 16px;
+        font-size: 14px;
         /* Prevents zoom on iOS */
     }
 

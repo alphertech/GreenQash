@@ -1,6 +1,8 @@
+const { config } = require("dotenv");
+
 // Initialize Supabase
-const supabaseUrl = window.SUPABASE_CONFIG?.url || 'https://kwghulqonljulmvlcfnz.supabase.co';
-const supabaseKey = window.SUPABASE_CONFIG?.key || '';
+const supabaseUrl = window.SUPABASE_CONFIG?.url || config.supabaseUrl;
+const supabaseKey = window.SUPABASE_CONFIG?.key || config.supabaseKey;
 const apiBase = window.API_BASE_URL || window.SUPABASE_CONFIG?.apiBase || '';
 
 const supabase = supabase.createClient(supabaseUrl, supabaseKey);

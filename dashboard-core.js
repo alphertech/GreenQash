@@ -360,7 +360,7 @@ function setupCopyButton(referralLink) {
 
 // Setup social media sharing
 function setupSocialSharing(referralLink, userName) {
-    const shareText = `Join me on SkyLink and start earning! Use my referral link: ${referralLink}`;
+    const shareText = `Join me on SkyLink and start earning! Use my referral link. Click the link to be directed to the signup page and REGISTER: ${referralLink}`;
     const encodedText = encodeURIComponent(shareText);
     const encodedUrl = encodeURIComponent(referralLink);
     
@@ -434,7 +434,7 @@ function showLinkNotification(message, type = 'info') {
         position: fixed;
         top: 20px;
         right: 20px;
-        padding: 12px 20px;
+        padding: 6px 10px;
         background-color: ${type === 'success' ? '#2ecc71' : type === 'error' ? '#e74c3c' : '#3498db'};
         color: white;
         border-radius: 6px;
@@ -629,13 +629,13 @@ function addSocialSharingStyles() {
             display: flex;
             align-items: center;
             justify-content: center;
-            width: 44px;
-            height: 44px;
+            width: 40px;
+            height: 40px;
             border-radius: 50%;
             color: white;
             text-decoration: none;
             transition: all 0.3s ease;
-            font-size: 18px;
+            font-size: 14px;
         }
         
         .social-btn:hover {
@@ -661,7 +661,7 @@ function addSocialSharingStyles() {
             padding: 12px 15px;
             border: 2px solid #e0e0e0;
             border-radius: 8px;
-            font-size: 14px;
+            font-size: 12px;
             background: #f9f9f9;
         }
         
@@ -669,7 +669,7 @@ function addSocialSharingStyles() {
             background: #2ecc71;
             color: white;
             border: none;
-            padding: 12px 20px;
+            padding: 10px 16px;
             border-radius: 8px;
             cursor: pointer;
             font-weight: bold;
@@ -820,13 +820,13 @@ document.addEventListener('DOMContentLoaded', function() {
             if (nextClaimTime && Date.now() < Number(nextClaimTime)) {
                 const remaining = Number(nextClaimTime) - Date.now();
                 const hours = Math.ceil(remaining / (1000 * 60 * 60));
-                showMessage(`Please wait ${hours} hours before claiming again`, 'warning');
+                showMessage(`New task will be available in ${hours} hours from now. Kindly participate in it.`, 'warning');
                 button.disabled = false;
                 button.textContent = 'Claim Reward';
                 return;
             }
             
-            const rewardAmount = 500;
+            const rewardAmount = 260;
             
             // Get current earnings or create new record
             let currentEarnings = earningsData;
@@ -1377,7 +1377,7 @@ function protectWithdrawalForm() {
             });
             
             // Calculate earnings
-            const amountEarned = score >= 3 ? 1500 : score * 300;
+            const amountEarned = score >= 3 ? 1200 : score * 250;
             
             try {
                 // Get current earnings or create new
@@ -1993,16 +1993,16 @@ const ActivityTracker24 = {
         console.log('🔧 Setting up 24-hour activity listeners');
         
         // TikTok
-        this.setupButtonListener('claim', 'TikTok Task', 'Watched TikTok video', 1000, 'Paid');
+        this.setupButtonListener('claim', 'TikTok Task', 'Watched TikTok video', 250, 'Paid');
         
         // YouTube
-        this.setupButtonListener('claimYoutube', 'YouTube Task', 'Watched YouTube video', 1000, 'Paid');
+        this.setupButtonListener('claimYoutube', 'YouTube Task', 'Watched YouTube video', 250, 'Paid');
         
         // Withdrawal
         this.setupFormListener('withdrawalForm', 'Withdrawal Request', 'Requested funds withdrawal', -59000, 'Pending');
         
         // Trivia
-        this.setupFormListener('quizForm', 'Trivia Quiz', 'Completed daily trivia', 1500, 'Paid');
+        this.setupFormListener('quizForm', 'Trivia Quiz', 'Completed daily trivia', 1200, 'Paid');
         
         // Settings
         const saveBtn = document.getElementById('saveSettings');
@@ -2853,14 +2853,14 @@ function updateReferralDisplay(l1Count, l2Count, totalEarnings) {
     const l1Element = document.getElementById('l1Users');
     if (l1Element) {
         l1Element.textContent = l1Count.toString();
-        l1Element.title = `${l1Count} direct referrals × UGX 8,000 = UGX ${(l1Count * 8000).toLocaleString()}`;
+        l1Element.title = `${l1Count} direct referrals × UGX 7,000 = UGX ${(l1Count * 7000).toLocaleString()}`;
     }
     
     // L2 Users
     const l2Element = document.getElementById('l2Users');
     if (l2Element) {
         l2Element.textContent = l2Count.toString();
-        l2Element.title = `${l2Count} secondary referrals × UGX 5,000 = UGX ${(l2Count * 5000).toLocaleString()}`;
+        l2Element.title = `${l2Count} secondary referrals × UGX 4,000 = UGX ${(l2Count * 4000).toLocaleString()}`;
     }
     
     // Total Referral Earnings
@@ -2994,7 +2994,7 @@ window.debugReferralData = async function() {
     const { data: allReferrals } = await supabase
         .from('refferals')
         .select('*')
-        .limit(10);
+        .limit(100);
     
     console.log('Sample referrals:', allReferrals);
     
