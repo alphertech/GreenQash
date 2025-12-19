@@ -341,3 +341,16 @@ window.dashboardNav = {
     },
     closeMenu: window.closeMobileMenu
 };
+
+// Add to your existing dashboard.js
+document.getElementById('admin-posting-link')?.addEventListener('click', function(e) {
+    e.preventDefault();
+    
+    // Check if user is admin
+    const user = JSON.parse(localStorage.getItem('skylink_user') || '{}');
+    if (user.role === 'admin' || user.role === 'superadmin') {
+        window.location.href = 'admin-posting.html';
+    } else {
+        alert('Access denied. Admin privileges required.');
+    }
+});

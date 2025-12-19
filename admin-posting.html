@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Content Posting - SkyLink</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="admin-posting.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="admin-posting.js"></script>
+    <link rel="icon" href="android-chrome-512x512.png">
+    <style>
+        /* Additional inline styles */
+        .video-platform-icon {
+            font-size: 1.2rem;
+            margin-right: 0.5rem;
+        }
+
+        .thumbnail-preview {
+            width: 100px;
+            height: 60px;
+            object-fit: cover;
+            border-radius: 4px;
+            margin-right: 1rem;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: var(--gray-color);
+        }
+
+        .empty-state i {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="admin-posting-page">
+        <!-- Sidebar -->
+        <aside class="admin-posting-sidebar">
+            <div class="admin-logo">
+                <h2><i class="fas fa-crown"></i> Admin Panel</h2>
+            </div>
+
+            <nav class="admin-nav">
+                <ul>
+                    <li><a href="#" class="active" id="dashboard-link"><i class="fas fa-tachometer-alt"></i>
+                            <span>Dashboard</span></a></li>
+                    <li><a href="#" id="create-post-link"><i class="fas fa-plus-circle"></i> <span>Create
+                                Post</span></a></li>
+                    <li><a href="#" id="manage-content-link"><i class="fas fa-list"></i> <span>Manage Content</span></a>
+                    </li>
+                    <li><a href="#" id="analytics-link"><i class="fas fa-chart-bar"></i> <span>Analytics</span></a></li>
+                    <li><a href="#" id="settings-link"><i class="fas fa-cog"></i> <span>Settings</span></a></li>
+                    <li><a href="#" id="back-to-dashboard"><i class="fas fa-arrow-left"></i> <span>Back to
+                                Main</span></a></li>
+                </ul>
+            </nav>
+
+            <div class="admin-user-info"
+                style="margin-top: auto; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.1);">
+                <img src="https://via.placeholder.com/40" alt="Admin Avatar">
+                <div>
+                    <div style="font-weight: 500;">Admin User</div>
+                    <div style="font-size: 0.8rem; opacity: 0.8;">Content Manager</div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="admin-content-area">
+            <!-- Dashboard Section -->
+            <section id="dashboard-section" class="admin-section active">
+                <div class="admin-header">
+                    <h1><i class="fas fa-tachometer-alt"></i> Content Dashboard</h1>
+                    <div class="admin-user-info">
+                        <span>Welcome, Admin!</span>
+                    </div>
+                </div>
+
+                <div class="posting-dashboard">
+                    <div class="dashboard-card">
+                        <h3>Content Statistics</h3>
+                        <div class="dashboard-stats">
+                            <div class="stat-item">
+                                <span class="stat-label">Total Posts</span>
+                                <span class="stat-value" id="total-posts">0</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Published</span>
+                                <span class="stat-value" id="published-posts">0</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Scheduled</span>
+                                <span class="stat-value" id="scheduled-posts">0</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Drafts</span>
+                                <span class="stat-value" id="draft-posts">0</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="dashboard-card">
+                        <h3>Platform Distribution</h3>
+                        <div class="dashboard-stats">
+                            <div class="stat-item">
+                                <span class="stat-label">YouTube Videos</span>
+                                <span class="stat-value" id="youtube-count">0</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">TikTok Videos</span>
+                                <span class="stat-value" id="tiktok-count">0</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Instagram Posts</span>
+                                <span class="stat-value" id="instagram-count">0</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Trivia Questions</span>
+                                <span class="stat-value" id="trivia-count">0</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="dashboard-card">
+                        <h3>Quick Actions</h3>
+                        <div style="display: flex; flex-direction: column; gap: 0.8rem;">
+                            <button class="btn btn-primary" id="quick-create-video">
+                                <i class="fas fa-video"></i> Create Video Post
+                            </button>
+                            <button class="btn btn-secondary" id="quick-create-trivia">
+                                <i class="fas fa-question-circle"></i> Create Trivia
+                            </button>
+                            <button class="btn btn-secondary" id="quick-schedule">
+                                <i class="fas fa-calendar-alt"></i> Schedule Post
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="post-creation-container">
+                    <h3>Recent Activity</h3>
+                    <div id="recent-activity-list">
+                        <div class="empty-state">
+                            <i class="fas fa-history"></i>
+                            <p>No recent activity</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Create Post Section -->
+            <section id="create-post-section" class="admin-section">
+                <div class="admin-header">
+                    <h1><i class="fas fa-plus-circle"></i> Create New Content</h1>
+                    <button class="btn btn-primary" id="save-draft-btn">
+                        <i class="fas fa-save"></i> Save as Draft
+                    </button>
+                </div>
+
+                <div class="post-creation-container">
+                    <div class="post-tabs">
+                        <button class="tab-btn active" data-tab="video-tab">Video Post</button>
+                        <button class="tab-btn" data-tab="trivia-tab">Trivia Question</button>
+                        <button class="tab-btn" data-tab="text-tab">Text Post</button>
+                    </div>
+
+                    <!-- Video Post Tab -->
+                    <div class="tab-content active" id="video-tab">
+                        <form id="video-post-form">
+                            <div class="form-group">
+                                <label for="video-platform">Platform</label>
+                                <select class="form-control" id="video-platform" required>
+                                    <option value="">Select Platform</option>
+                                    <option value="youtube">YouTube</option>
+                                    <option value="tiktok">TikTok</option>
+                                    <option value="instagram">Instagram Reels</option>
+                                    <option value="facebook">Facebook Video</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="video-url">Video URL</label>
+                                <input type="url" class="form-control" id="video-url"
+                                    placeholder="https://youtube.com/watch?v=..." required>
+                                <small style="color: var(--gray-color); margin-top: 0.5rem; display: block;">
+                                    Enter the full video URL. We'll fetch metadata automatically.
+                                </small>
+                            </div>
+
+                            <div class="form-group">
+                                <button type="button" class="btn btn-secondary" id="fetch-metadata-btn">
+                                    <i class="fas fa-sync-alt"></i> Fetch Video Info
+                                </button>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="video-title">Title</label>
+                                    <input type="text" class="form-control" id="video-title"
+                                        placeholder="Enter video title" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="video-reward">Reward Amount (UGX)</label>
+                                    <input type="number" class="form-control" id="video-reward" placeholder="250"
+                                        min="0" step="1" required>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="video-description">Description</label>
+                                <textarea class="form-control" id="video-description"
+                                    placeholder="Describe the video and instructions for users..." rows="4"></textarea>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="video-sponsor">Sponsor (Optional)</label>
+                                <input type="text" class="form-control" id="video-sponsor"
+                                    placeholder="Sponsored by...">
+                            </div>
+
+                            <div class="form-group">
+                                <label>Video Preview</label>
+                                <div class="video-preview-container">
+                                    <div class="preview-placeholder" id="preview-placeholder">
+                                        <i class="fas fa-play-circle"></i>
+                                    </div>
+                                    <video class="video-preview" id="video-preview" controls></video>
+                                    <img class="video-preview" id="thumbnail-preview" alt="Video Thumbnail">
+                                </div>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="video-category">Category</label>
+                                    <select class="form-control" id="video-category">
+                                        <option value="entertainment">Entertainment</option>
+                                        <option value="education">Education</option>
+                                        <option value="gaming">Gaming</option>
+                                        <option value="music">Music</option>
+                                        <option value="sports">Sports</option>
+                                        <option value="lifestyle">Lifestyle</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="video-duration">Duration (seconds)</label>
+                                    <input type="number" class="form-control" id="video-duration" placeholder="60"
+                                        min="1">
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="video-tags">Tags (comma separated)</label>
+                                <input type="text" class="form-control" id="video-tags"
+                                    placeholder="funny, tutorial, viral, ...">
+                            </div>
+
+                            <div class="form-group">
+                                <label>Publishing Options</label>
+                                <div style="display: flex; gap: 1rem; align-items: center;">
+                                    <label style="display: flex; align-items: center; gap: 0.5rem;">
+                                        <input type="radio" name="publish-option" value="publish" checked>
+                                        <span>Publish Now</span>
+                                    </label>
+                                    <label style="display: flex; align-items: center; gap: 0.5rem;">
+                                        <input type="radio" name="publish-option" value="schedule">
+                                        <span>Schedule</span>
+                                    </label>
+                                </div>
+
+                                <div class="schedule-picker" style="display: none;" id="schedule-picker">
+                                    <label for="schedule-date">Schedule Date & Time</label>
+                                    <div class="datetime-picker">
+                                        <input type="date" class="form-control" id="schedule-date">
+                                        <input type="time" class="form-control" id="schedule-time">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <button type="submit" class="btn btn-primary btn-block">
+                                    <i class="fas fa-paper-plane"></i> Publish Video Post
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Trivia Tab -->
+                    <div class="tab-content" id="trivia-tab">
+                        <form id="trivia-post-form">
+                            <div class="form-group">
+                                <label for="trivia-question">Question</label>
+                                <textarea class="form-control" id="trivia-question"
+                                    placeholder="Enter your trivia question..." rows="2" required></textarea>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Options (Mark correct answer)</label>
+                                <div style="display: flex; flex-direction: column; gap: 0.8rem;">
+                                    <div style="display: flex; align-items: center; gap: 1rem;">
+                                        <input type="radio" name="correct-answer" value="1" checked>
+                                        <input type="text" class="form-control" placeholder="Option A" data-option="1"
+                                            required>
+                                    </div>
+                                    <div style="display: flex; align-items: center; gap: 1rem;">
+                                        <input type="radio" name="correct-answer" value="2">
+                                        <input type="text" class="form-control" placeholder="Option B" data-option="2"
+                                            required>
+                                    </div>
+                                    <div style="display: flex; align-items: center; gap: 1rem;">
+                                        <input type="radio" name="correct-answer" value="3">
+                                        <input type="text" class="form-control" placeholder="Option C" data-option="3"
+                                            required>
+                                    </div>
+                                    <div style="display: flex; align-items: center; gap: 1rem;">
+                                        <input type="radio" name="correct-answer" value="4">
+                                        <input type="text" class="form-control" placeholder="Option D" data-option="4"
+                                            required>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="trivia-reward">Reward per Correct Answer (UGX)</label>
+                                    <input type="number" class="form-control" id="trivia-reward" placeholder="400"
+                                        min="0" step="1" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="trivia-category">Category</label>
+                                    <select class="form-control" id="trivia-category">
+                                        <option value="general">General Knowledge</option>
+                                        <option value="science">Science</option>
+                                        <option value="history">History</option>
+                                        <option value="entertainment">Entertainment</option>
+                                        <option value="sports">Sports</option>
+                                        <option value="geography">Geography</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="trivia-explanation">Explanation (Optional)</label>
+                                <textarea class="form-control" id="trivia-explanation"
+                                    placeholder="Explain the correct answer..." rows="3"></textarea>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Difficulty Level</label>
+                                <div style="display: flex; gap: 1rem;">
+                                    <label style="display: flex; align-items: center; gap: 0.5rem;">
+                                        <input type="radio" name="difficulty" value="easy" checked>
+                                        <span>Easy</span>
+                                    </label>
+                                    <label style="display: flex; align-items: center; gap: 0.5rem;">
+                                        <input type="radio" name="difficulty" value="medium">
+                                        <span>Medium</span>
+                                    </label>
+                                    <label style="display: flex; align-items: center; gap: 0.5rem;">
+                                        <input type="radio" name="difficulty" value="hard">
+                                        <span>Hard</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <button type="submit" class="btn btn-primary btn-block">
+                                    <i class="fas fa-question-circle"></i> Create Trivia Question
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Text Post Tab -->
+                    <div class="tab-content" id="text-tab">
+                        <form id="text-post-form">
+                            <div class="form-group">
+                                <label for="text-title">Post Title</label>
+                                <input type="text" class="form-control" id="text-title" placeholder="Enter post title"
+                                    required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="text-content">Content</label>
+                                <div class="rich-text-toolbar">
+                                    <button type="button" class="rich-text-btn" data-command="bold"><i
+                                            class="fas fa-bold"></i></button>
+                                    <button type="button" class="rich-text-btn" data-command="italic"><i
+                                            class="fas fa-italic"></i></button>
+                                    <button type="button" class="rich-text-btn" data-command="underline"><i
+                                            class="fas fa-underline"></i></button>
+                                    <button type="button" class="rich-text-btn" data-command="insertUnorderedList"><i
+                                            class="fas fa-list-ul"></i></button>
+                                    <button type="button" class="rich-text-btn" data-command="insertOrderedList"><i
+                                            class="fas fa-list-ol"></i></button>
+                                </div>
+                                <div class="rich-text-editor" id="text-content" contenteditable="true">
+                                    <p>Type your post content here...</p>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="text-image">Featured Image (Optional)</label>
+                                <div class="dropzone" id="image-dropzone">
+                                    <p><i class="fas fa-cloud-upload-alt"></i></p>
+                                    <p>Drag & drop an image here, or click to browse</p>
+                                    <input type="file" id="text-image" accept="image/*" style="display: none;">
+                                </div>
+                                <div class="progress-bar" style="display: none;" id="upload-progress">
+                                    <div class="progress-fill" style="width: 0%;"></div>
+                                </div>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="text-type">Post Type</label>
+                                    <select class="form-control" id="text-type">
+                                        <option value="announcement">Announcement</option>
+                                        <option value="tutorial">Tutorial</option>
+                                        <option value="news">News</option>
+                                        <option value="update">Update</option>
+                                        <option value="promotion">Promotion</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="text-reward">Reward for Reading (UGX)</label>
+                                    <input type="number" class="form-control" id="text-reward" placeholder="100" min="0"
+                                        step="1">
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <button type="submit" class="btn btn-primary btn-block">
+                                    <i class="fas fa-file-alt"></i> Publish Text Post
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Preview Section -->
+                <div class="post-preview" id="post-preview">
+                    <div class="post-preview-header">
+                        <h3>Preview</h3>
+                        <button class="btn btn-secondary" id="refresh-preview">
+                            <i class="fas fa-sync-alt"></i> Refresh Preview
+                        </button>
+                    </div>
+                    <div class="post-preview-content" id="preview-content">
+                        <div class="empty-state">
+                            <i class="fas fa-eye"></i>
+                            <p>Preview will appear here</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Manage Content Section -->
+            <section id="manage-content-section" class="admin-section">
+                <div class="admin-header">
+                    <h1><i class="fas fa-list"></i> Manage Content</h1>
+                    <div style="display: flex; gap: 1rem;">
+                        <button class="btn btn-primary" id="bulk-actions-btn">
+                            <i class="fas fa-tasks"></i> Bulk Actions
+                        </button>
+                        <button class="btn btn-secondary" id="export-content-btn">
+                            <i class="fas fa-download"></i> Export
+                        </button>
+                    </div>
+                </div>
+
+                <div class="content-list-container">
+                    <div class="content-filters">
+                        <select class="filter-select" id="filter-platform">
+                            <option value="">All Platforms</option>
+                            <option value="youtube">YouTube</option>
+                            <option value="tiktok">TikTok</option>
+                            <option value="instagram">Instagram</option>
+                            <option value="trivia">Trivia</option>
+                        </select>
+
+                        <select class="filter-select" id="filter-status">
+                            <option value="">All Status</option>
+                            <option value="published">Published</option>
+                            <option value="draft">Draft</option>
+                            <option value="scheduled">Scheduled</option>
+                            <option value="archived">Archived</option>
+                        </select>
+
+                        <select class="filter-select" id="filter-category">
+                            <option value="">All Categories</option>
+                            <option value="entertainment">Entertainment</option>
+                            <option value="education">Education</option>
+                            <option value="gaming">Gaming</option>
+                            <option value="music">Music</option>
+                        </select>
+
+                        <input type="date" class="filter-select" id="filter-date">
+
+                        <button class="btn btn-secondary" id="apply-filters">
+                            <i class="fas fa-filter"></i> Apply Filters
+                        </button>
+
+                        <button class="btn btn-secondary" id="clear-filters">
+                            <i class="fas fa-times"></i> Clear
+                        </button>
+                    </div>
+
+                    <div class="content-table-container">
+                        <table class="content-table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 40px;">
+                                        <input type="checkbox" id="select-all">
+                                    </th>
+                                    <th>Content</th>
+                                    <th>Platform</th>
+                                    <th>Category</th>
+                                    <th>Reward</th>
+                                    <th>Status</th>
+                                    <th>Date</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="content-table-body">
+                                <tr>
+                                    <td colspan="8">
+                                        <div class="empty-state">
+                                            <i class="fas fa-inbox"></i>
+                                            <p>No content found. Create your first post!</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem;">
+                        <div>
+                            Showing <span id="showing-count">0</span> of <span id="total-count">0</span> items
+                        </div>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <button class="btn btn-secondary" id="prev-page" disabled>
+                                <i class="fas fa-chevron-left"></i>
+                            </button>
+                            <span style="padding: 0.5rem 1rem;">Page <span id="current-page">1</span></span>
+                            <button class="btn btn-secondary" id="next-page" disabled>
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Analytics Section -->
+            <section id="analytics-section" class="admin-section">
+                <div class="admin-header">
+                    <h1><i class="fas fa-chart-bar"></i> Content Analytics</h1>
+                    <div style="display: flex; gap: 1rem;">
+                        <select class="filter-select" id="analytics-period">
+                            <option value="7">Last 7 days</option>
+                            <option value="30">Last 30 days</option>
+                            <option value="90">Last 90 days</option>
+                            <option value="365">Last year</option>
+                        </select>
+                        <button class="btn btn-primary" id="refresh-analytics">
+                            <i class="fas fa-sync-alt"></i> Refresh
+                        </button>
+                    </div>
+                </div>
+
+                <div class="posting-dashboard">
+                    <div class="dashboard-card">
+                        <h3>Performance Overview</h3>
+                        <canvas id="performance-chart" style="width: 100%; height: 200px;"></canvas>
+                    </div>
+
+                    <div class="dashboard-card">
+                        <h3>Top Performing Content</h3>
+                        <div id="top-content-list" style="max-height: 300px; overflow-y: auto;">
+                            <div class="empty-state">
+                                <i class="fas fa-chart-line"></i>
+                                <p>No data available</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="post-creation-container">
+                    <h3>Platform Analytics</h3>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <canvas id="platform-chart" style="width: 100%; height: 250px;"></canvas>
+                        </div>
+                        <div class="form-group">
+                            <canvas id="engagement-chart" style="width: 100%; height: 250px;"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Settings Section -->
+            <section id="settings-section" class="admin-section">
+                <div class="admin-header">
+                    <h1><i class="fas fa-cog"></i> Content Settings</h1>
+                    <button class="btn btn-primary" id="save-settings-btn">
+                        <i class="fas fa-save"></i> Save Settings
+                    </button>
+                </div>
+
+                <div class="post-creation-container">
+                    <form id="content-settings-form">
+                        <div class="form-group">
+                            <h3>Platform Settings</h3>
+                            <div style="display: flex; flex-direction: column; gap: 1rem; margin-top: 1rem;">
+                                <div style="display: flex; align-items: center; justify-content: space-between;">
+                                    <div>
+                                        <strong>YouTube API Key</strong>
+                                        <p style="color: var(--gray-color); margin: 0.25rem 0 0 0; font-size: 0.9rem;">
+                                            Required for fetching video metadata
+                                        </p>
+                                    </div>
+                                    <input type="password" class="form-control" style="width: 300px;"
+                                        placeholder="Enter YouTube API key" id="youtube-api-key">
+                                </div>
+
+                                <div style="display: flex; align-items: center; justify-content: space-between;">
+                                    <div>
+                                        <strong>Default Rewards</strong>
+                                        <p style="color: var(--gray-color); margin: 0.25rem 0 0 0; font-size: 0.9rem;">
+                                            Set default reward amounts
+                                        </p>
+                                    </div>
+                                    <div style="display: flex; gap: 1rem;">
+                                        <div>
+                                            <small>YouTube</small>
+                                            <input type="number" class="form-control" placeholder="250"
+                                                id="default-youtube-reward">
+                                        </div>
+                                        <div>
+                                            <small>TikTok</small>
+                                            <input type="number" class="form-control" placeholder="250"
+                                                id="default-tiktok-reward">
+                                        </div>
+                                        <div>
+                                            <small>Trivia</small>
+                                            <input type="number" class="form-control" placeholder="400"
+                                                id="default-trivia-reward">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <h3>Publishing Rules</h3>
+                            <div style="margin-top: 1rem;">
+                                <label style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem;">
+                                    <input type="checkbox" id="auto-approve-posts">
+                                    <span>Auto-approve new posts</span>
+                                </label>
+
+                                <label style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem;">
+                                    <input type="checkbox" id="notify-new-posts">
+                                    <span>Notify users about new posts</span>
+                                </label>
+
+                                <label style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem;">
+                                    <input type="checkbox" id="require-approval">
+                                    <span>Require approval for user-generated content</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <h3>Content Moderation</h3>
+                            <div style="margin-top: 1rem;">
+                                <label style="display: block; margin-bottom: 0.5rem;">Bad Words Filter</label>
+                                <textarea class="form-control" rows="3" placeholder="Enter banned words (one per line)"
+                                    id="banned-words"></textarea>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <h3>Backup & Export</h3>
+                            <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+                                <button type="button" class="btn btn-secondary" id="backup-content">
+                                    <i class="fas fa-database"></i> Backup Content
+                                </button>
+                                <button type="button" class="btn btn-secondary" id="export-all-content">
+                                    <i class="fas fa-file-export"></i> Export All
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Modals -->
+    <div class="modal-overlay" id="bulk-actions-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Bulk Actions</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="bulk-action">Select Action</label>
+                    <select class="form-control" id="bulk-action">
+                        <option value="">Choose action...</option>
+                        <option value="publish">Publish Selected</option>
+                        <option value="draft">Move to Draft</option>
+                        <option value="archive">Archive Selected</option>
+                        <option value="delete">Delete Selected</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <p>This action will affect <span id="selected-count">0</span> items.</p>
+                </div>
+                <div class="form-group">
+                    <button class="btn btn-primary btn-block" id="confirm-bulk-action">
+                        Confirm Action
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="edit-content-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Edit Content</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body" id="edit-modal-body">
+                <!-- Dynamic content loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification -->
+    <div class="notification" id="notification">
+        <i class="fas fa-check-circle"></i>
+        <span id="notification-message">Operation completed successfully!</span>
+    </div>
+
+    <!-- Scripts -->
+    
+</body>
+
+</html>

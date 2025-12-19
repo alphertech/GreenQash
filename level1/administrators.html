@@ -10,6 +10,148 @@
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script src="admin-mobile.js"></script>
     <link rel="stylesheet" href="adstyles.css">
+    <style>
+        /* Mobile menu overlay */
+        .mobile-menu-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 998;
+        }
+
+        /* Mobile menu toggle button */
+        .mobile-menu-toggle {
+            display: none;
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 1000;
+            background: #2c3e50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            width: 40px;
+            height: 40px;
+            cursor: pointer;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+        }
+
+        /* Close button for sidebar on mobile */
+        .sidebar-close {
+            display: none;
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            z-index: 1001;
+        }
+
+        /* Responsive styles */
+        @media (max-width: 768px) {
+            .mobile-menu-toggle {
+                display: flex;
+            }
+
+            .sidebar {
+                transform: translateX(-100%);
+                transition: transform 0.3s ease;
+                z-index: 999;
+                position: fixed;
+                height: 100vh;
+                overflow-y: auto;
+            }
+
+            .sidebar.active {
+                transform: translateX(0);
+            }
+
+            .sidebar-close {
+                display: block;
+            }
+
+            .main-content {
+                margin-left: 0;
+                width: 100%;
+            }
+
+            .header {
+                padding-left: 70px;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .quick-actions {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .filters {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .filter-group {
+                width: 100%;
+            }
+
+            table {
+                display: block;
+                overflow-x: auto;
+                white-space: nowrap;
+            }
+
+            .action-buttons {
+                flex-direction: column;
+                gap: 5px;
+            }
+
+            .action-btn {
+                width: 35px;
+                height: 35px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .quick-actions {
+                grid-template-columns: 1fr;
+            }
+
+            .mobile-menu-toggle {
+                top: 15px;
+                left: 15px;
+                width: 35px;
+                height: 35px;
+            }
+
+            .header h1 {
+                font-size: 1.5rem;
+            }
+
+            .section-title {
+                font-size: 1.3rem;
+            }
+        }
+
+        /* Ensure tables are scrollable on mobile */
+        .table-container {
+            overflow-x: auto;
+        }
+    </style>
 </head>
 
 <body>
@@ -18,8 +160,19 @@
         <div class="spinner"></div>
     </div>
 
+    <!-- Mobile Menu Toggle Button -->
+    <button class="mobile-menu-toggle" id="mobileMenuToggle">
+        <i class="fas fa-bars"></i>
+    </button>
+
+    <!-- Mobile Menu Overlay -->
+    <div class="mobile-menu-overlay" id="mobileMenuOverlay"></div>
+
     <!-- Sidebar -->
     <div class="sidebar" id="sidebar">
+        <button class="sidebar-close" id="sidebarClose">
+            <i class="fas fa-times"></i>
+        </button>
         <div class="logo">
             <h2>Sky<span>Admin</span></h2>
         </div>
@@ -795,12 +948,67 @@
             // Initialize UI
             setupEventListeners();
 
+            // Setup mobile menu
+            setupMobileMenu();
+
             // Load dashboard data
             await loadDashboardData();
 
             // Setup real-time subscriptions
             setupRealtimeSubscriptions();
         });
+
+        // Setup mobile menu functionality
+        function setupMobileMenu() {
+            const mobileMenuToggle = document.getElementById('mobileMenuToggle');
+            const sidebar = document.getElementById('sidebar');
+            const sidebarClose = document.getElementById('sidebarClose');
+            const mobileMenuOverlay = document.getElementById('mobileMenuOverlay');
+            const menuItems = document.querySelectorAll('.menu-item');
+
+            // Toggle sidebar
+            mobileMenuToggle.addEventListener('click', function () {
+                sidebar.classList.add('active');
+                mobileMenuOverlay.style.display = 'block';
+                document.body.style.overflow = 'hidden';
+            });
+
+            // Close sidebar
+            sidebarClose.addEventListener('click', closeMobileMenu);
+            mobileMenuOverlay.addEventListener('click', closeMobileMenu);
+
+            // Close sidebar when clicking menu items on mobile
+            menuItems.forEach(item => {
+                item.addEventListener('click', function () {
+                    if (window.innerWidth <= 768) {
+                        closeMobileMenu();
+                    }
+                });
+            });
+
+            // Close sidebar with escape key
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape') {
+                    closeMobileMenu();
+                }
+            });
+
+            // Close mobile menu function
+            function closeMobileMenu() {
+                sidebar.classList.remove('active');
+                mobileMenuOverlay.style.display = 'none';
+                document.body.style.overflow = 'auto';
+            }
+
+            // Resize handler
+            window.addEventListener('resize', function () {
+                if (window.innerWidth > 768) {
+                    sidebar.classList.remove('active');
+                    mobileMenuOverlay.style.display = 'none';
+                    document.body.style.overflow = 'auto';
+                }
+            });
+        }
 
         // Check if user is admin
         async function checkAdminAuth() {
