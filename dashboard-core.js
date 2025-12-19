@@ -846,6 +846,7 @@ async function handleTaskClaim(taskType, clickedButton, uniqueId) {
         
         const rewardAmount = 250;
         
+        // 1. FIRST: Add to earnings table (tiktok to tiktok, youtube to youtube)
         // Get current earnings or create new record
         let currentEarnings = earningsData;
         if (!currentEarnings) {
@@ -862,46 +863,41 @@ async function handleTaskClaim(taskType, clickedButton, uniqueId) {
             };
         }
         
-        // Calculate new values
+        // Calculate new values ONLY for the specific task type
         const currentValue = currentEarnings[taskType] || 0;
         const newValue = currentValue + rewardAmount;
-        const currentTotal = currentEarnings.all_time_earn || userProfile?.total_income || 0;
-        const newTotal = currentTotal + rewardAmount;
         
-        console.log(`Updating ${taskType}: ${currentValue} → ${newValue}, Total: ${currentTotal} → ${newTotal}`);
+        console.log(`Updating ${taskType} in earnings: ${currentValue} → ${newValue}`);
         
-        // Update earnings table
-        const updateData = {
+        // Update ONLY the specific task column in earnings
+        const earningsUpdateData = {
             id: userId,
-            [taskType]: newValue,
-            all_time_earn: newTotal
+            [taskType]: newValue
         };
         
-        // Include other fields to avoid null values
-        if (currentEarnings.tiktok !== undefined) updateData.tiktok = currentEarnings.tiktok;
-        if (currentEarnings.youtube !== undefined) updateData.youtube = currentEarnings.youtube;
-        if (currentEarnings.trivia !== undefined) updateData.trivia = currentEarnings.trivia;
-        if (currentEarnings.refferal !== undefined) updateData.refferal = currentEarnings.refferal;
-        if (currentEarnings.bonus !== undefined) updateData.bonus = currentEarnings.bonus;
-        if (currentEarnings.total_withdrawn !== undefined) updateData.total_withdrawn = currentEarnings.total_withdrawn;
+        // Include bonus if it exists (to maintain the 5000 bonus)
+        if (currentEarnings.bonus !== undefined) {
+            earningsUpdateData.bonus = currentEarnings.bonus;
+        }
         
-        const { error } = await window.supabase
+        // Update earnings table - only update the specific task column
+        const { error: earningsError } = await window.supabase
             .from('earnings')
-            .upsert(updateData, {
+            .upsert(earningsUpdateData, {
                 onConflict: 'id'
             });
         
-        if (error) {
-            console.error('Database update error:', error);
+        if (earningsError) {
+            console.error('Earnings update error:', earningsError);
             
             // If error is about missing record, try insert instead
-            if (error.code === '23503' || error.message.includes('foreign key')) {
+            if (earningsError.code === '23503' || earningsError.message.includes('foreign key')) {
                 console.log('Trying to insert new earnings record...');
                 
                 const newEarnings = {
                     id: userId,
                     [taskType]: rewardAmount,
-                    all_time_earn: rewardAmount,
+                    all_time_earn: 0, // Don't update all_time_earn
                     tiktok: taskType === 'tiktok' ? rewardAmount : 0,
                     youtube: taskType === 'youtube' ? rewardAmount : 0,
                     trivia: 0,
@@ -918,36 +914,44 @@ async function handleTaskClaim(taskType, clickedButton, uniqueId) {
                 
                 earningsData = newEarnings;
             } else {
-                throw error;
+                throw earningsError;
             }
         } else {
-            // Update local data
+            // Update local earnings data
             earningsData = {
                 ...earningsData,
-                [taskType]: newValue,
-                all_time_earn: newTotal
+                [taskType]: newValue
             };
         }
         
-        // Update users table total_income
-        await window.supabase
-            .from('users')
-            .update({ total_income: newTotal })
-            .eq('id', userId);
+        // 2. SECOND: Record in contents table (NOT users.total_income)
+        // This is where the task submission should be recorded
+        const contentTitle = `${taskType.charAt(0).toUpperCase() + taskType.slice(1)} Task Submission`;
         
-        // Update userProfile
-        if (userProfile) {
-            userProfile.total_income = newTotal;
+        const { error: contentError } = await window.supabase
+            .from('contents')
+            .insert({
+                id: userId,
+                content_title: contentTitle,
+                content_type: taskType,
+                total_actions: 1 // Each claim is 1 action
+            });
+        
+        if (contentError) {
+            console.error('Content record error:', contentError);
+            // Don't throw error here, just log it
         }
         
-        // Update UI
-        updateEarningsStats();
+        // 3. Update UI (without affecting total income)
+        if (typeof updateEarningsStats === 'function') {
+            updateEarningsStats(); // This should only show earnings from tasks
+        }
         
-        // Set cooldown (48 hours) - specific to this button
+        // 4. Set cooldown (48 hours) - specific to this button
         const nextClaim = Date.now() + (48 * 60 * 60 * 1000);
         localStorage.setItem(storageKey, nextClaim.toString());
         
-        // Only disable/update the clicked button
+        // 5. Only disable/update the clicked button
         button.textContent = 'Claimed!';
         button.style.backgroundColor = '#95a5a6';
         button.disabled = true;
@@ -960,7 +964,7 @@ async function handleTaskClaim(taskType, clickedButton, uniqueId) {
         button.textContent = 'Claim Reward';
         showMessage('Error claiming reward: ' + error.message, 'error');
     }
-}
+    }
     function setupSettingsSave() {
     console.log('setupSettingsSave called'); // Debug log
     
