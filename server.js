@@ -65,7 +65,23 @@ const getNumericUserId = async (authUserId) => {
 
 // Supabase data fetching functions
 const supabaseClient = {
+    async fetchUserProfile(userId) {
+    try {
+        const { data, error } = await supabase
+            .from('users')
+            .select('*, phone_number')  // Make sure phone_number is included
+            .eq('id', userId)
+            .single();
+            
+        if (error) throw error;
+        return data;
+    } catch (error) {
+        console.error('Error fetching user profile:', error);
+        return null;
+    }
+},
     async fetchUserData() {
+        
         try {
             // Get current authenticated user's UUID
             const authUserId = await getCurrentUserId();
@@ -197,15 +213,24 @@ const displayUserData = (data) => {
     console.log('Displaying user data:', data);
     
     // Display user data
-    if (data.users) {
-        setElementText('user_name', data.users.user_name || 'Not set');
-        setElementText('email_address', data.users.email_address || 'Not set');
-        setElementText('status', data.users.status || 'Not active');
-        setElementText('rank', data.users.rank || 'User');
-        setElementText('last_login', formatDate(data.users.last_login));
-        setElementText('total_income', formatNumber(data.users.total_income));
+    // Display user data
+    if (data.user) {  // Note: changed from data.users to data.user
+        setElementText('user_name', data.user.user_name || 'Not set');
+        setElementText('email_address', data.user.email_address || 'Not set');
+        setElementText('status', data.user.status || 'Not active');
+        setElementText('rank', data.user.rank || 'User');
+        setElementText('last_login', formatDate(data.user.last_login));
+        setElementText('total_income', formatNumber(data.user.total_income));
+        setElementText('phone_number', data.user.phone_number || 'Not set');
+        
+        // ADD THIS LINE - it will set the phone number
+        const phoneElement = document.getElementById('phone_number');
+        if (phoneElement) {
+            phoneElement.textContent = data.user.phone_number 
+                ? String(data.user.phone_number) 
+                : 'Not set';
+        }
     }
-    
     // Display earnings data
     if (data.earnings) {
         setElementText('youtube', formatNumber(data.earnings.youtube));
