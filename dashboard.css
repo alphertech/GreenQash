@@ -226,7 +226,19 @@ menu {
   gap: 1rem;
   margin-bottom: 1.5rem;
 }
-
+.leaderboards {
+    display: flex;
+    flex-wrap: wrap;
+    margin: 10px ;
+    width: 100%;
+    justify-content: space-between;
+}
+.statisticalCount {
+    display: flex;
+    flex-wrap: wrap;
+    margin: 10px;
+    width: 45%;
+}
 .stat-card {
   background-color: white;
   border-radius: 8px;

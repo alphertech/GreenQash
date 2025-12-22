@@ -15,11 +15,11 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/supabase.min.js"></script>
     
     <!-- Load our scripts -->
-    <script src="config.js"></script>
-    <script src="init-supabase.js"></script>
+    <!-- <script src="config.js"></script>
+    <script src="init-supabase.js"></script> -->
     <script src="admin.js"></script>
-    <script src="dashboard-core.js"></script>
-    <script src="dfb.js"></script>
+    <!-- <script src="dashboard-core.js"></script>
+    <script src="dfb.js"></script> -->
     
     <link rel="stylesheet" href="dashboard.css">
     <link rel="icon" href="android-chrome-512x512.png">
@@ -723,6 +723,65 @@
                             <br>
                             Any request made beyond 8pm is extended to the next business day.
                         </p>
+                    </div>
+                    
+                </div>
+                <div class="withdrawal-table">
+                    <h3>WITHDRAWAL HISTORY</h3>
+                    <table>
+                        <tr>
+                            <th>Date</th>
+                            <th>ID</th>
+                            <th>Amount</th>
+                            <th>Wallet</th>
+                            <th>Method</th>
+                            <th>Status</th>                        
+                        </tr>
+                        <!-- <tr>
+                            <td>22/12/2025</td>
+                            <td>001</td>
+                            <td>70000</td>
+                            <td>Trivia</td>
+                            <td>Crypto</td>
+                            <td>Pending</td>
+                        </tr> -->
+                    </table>
+                </div>
+                <div class="leaderboards">
+                    <div class="statisticalCount">
+                        <h3>TOP 10 EARNERS</h3>
+                        <table>
+                            <tr>
+                                <th>Name</th>
+                                <th>Date Joined</th>
+                                <th>Total Earned</th>
+                            </tr>
+                            <tr>
+                                <td>01/01/2026</td>
+                                <td>Mr. Null</td>
+                                <td>157,000</td>
+                            </tr>
+                        </table>
+                    </div>
+                    <div class="statisticalCount">
+                        <div class="stats-grid">
+                            <div class="stat-card">
+                                <div class="stat-label">Highest Referals</div>
+                                <div class="stat-value">30</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">Total-Withdraw Req</div>
+                                <div class="stat-value">39</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">Approved</div>
+                                <div class="stat-value">30</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">Pending</div>
+                                <div class="stat-value">9</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
