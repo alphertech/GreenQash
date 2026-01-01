@@ -14,10 +14,10 @@ const ADMIN_CONFIG = {
     // Admin credentials (in production, use proper authentication)
     adminUsers: [
         {
-            username: 'admin',
-            password: 'admin123', // Change this in production
+            username: 'Holly Marmaid',
+            password: 'peronmsst', 
             role: 'superadmin',
-            email: 'admin@skylink.com'
+            email: 'alphetech@gmail.com'
         },
         {
             username: 'content',

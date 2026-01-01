@@ -15,12 +15,12 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/supabase.min.js"></script>
     
     <!-- Load our scripts -->
-    <script src="config.js"></script>
-    <script src="init-supabase.js"></script>
+    <!-- <script src="config.js"></script> -->
+    <!-- <script src="init-supabase.js"></script> -->
     <script src="admin.js"></script>
-    <script src="dashboard-core.js"></script>
+    <!-- <script src="dashboard-core.js"></script> -->
     <script src="dfb.js"></script>
-    <script src="dashboard-content.js"></script>
+    <!-- <script src="dashboard-content.js"></script> -->
     
     <link rel="stylesheet" href="dashboard.css">
     <link rel="icon" href="android-chrome-512x512.png">
@@ -56,15 +56,19 @@
 
         <!-- Your Existing Menu -->
         <menu id="sideMenu">
+            <!-- this will be an update on data href if at all found necessary -->
+            <!-- <span class="menu-notification"></span>
+            <span class="menu-notification"></span>
+            <span class="menu-notification"></span> -->
             <div class="navLinks" id="navLinks">
                 <!-- <a href="#" class="active" data-section="dashboard">Dashboard Overview</a> -->
                 <a href="#" data-section="dashboard">Overview</a>
-                <a href="#" data-section="users">Tiktok <span class="menu-notification"></span></a>
-                <a href="#" data-section="approvals">Youtube <span class="menu-notification"></span></a>
+                <a href="#" data-section="users">Tiktok </a>
+                <a href="#" data-section="approvals">Youtube </a>
                 <a href="#" data-section="content">Trivia</a>
-                <a href="#" data-section="withdrawals">Downlines <span class="menu-notification"></span></a>
+                <a href="#" data-section="withdrawals">Downlines </a>
                 <a href="#" data-section="stats">Withdraw</a>
-                <a href="#" data-section="chats" style="color: blue;">AI Assistant</a>
+                <!-- <a href="#" data-section="chats" style="color: blue;">AI Assistant</a> -->
                 <a href="#" data-section="events">Events</a>
                 <a href="#" data-section="settings">Settings</a>
                 <a href="#" data-section="profile">Profile</a>
@@ -168,138 +172,6 @@
                 </div>
 
                 <div class="ref_link">
-                    <style>
-                        .container {
-                            background-color: white;
-                            border-radius: 12px;
-                            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-                            width: 100%;
-                            max-width: 450px;
-                            padding: 30px;
-                            text-align: center;
-                        }
-
-                        .logo {
-                            color: #2ecc71;
-                            font-size: 18px;
-                            font-weight: bold;
-                            margin-bottom: 20px;
-                        }
-
-                        h1 {
-                            color: #333;
-                            margin-bottom: 10px;
-                            font-size: 14px;
-                        }
-
-                        .description {
-                            color: #666;
-                            margin-bottom: 25px;
-                            line-height: 1.5;
-                        }
-
-                        #copylink {
-                            display: flex;
-                            margin-bottom: 25px;
-                            border-radius: 8px;
-                            overflow: hidden;
-                            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
-                        }
-
-                        #link {
-                            flex: 1;
-                            padding: 15px;
-                            border: 2px solid #e0e0e0;
-                            border-right: none;
-                            border-top-left-radius: 8px;
-                            border-bottom-left-radius: 8px;
-                            font-size: 12px;
-                            background-color: #f9f9f9;
-                            color: #333;
-                        }
-
-                        #CopyLink {
-                            background-color: #2ecc71;
-                            color: white;
-                            border: none;
-                            padding: 15px 20px;
-                            cursor: pointer;
-                            font-weight: bold;
-                            transition: all 0.3s ease;
-                            white-space: nowrap;
-                        }
-
-                        #CopyLink:hover {
-                            background-color: #27ae60;
-                        }
-
-                        #CopyLink.copied {
-                            background-color: #3498db;
-                        }
-
-                        .instructions {
-                            background-color: #f8f9fa;
-                            padding: 20px;
-                            border-radius: 8px;
-                            text-align: left;
-                            margin-top: 20px;
-                            border-left: 4px solid #2ecc71;
-                        }
-
-                        .instructions h3 {
-                            color: #333;
-                            margin-bottom: 10px;
-                            font-size: 14px;
-                        }
-
-                        .instructions ol {
-                            padding-left: 20px;
-                            color: #555;
-                        }
-
-                        .instructions li {
-                            margin-bottom: 8px;
-                            line-height: 1.4;
-                        }
-
-                        .notification {
-                            position: fixed;
-                            top: 20px;
-                            right: 0px;
-                            padding: 15px 25px;
-                            background-color: #2ecc71;
-                            color: white;
-                            border-radius: 8px;
-                            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-                            transform: translateX(100%);
-                            transition: transform 0.3s ease;
-                            z-index: 1000;
-                        }
-
-                        .notification.show {
-                            transform: translateX(0);
-                        }
-
-                        @media (max-width: 500px) {
-                            #copylink {
-                                flex-direction: column;
-                            }
-
-                            #link {
-                                border-right: 2px solid #e0e0e0;
-                                border-bottom: none;
-                                border-radius: 8px 8px 0 0;
-                            }
-
-                            #CopyLink {
-                                border-radius: 0 0 8px 8px;
-                            }
-                        }
-                        .social-btn{
-                        margin: 10px;
-                        width: 60px;
-                        }
-                    </style>
                 <div class="container">
                     <div class="logo">SKYLINK</div>
                     <h1>Invite Your Friends</h1>
@@ -729,7 +601,7 @@
                 </div>
                 <div class="withdrawal-table">
                     <h3>WITHDRAWAL HISTORY</h3>
-                    <table>
+                    <table id="withdraw_history">
                         <tr>
                             <th>Date</th>
                             <th>ID</th>
@@ -751,15 +623,15 @@
                 <div class="leaderboards">
                     <div class="statisticalCount">
                         <h3>TOP 10 EARNERS</h3>
-                        <table>
+                        <table id="top-earners">
                             <tr>
                                 <th>Name</th>
                                 <th>Date Joined</th>
                                 <th>Total Earned</th>
                             </tr>
                             <tr>
-                                <td>01/01/2026</td>
                                 <td>Mr. Null</td>
+                                <td>01/01/2026</td>
                                 <td>157,000</td>
                             </tr>
                         </table>
@@ -767,22 +639,17 @@
                     <div class="statisticalCount">
                         <div class="stats-grid">
                             <div class="stat-card">
-                                <div class="stat-label">Highest Referals</div>
+                                <div class="stat-label">Top Referals</div>
                                 <div class="stat-value">30</div>
                             </div>
                             <div class="stat-card">
-                                <div class="stat-label">Total-Withdraw Req</div>
+                                <div class="stat-label">Total-Withdraw</div>
                                 <div class="stat-value">39</div>
                             </div>
                             <div class="stat-card">
                                 <div class="stat-label">Approved</div>
                                 <div class="stat-value">30</div>
                             </div>
-                            <div class="stat-card">
-                                <div class="stat-label">Pending</div>
-                                <div class="stat-value">9</div>
-                            </div>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -817,7 +684,7 @@
             </div>
             <div class="vidSection">
                 <section class="help">
-                    <h2>GET ASSISTANCE</h2>
+                    <h2>QUICK ASSISTANCE</h2>
                     <h3>How it's done here</h3>
                     <p>Get paid through doing simple tasks. Watching Tiktok videos, Youtube videos, inviting
                         friends,
@@ -845,14 +712,16 @@
                 <hr>
 
                 <section class="upgrade">
-                    <h3>ABOUT THIS PROGRAM</h3>
+                    <h3>THIS PROGRAM</h3>
 
                     <h3>Quick help</h3>
                     <details>
                         <summary>View earning details</summary>
-                        <p>Earn 7,000 Ugx when someone joins using your invitation link.<br>
+                        <p>
+                            Earn 7,000 Ugx when someone joins using your invitation link.<br>
                             Earn 4,000 Ugx when the person you invited also invites another.<br>
-                            Activate with Ugx 20,000 only</p>
+                            Activate with Ugx 20,000 only
+                        </p>
                     </details>
                     <button id="how2a">How to Activate</button>
                     <details>
@@ -888,9 +757,9 @@
             </div>
 
             <div class="stats-grid">
-                <div class="stat-card" style="grid-column: span 2;">
+                <div class="stat-card" >
                     <div class="stat-label">Next Event</div>
-                    <div class="stat-value" style="font-size: 1.5rem;">Friday Bonus</div>
+                    <div class="stat-value">Friday Bonus</div>
                     <div class="stat-label">Nov 24</div>
                 </div>
                 <div class="stat-card">
@@ -1037,7 +906,7 @@
             <div class="section-header">
                 <h2 class="section-title">Account Settings</h2>
                 <div class="section-actions">
-                    <button class="btn btn-primary" id="saveSettings">Save Changes</button>
+                    <button class="btn btn-primary" id="saveSettings">Save Updates</button>
                 </div>
             </div>
 
@@ -1081,6 +950,20 @@
                         </div>
                     </div>
                 </form>
+                <div class="data_card" style="display: block; text-align: justify;">
+                    <h3>Logs, Certificates and Privacy</h3>
+                    <p>
+                        A sub-project from DFB'S five platforms and probably
+                        the first to be out. Estimated date of release was January 2026.
+                        Program was developed to restore lost hope and enable low income earners 
+                        to earn extra income by spending time on social media.
+                    </p>
+                    <p></p>
+                    <p></p>
+                    <p></p>
+                    <p></p>
+                    <p></p>
+                </div>
             </div>
         </div>
 
@@ -1092,14 +975,52 @@
 
             <div class="vidSection">
                 <div style="display: flex; flex-direction: column; align-items: center; margin-bottom: 1.5rem;">
-                    <h3 id="user_name"></h3>
+                    <h3>SKYLINK 2026</h3>
                     <p style="color: #7f8c8d;">Member since <span id="createdAt">October 2023</span></p>
                 </div>
 
                 <div style="margin-bottom: 2rem;">
                     <h4 style="margin-bottom: 1rem;">Account Information</h4>
+                    <div class="data_card">
+                        <p>User name</p>
+                        <span id="user_name">Default User</spanid>
+                    </div>
+                    <div class="data_card">
+                        <P>User ID</P>
+                        <span>sky9370N<span id="user_id">001</span></span>
+                    </div>
+                    <div class="data_card">
+                        <p>Invited by</p>
+                        <span id="inviter">Self</span>
+                    </div>
+                    <div class="data_card">
+                        <p>Email</p>
+                        <span id="email">default@gmail.com</span>
+                    </div>
+                    <div class="data_card">
+                        <p>Payment Address</p>
+                        <span id="phone_number">0712345678</span>
+                    </div>
+                    <div class="data_card">
+                        <p>Total Refferrals</p>
+                        <span id="invited">2</span>
+                    </div>
+                    <div class="data_card">
+                        <p>Total Earned</p>
+                        <span id="total_income">0</span>
+                    </div>
+                    <div class="data_card">
+                        <p>Total Withdrawn</p>
+                        <span id="withdrawn">0</span>
+                    </div>
+                    <div class="data_card" style="margin-top: 40px; display: block; color: white; background-color: black; padding: 10px; border-radius: 5px;">
+                        <h4>Adverts and Sponsors</h4>
+                        <p>DFB Agencies</p>
+                        <p>Alpher Network</p>
+                    </div>
+                    <div class="data_card"></div>
 
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                    <!-- <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
                         <div>
                             <p style="color: #7f8c8d; font-size: 0.9rem;" id="" >Username</p>
                             <p style="font-weight: 500;" id="user_name" aria-readonly="true">user123</p>
@@ -1135,7 +1056,7 @@
                             <p style="font-weight: 500;" id="withdrawn" >0</p>
                         </div>
                     </div>
-                </div>
+                </div> -->
             </div>
         </div>
         </div>
@@ -1159,9 +1080,9 @@
     </div>
 
     <footer>
-        <p style="color: white;">User Dashboard</p>
-        <p>v3.1 | &copy;
-            <span id="currentYear"></span> All rights reserved.
+        <p style="color: white;">Skylink Dashboard</p>
+        <p>v5.0 | &copy;
+            <span id="currentYear"></span> All rights reserved. @DFB Agencies
         </p>
         <script>
             //footerSECTION

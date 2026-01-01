@@ -1,28 +1,21 @@
-// dashboard-content.js - Add this to dashboard.html
 // This will load content from admin panel
 
 (function() {
     'use strict';
-
     console.log('Dashboard Content Loader starting...');
-
     class DashboardContentLoader {
         constructor() {
             this.supabase = null;
             this.init();
         }
-
         async init() {
             // Initialize Supabase
             this.supabase = await this.initSupabase();
-            
             // Load content
             await this.loadTasks();
             await this.loadTrivia();
-            
             console.log('Dashboard content loaded');
         }
-
         async initSupabase() {
             try {
                 // Use same credentials as admin
@@ -35,17 +28,15 @@
                 return null;
             }
         }
-
         async loadTasks() {
             try {
-                // Check for tasks in localStorage first (from admin sync)
                 const localTasks = localStorage.getItem('dashboard_tasks');
                 if (localTasks) {
                     this.renderTasks(JSON.parse(localTasks));
                     return;
                 }
 
-                // Try to load from database
+                // Try to load from database system
                 if (this.supabase) {
                     const { data, error } = await this.supabase
                         .from('dashboard_tasks')
@@ -176,10 +167,10 @@
             });
         }
 
-        claimTask(taskId, amount) {
-            alert(`Task claimed! You earned UGX ${amount}. This would be added to your balance in a real system.`);
-            // In production, this would call an API to update user earnings
-        }
+        // claimTask(taskId, amount) {
+        //     alert(`Task claimed! You earned UGX ${amount}. This would be added to your balance in a real system.`);
+        //     // In production, this would call an API to update user earnings
+        // }
 
         async loadTrivia() {
             try {

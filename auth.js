@@ -147,7 +147,6 @@ class SupabaseService {
             
             // Expose to window for other modules
             window.supabase = this.client;
-            
             return this.client;
             
         } catch (error) {
@@ -161,7 +160,7 @@ class SupabaseService {
             if (error.message.includes('API key') || error.message.includes('JWT') || error.message.includes('Invalid')) {
                 errorMessage = 'Authentication service configuration error. Please contact the administrator.';
             }
-            
+
             if (Elements.notification) {
                 Elements.notification.textContent = errorMessage;
                 Elements.notification.classList.add('error', 'show');

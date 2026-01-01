@@ -27,7 +27,7 @@ body {
 header {
   background-color: var(--secondary-color);
   color: white;
-  padding: 10px;
+  padding: 6px;
   display: flex;
   justify-content: space-between;
   align-items: start;
@@ -44,11 +44,11 @@ header {
 }
 
 .header-logo {
-  font-size: 20px;
+  font-size: 16px;
 }
 
 .header-title {
-  font-size: 14px;
+  font-size: 10px;
   font-weight: bolder;
   font-family: "Times New Roman", Times, serif;
 }
@@ -57,7 +57,7 @@ header {
   background-color: var(--primary-color);
   padding: 2px 8px;
   border-radius: 10px;
-  font-size: 12px;
+  font-size: 8px;
   margin-left: 5px;
 }
 
@@ -95,7 +95,7 @@ header {
     padding: 5px;
     border-radius: 0 0 5px 5px ;
     width: fit-content;
-    font-size: 12px;
+    font-size: 8px;
     
     h4 {
         /* text-transform: uppercase; */
@@ -113,7 +113,7 @@ header {
     align-items: center;
     text-align: center;
     color: white;
-    font-size: 12px;
+    font-size: 8px;
 
     .png-zone {
         width: 40px;
@@ -126,7 +126,7 @@ header {
 article {
   background-color: white;
   text-align: center;
-  padding: 1rem;
+  padding: 0.5rem;
   margin: 5px auto;
   border-radius: 5px;
   box-shadow: 2px 2px 10px green;
@@ -146,7 +146,7 @@ main {
 menu {
   width: 250px;
   background-color: white;
-  padding: 1rem 0;
+  padding: 0.5rem 0;
   box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
   transition: all 0.3s ease;
   position: relative;
@@ -158,7 +158,7 @@ menu {
 }
 
 .navLinks a {
-  padding: 0.6rem 1.2rem;
+  padding: 0.5rem 1rem;
   text-decoration: none;
   color: var(--dark-color);
   display: flex;
@@ -186,12 +186,12 @@ menu {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.7rem;
+  font-size: 0.5rem;
 }
 
 .admin-content {
   flex: 1;
-  padding: 1rem;
+  padding: 0.5rem;
   background-color: #f8f9fa;
   min-width: 0;
   /* Prevent flex item overflow */
@@ -202,7 +202,7 @@ menu {
   animation: fadeIn 0.5s ease;
   width: 100%;
   box-sizing: border-box;
-  margin-bottom: 2rem;
+  margin-bottom: 1rem;
 }
 
 .admin-section.active {
@@ -227,17 +227,29 @@ menu {
   margin-bottom: 1.5rem;
 }
 .leaderboards {
-    display: flex;
-    flex-wrap: wrap;
     margin: 10px ;
     width: 100%;
     justify-content: space-between;
+    align-items: start;
+}
+.data_card {
+    display: flex;
+    width: 100%;
+    justify-content: space-between;
+    span {
+        color: green;
+    }
 }
 .statisticalCount {
+    justify-content: space-around;
     display: flex;
     flex-wrap: wrap;
     margin: 10px;
-    width: 45%;
+    width: 90%;
+    .stats-grid {
+        display: flex;
+        flex-wrap: wrap;
+    }
 }
 .stat-card {
   background-color: white;
@@ -257,7 +269,7 @@ menu {
 }
 
 .stat-label {
-  font-size: 0.9rem;
+  font-size: 0.8rem;
   color: #7f8c8d;
   margin-bottom: 0.5rem;
   white-space: nowrap;
@@ -287,7 +299,7 @@ menu {
 
 .section-title {
   color: var(--dark-color);
-  font-size: 1rem;
+  font-size: 0.8rem;
   margin-right: 1rem;
 }
 
@@ -322,11 +334,15 @@ table {
   border-radius: 8px;
   overflow: hidden;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  tr {
+    width: 100%;
+    justify-content: space-between;
+  }
 }
 
 th,
 td {
-  padding: 12px;
+  padding: 5px;
   text-align: left;
   border-bottom: 1px solid #eee;
   white-space: nowrap;
@@ -337,7 +353,7 @@ td {
 th {
   background-color: var(--dark-color);
   color: white;
-  font-weight: 500;
+  font-weight: 400;
 }
 
 tr:hover {
@@ -410,7 +426,7 @@ tr:hover {
 }
 
 button {
-  padding: 0.5rem 0.8rem;
+  padding: 0.5rem;
   border: none;
   border-radius: 4px;
   cursor: pointer;
@@ -433,7 +449,7 @@ button#comment {
 
 .question {
   background-color: white;
-  padding: 0.8rem;
+  padding: 0.6rem;
   margin-bottom: 1rem;
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
@@ -494,7 +510,7 @@ footer {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
     justify-content: center;
-    gap: 1rem;
+    gap: 0.5rem;
     margin-bottom: 1.5rem;
   }
 
@@ -509,6 +525,30 @@ footer {
 }
 
 @media (max-width: 768px) {
+    table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    
+            tr {
+                width: 100%;
+                justify-content: space-between;
+            }
+        }
+    
+        th,
+        td {
+            padding: 2px;
+            width: 100%;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
   main {
     flex-direction: column;
   }
@@ -546,7 +586,7 @@ footer {
   .stats-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 1rem;
+    gap: 0.5rem;
     margin-bottom: 1.5rem;
   }
 
@@ -593,7 +633,7 @@ footer {
   .stats-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-    gap: 1rem;
+    gap: 0.5rem;
     margin-bottom: 1.5rem;
   }
 
@@ -604,6 +644,7 @@ footer {
   .ref_link button {
     width: 40%;
   }
+
 }
 
 @media (max-width: 480px) {
@@ -611,11 +652,11 @@ footer {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
             justify-content: center;
-            gap: 0.5rem;
-            margin-bottom: 1.5rem;
+            gap: 0.2rem;
+            margin-bottom: 1rem;
         }
   .header-title {
-    font-size: 1rem;
+    font-size: 0.8rem;
   }
 
   .ref_link input {
@@ -721,7 +762,7 @@ footer {
 /* hamburger */
 /* Hamburger Button Styles */
 .hamburger {
-    margin: 15px 0 0 0;
+    margin: 5px 0 0 0;
     color: white;
     display: none;
     /* Hidden by default (shown in mobile) */
@@ -790,4 +831,138 @@ footer {
     #sideMenu.active+.overlay {
         display: block;
     }
+}
+
+
+/* link  */
+.container {
+    background-color: white;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 450px;
+    padding: 30px;
+    text-align: center;
+}
+
+.logo {
+    color: #2ecc71;
+    font-size: 18px;
+    font-weight: bold;
+    margin-bottom: 20px;
+}
+
+h1 {
+    color: #333;
+    margin-bottom: 10px;
+    font-size: 14px;
+}
+
+.description {
+    color: #666;
+    margin-bottom: 25px;
+    line-height: 1.5;
+}
+
+#copylink {
+    display: flex;
+    margin-bottom: 25px;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+}
+
+#link {
+    flex: 1;
+    padding: 15px;
+    border: 2px solid #e0e0e0;
+    border-right: none;
+    border-top-left-radius: 8px;
+    border-bottom-left-radius: 8px;
+    font-size: 12px;
+    background-color: #f9f9f9;
+    color: #333;
+}
+
+#CopyLink {
+    background-color: #2ecc71;
+    color: white;
+    border: none;
+    padding: 15px 20px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+}
+
+#CopyLink:hover {
+    background-color: #27ae60;
+}
+
+#CopyLink.copied {
+    background-color: #3498db;
+}
+
+.instructions {
+    background-color: #f8f9fa;
+    padding: 20px;
+    border-radius: 8px;
+    text-align: left;
+    margin-top: 20px;
+    border-left: 4px solid #2ecc71;
+}
+
+.instructions h3 {
+    color: #333;
+    margin-bottom: 10px;
+    font-size: 14px;
+}
+
+.instructions ol {
+    padding-left: 20px;
+    color: #555;
+}
+
+.instructions li {
+    margin-bottom: 8px;
+    line-height: 1.4;
+}
+
+.notification {
+    position: fixed;
+    top: 20px;
+    right: 0px;
+    padding: 15px 25px;
+    background-color: #2ecc71;
+    color: white;
+    border-radius: 8px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    transform: translateX(100%);
+    transition: transform 0.3s ease;
+    z-index: 1000;
+}
+
+.notification.show {
+    transform: translateX(0);
+}
+
+@media (max-width: 500px) {
+    #copylink {
+        flex-direction: column;
+    }
+
+    #link {
+        border-right: 2px solid #e0e0e0;
+        border-bottom: none;
+        border-radius: 8px 8px 0 0;
+    }
+
+    #CopyLink {
+        border-radius: 0 0 8px 8px;
+    }
+}
+
+.social-btn {
+    margin: 10px;
+    width: 60px;
 }

@@ -1,4 +1,3 @@
-// admin-mobile.js - FINAL WORKING VERSION
 // This will create tables and sync content to dashboard.html
 
 (function() {
@@ -6,10 +5,7 @@
 
     console.log('Admin Dashboard Manager loading...');
 
-    // ============================================
     // 1. FIX MISSING FUNCTIONS
-    // ============================================
-
     // Fix filterContents error
     if (typeof window.filterContents === 'undefined') {
         window.filterContents = function() {
@@ -17,9 +13,7 @@
         };
     }
 
-    // ============================================
     // 2. SUPABASE INITIALIZATION
-    // ============================================
 
     let supabase = null;
     let currentUser = null;
