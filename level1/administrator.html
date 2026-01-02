@@ -3,6 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
+    <!-- Content-Security-Policy meta removed for local development -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GLOBAL-WORM</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -954,26 +955,50 @@
 
         // Initialize the application
         document.addEventListener('DOMContentLoaded', async function () {
-            // Initialize Supabase
-            const supabaseUrl = 'https://kwghulqonljulmvlcfnz.supabase.co';
-            const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt3Z2h1bHFvbmxqdWxtdmxjZm56Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM5NzcyMDcsImV4cCI6MjA3OTU1MzIwN30.hebcPqAvo4B23kx4gdWuXTJhmx7p8zSHHEYSkPzPhcM';
+            try {
+                // Initialize Supabase (try window.supabase first, then fall back to dynamic import)
+                const supabaseUrl = 'https://kwghulqonljulmvlcfnz.supabase.co';
+                const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt3Z2h1bHFvbmxqdWxtdmxjZm56Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM5NzcyMDcsImV4cCI6MjA3OTU1MzIwN30.hebcPqAvo4B23kx4gdWuXTJhmx7p8zSHHEYSkPzPhcM';
 
-            AdminApp.supabase = supabase.createClient(supabaseUrl, supabaseKey);
+                if (typeof window.supabase !== 'undefined' && typeof window.supabase.createClient === 'function') {
+                    AdminApp.supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+                } else if (typeof supabase !== 'undefined' && typeof supabase.createClient === 'function') {
+                    AdminApp.supabase = supabase.createClient(supabaseUrl, supabaseKey);
+                } else {
+                    try {
+                        const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm');
+                        AdminApp.supabase = createClient(supabaseUrl, supabaseKey);
+                    } catch (err) {
+                        console.warn('Dynamic import of Supabase failed, attempting global fallback:', err);
+                        if (typeof window.supabase !== 'undefined') {
+                            AdminApp.supabase = window.supabase;
+                        }
+                    }
+                }
 
-            // Check authentication
-            await checkAdminAuth();
+                if (!AdminApp.supabase) {
+                    throw new Error('Supabase client not available');
+                }
 
-            // Initialize UI
-            setupEventListeners();
+                // Check authentication
+                await checkAdminAuth();
 
-            // Setup mobile menu
-            setupMobileMenu();
+                // Initialize UI
+                try { setupEventListeners(); } catch (e) { console.error('setupEventListeners failed', e); }
 
-            // Load dashboard data
-            await loadDashboardData();
+                // Setup mobile menu
+                try { setupMobileMenu(); } catch (e) { console.error('setupMobileMenu failed', e); }
 
-            // Setup real-time subscriptions
-            setupRealtimeSubscriptions();
+                // Load dashboard data
+                try { await loadDashboardData(); } catch (e) { console.error('loadDashboardData failed', e); }
+
+                // Setup real-time subscriptions
+                try { setupRealtimeSubscriptions(); } catch (e) { console.error('setupRealtimeSubscriptions failed', e); }
+            } catch (err) {
+                console.error('Initialization error:', err);
+                const nc = document.getElementById('notificationContainer');
+                if (nc) nc.innerHTML = `<div class="notification error">Initialization failed: ${String(err)}</div>`;
+            }
         });
 
         // Setup mobile menu functionality
@@ -985,24 +1010,28 @@
             const menuItems = document.querySelectorAll('.menu-item');
 
             // Toggle sidebar
-            mobileMenuToggle.addEventListener('click', function () {
-                sidebar.classList.add('active');
-                mobileMenuOverlay.style.display = 'block';
-                document.body.style.overflow = 'hidden';
-            });
+            if (mobileMenuToggle && sidebar && mobileMenuOverlay) {
+                mobileMenuToggle.addEventListener('click', function () {
+                    sidebar.classList.add('active');
+                    mobileMenuOverlay.style.display = 'block';
+                    document.body.style.overflow = 'hidden';
+                });
 
-            // Close sidebar
-            sidebarClose.addEventListener('click', closeMobileMenu);
-            mobileMenuOverlay.addEventListener('click', closeMobileMenu);
+                // Close sidebar
+                if (sidebarClose) sidebarClose.addEventListener('click', closeMobileMenu);
+                mobileMenuOverlay.addEventListener('click', closeMobileMenu);
+            }
 
             // Close sidebar when clicking menu items on mobile
-            menuItems.forEach(item => {
-                item.addEventListener('click', function () {
-                    if (window.innerWidth <= 768) {
-                        closeMobileMenu();
-                    }
+            if (menuItems && menuItems.length) {
+                menuItems.forEach(item => {
+                    item.addEventListener('click', function () {
+                        if (window.innerWidth <= 768) {
+                            closeMobileMenu();
+                        }
+                    });
                 });
-            });
+            }
 
             // Close sidebar with escape key
             document.addEventListener('keydown', function (e) {
@@ -1044,12 +1073,15 @@
                     return;
                 }
 
-                // Check if user has admin role
+                // Check if user has admin role (match by uuid or email as fallback)
+                const identifierEmail = user.email || '';
+                const identifierUuid = user.id;
+
                 const { data: userData, error: userError } = await AdminApp.supabase
                     .from('users')
-                    .select('rank')
-                    .eq('uuid', user.id)
-                    .single();
+                    .select('rank, uuid, email_address')
+                    .or(`uuid.eq.${identifierUuid},email_address.eq.${identifierEmail}`)
+                    .maybeSingle();
 
                 if (userError || !userData || userData.rank !== 'admin') {
                     showNotification('Access denied. Admin privileges required.', 'error');
@@ -1059,9 +1091,11 @@
 
                 AdminApp.currentUser = user;
 
-                // Update UI with admin info
-                document.getElementById('adminAvatar').textContent =
-                    user.email ? user.email.charAt(0).toUpperCase() : 'A';
+                // Update UI with admin info (guard element existence)
+                const adminAvatarEl = document.getElementById('adminAvatar');
+                if (adminAvatarEl) {
+                    adminAvatarEl.textContent = user.email ? user.email.charAt(0).toUpperCase() : 'A';
+                }
 
                 hideLoading();
 
@@ -1087,9 +1121,12 @@
             });
 
             // Logout
-            document.getElementById('logoutBtn').addEventListener('click', async function () {
-                await logout();
-            });
+            const logoutBtn = document.getElementById('logoutBtn');
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', async function () {
+                    await logout();
+                });
+            }
 
             // Quick actions
             document.querySelectorAll('.quick-action-btn').forEach(btn => {
@@ -1100,18 +1137,27 @@
             });
 
             // Select all withdrawals checkbox
-            document.getElementById('selectAllWithdrawals').addEventListener('change', function () {
-                const checkboxes = document.querySelectorAll('.withdrawal-checkbox');
-                checkboxes.forEach(cb => cb.checked = this.checked);
-            });
+            const selectAllWithdrawalsEl = document.getElementById('selectAllWithdrawals');
+            if (selectAllWithdrawalsEl) {
+                selectAllWithdrawalsEl.addEventListener('change', function () {
+                    const checkboxes = document.querySelectorAll('.withdrawal-checkbox');
+                    checkboxes.forEach(cb => cb.checked = this.checked);
+                });
+            }
 
             // Modal overlay click
-            document.getElementById('modalOverlay').addEventListener('click', closeModal);
+            const modalOverlayEl = document.getElementById('modalOverlay');
+            if (modalOverlayEl) modalOverlayEl.addEventListener('click', closeModal);
 
             // Form submissions
-            document.getElementById('userForm').addEventListener('submit', handleUserFormSubmit);
-            document.getElementById('contentForm').addEventListener('submit', handleContentFormSubmit);
-            document.getElementById('withdrawalActionForm').addEventListener('submit', handleWithdrawalActionSubmit);
+            const userFormEl = document.getElementById('userForm');
+            if (userFormEl) userFormEl.addEventListener('submit', handleUserFormSubmit);
+
+            const contentFormEl = document.getElementById('contentForm');
+            if (contentFormEl) contentFormEl.addEventListener('submit', handleContentFormSubmit);
+
+            const withdrawalActionFormEl = document.getElementById('withdrawalActionForm');
+            if (withdrawalActionFormEl) withdrawalActionFormEl.addEventListener('submit', handleWithdrawalActionSubmit);
         }
 
         // Switch between sections
@@ -1159,8 +1205,11 @@
                 'audit': 'System activity log'
             };
 
-            document.getElementById('pageTitle').textContent = titles[section] || 'Admin';
-            document.getElementById('pageDescription').textContent = descriptions[section] || '';
+            const pageTitleEl = document.getElementById('pageTitle');
+            if (pageTitleEl) pageTitleEl.textContent = titles[section] || 'Admin';
+
+            const pageDescriptionEl = document.getElementById('pageDescription');
+            if (pageDescriptionEl) pageDescriptionEl.textContent = descriptions[section] || '';
 
             AdminApp.currentSection = section;
 
@@ -1565,8 +1614,10 @@
             loadActivityChart();
         }
 
-        async function loadUserGrowthChart() {
-            const ctx = document.getElementById('userGrowthChart').getContext('2d');
+            async function loadUserGrowthChart() {
+                const userGrowthCanvas = document.getElementById('userGrowthChart');
+                if (!userGrowthCanvas) return;
+                const ctx = userGrowthCanvas.getContext('2d');
 
             // Get last 7 days data
             const days = 7;
@@ -1621,7 +1672,9 @@
         }
 
         async function loadEarningsChart() {
-            const ctx = document.getElementById('earningsChart').getContext('2d');
+            const earningsCanvas = document.getElementById('earningsChart');
+            if (!earningsCanvas) return;
+            const ctx = earningsCanvas.getContext('2d');
 
             // Get earnings by type
             const { data: earnings, error } = await AdminApp.supabase
@@ -1682,7 +1735,9 @@
         }
 
         async function loadWithdrawalChart() {
-            const ctx = document.getElementById('withdrawalChart').getContext('2d');
+            const withdrawalCanvas = document.getElementById('withdrawalChart');
+            if (!withdrawalCanvas) return;
+            const ctx = withdrawalCanvas.getContext('2d');
 
             // Get withdrawal counts by status
             const { data: withdrawals, error } = await AdminApp.supabase
@@ -1745,7 +1800,9 @@
         }
 
         async function loadActivityChart() {
-            const ctx = document.getElementById('activityChart').getContext('2d');
+            const activityCanvas = document.getElementById('activityChart');
+            if (!activityCanvas) return;
+            const ctx = activityCanvas.getContext('2d');
 
             // Get last 5 days activity
             const days = 5;
@@ -1794,6 +1851,7 @@
         // Update recent activities
         function updateRecentActivities(activities) {
             const container = document.getElementById('recentActivities');
+            if (!container) return;
 
             if (!activities || activities.length === 0) {
                 container.innerHTML = '<p style="padding: 20px; text-align: center; color: #666;">No recent activities</p>';
@@ -1873,6 +1931,7 @@
         // Update users table
         function updateUsersTable() {
             const tbody = document.getElementById('usersTableBody');
+            if (!tbody) return;
 
             if (!AdminApp.data.users.length) {
                 tbody.innerHTML = `
@@ -1989,11 +2048,14 @@
 
         // Show add user modal
         function showAddUserModal() {
-            document.getElementById('userModalTitle').textContent = 'Add User';
-            document.getElementById('userForm').reset();
+            const userModalTitleEl = document.getElementById('userModalTitle');
+            if (userModalTitleEl) userModalTitleEl.textContent = 'Add User';
 
-            // Clear any hidden IDs
-            document.getElementById('userForm').dataset.userId = '';
+            const userFormEl = document.getElementById('userForm');
+            if (userFormEl) {
+                try { userFormEl.reset(); } catch (e) {}
+                userFormEl.dataset.userId = '';
+            }
 
             showModal('userModal');
         }
@@ -2155,16 +2217,32 @@
 
                 if (error) throw error;
 
-                document.getElementById('userModalTitle').textContent = 'Edit User';
-                document.getElementById('modalUserName').value = user.user_name || '';
-                document.getElementById('modalUserEmail').value = user.email_address || '';
-                document.getElementById('modalUserStatus').value = user.status || 'active';
-                document.getElementById('modalUserRank').value = user.rank || 'user';
-                document.getElementById('modalUserBalance').value = user.total_income || 0;
-                document.getElementById('modalUserPassword').value = '';
-                document.getElementById('modalUserPassword').placeholder = 'Leave empty to keep current';
+                const userModalTitleEl = document.getElementById('userModalTitle');
+                if (userModalTitleEl) userModalTitleEl.textContent = 'Edit User';
 
-                document.getElementById('userForm').dataset.userId = userId;
+                const modalUserNameEl = document.getElementById('modalUserName');
+                if (modalUserNameEl) modalUserNameEl.value = user.user_name || '';
+
+                const modalUserEmailEl = document.getElementById('modalUserEmail');
+                if (modalUserEmailEl) modalUserEmailEl.value = user.email_address || '';
+
+                const modalUserStatusEl = document.getElementById('modalUserStatus');
+                if (modalUserStatusEl) modalUserStatusEl.value = user.status || 'active';
+
+                const modalUserRankEl = document.getElementById('modalUserRank');
+                if (modalUserRankEl) modalUserRankEl.value = user.rank || 'user';
+
+                const modalUserBalanceEl = document.getElementById('modalUserBalance');
+                if (modalUserBalanceEl) modalUserBalanceEl.value = user.total_income || 0;
+
+                const modalUserPasswordEl = document.getElementById('modalUserPassword');
+                if (modalUserPasswordEl) {
+                    modalUserPasswordEl.value = '';
+                    modalUserPasswordEl.placeholder = 'Leave empty to keep current';
+                }
+
+                const userFormEl = document.getElementById('userForm');
+                if (userFormEl) userFormEl.dataset.userId = userId;
 
                 showModal('userModal');
 
@@ -2972,6 +3050,7 @@
         // Update contents table
         function updateContentsTable() {
             const tbody = document.getElementById('contentsTableBody');
+            if (!tbody) return;
 
             if (!AdminApp.data.contents.length) {
                 tbody.innerHTML = `
@@ -3016,11 +3095,14 @@
 
         // Show add content modal
         function showAddContentModal() {
-            document.getElementById('contentModalTitle').textContent = 'Add Content';
-            document.getElementById('contentForm').reset();
+            const contentModalTitleEl = document.getElementById('contentModalTitle');
+            if (contentModalTitleEl) contentModalTitleEl.textContent = 'Add Content';
 
-            // Clear any hidden IDs
-            document.getElementById('contentForm').dataset.contentId = '';
+            const contentFormEl = document.getElementById('contentForm');
+            if (contentFormEl) {
+                try { contentFormEl.reset(); } catch (e) {}
+                contentFormEl.dataset.contentId = '';
+            }
 
             showModal('contentModal');
         }

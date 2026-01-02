@@ -1377,28 +1377,32 @@
     </footer>
 
     <script>
-        // Current year in footer
-        document.getElementById('currentYear').textContent = new Date().getFullYear();
+        // Current year in footer (guarded)
+        const currentYearEl = document.getElementById('currentYear');
+        if (currentYearEl) currentYearEl.textContent = new Date().getFullYear();
 
-        // Greeting based on time of day
+        // Greeting based on time of day (guarded)
         const hour = new Date().getHours();
-        const greeting = document.getElementById('greetings');
-        if (hour < 12) {
-            greeting.textContent = 'Good morning!';
-        } else if (hour < 18) {
-            greeting.textContent = 'Good afternoon!';
-        } else {
-            greeting.textContent = 'Good evening!';
+        const greetingEl = document.getElementById('greetings');
+        if (greetingEl) {
+            if (hour < 12) {
+                greetingEl.textContent = 'Good morning!';
+            } else if (hour < 18) {
+                greetingEl.textContent = 'Good afternoon!';
+            } else {
+                greetingEl.textContent = 'Good evening!';
+            }
         }
 
-        // Menu toggle for mobile
+        // Menu toggle for mobile (guarded)
         const menuIcon = document.querySelector('.menu-icon');
         const sideMenu = document.getElementById('sideMenu');
-
-        menuIcon.addEventListener('click', () => {
-            menuIcon.classList.toggle('active');
-            sideMenu.classList.toggle('active');
-        });
+        if (menuIcon && sideMenu) {
+            menuIcon.addEventListener('click', () => {
+                menuIcon.classList.toggle('active');
+                sideMenu.classList.toggle('active');
+            });
+        }
 
         // Tab functionality
         const tabs = document.querySelectorAll('.tab');
@@ -1477,20 +1481,27 @@
             });
         });
 
-        // Open add user modal
-        document.getElementById('add-user').addEventListener('click', () => {
-            openModal('add-user-modal');
-        });
-
-        // Open confirmation modal for various actions
-        document.querySelectorAll('[data-confirm]').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                e.preventDefault();
-                const message = btn.getAttribute('data-confirm');
-                document.getElementById('confirmation-message').textContent = message;
-                openModal('confirmation-modal');
+        // Open add user modal (guarded)
+        const addUserBtn = document.getElementById('add-user');
+        if (addUserBtn) {
+            addUserBtn.addEventListener('click', () => {
+                openModal('add-user-modal');
             });
-        });
+        }
+
+        // Open confirmation modal for various actions (guarded)
+        const confirmBtns = document.querySelectorAll('[data-confirm]');
+        const confirmationMessageEl = document.getElementById('confirmation-message');
+        if (confirmBtns && confirmBtns.length && confirmationMessageEl) {
+            confirmBtns.forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const message = btn.getAttribute('data-confirm');
+                    if (confirmationMessageEl) confirmationMessageEl.textContent = message;
+                    openModal('confirmation-modal');
+                });
+            });
+        }
 
         // Close modals when clicking outside
         window.addEventListener('click', (e) => {

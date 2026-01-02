@@ -488,17 +488,26 @@ class AuthManager {
         
         try {
             const finalUsername = username || email.split('@')[0];
-            
-            const { error } = await this.supabase
+            const payload = {
+                user_name: finalUsername,
+                email_address: email,
+                rank: 'user'
+            };
+
+            // If we have an auth user id, persist it to the public users table
+            if (authUser && authUser.id) {
+                payload.uuid = authUser.id;
+            }
+
+            // Use upsert to avoid unique-constraint errors and ensure uuid is set
+            const { data, error } = await this.supabase
                 .from('users')
-                .insert([{
-                    user_name: finalUsername,
-                    email_address: email,
-                    rank: 'user'
-                }]);
-                
-            if (error && error.code !== '23505') {
-                console.error('Error creating public user:', error);
+                .upsert([payload], { onConflict: 'email_address' });
+
+            if (error) {
+                console.error('Error upserting public user:', error);
+            } else {
+                console.log('Public user upserted:', data && data[0] ? data[0] : data);
             }
         } catch (error) {
             console.error('Error in createUserInPublicTable:', error);
