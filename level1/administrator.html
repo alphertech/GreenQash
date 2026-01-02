@@ -860,6 +860,10 @@
                     <input type="url" id="modalContentUrl">
                 </div>
                 <div class="form-group">
+                    <label>Thumbnail URL</label>
+                    <input type="url" id="modalContentThumbnail" placeholder="https://.../thumb.jpg">
+                </div>
+                <div class="form-group">
                     <label>Description</label>
                     <textarea id="modalContentDescription" rows="3"></textarea>
                 </div>
@@ -956,25 +960,45 @@
         // Initialize the application
         document.addEventListener('DOMContentLoaded', async function () {
             try {
-                // Initialize Supabase (try window.supabase first, then fall back to dynamic import)
+                // Initialize Supabase (reuse existing client if available; otherwise create one)
                 const supabaseUrl = 'https://kwghulqonljulmvlcfnz.supabase.co';
                 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt3Z2h1bHFvbmxqdWxtdmxjZm56Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM5NzcyMDcsImV4cCI6MjA3OTU1MzIwN30.hebcPqAvo4B23kx4gdWuXTJhmx7p8zSHHEYSkPzPhcM';
 
-                if (typeof window.supabase !== 'undefined' && typeof window.supabase.createClient === 'function') {
-                    AdminApp.supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
-                } else if (typeof supabase !== 'undefined' && typeof supabase.createClient === 'function') {
-                    AdminApp.supabase = supabase.createClient(supabaseUrl, supabaseKey);
-                } else {
+                const clientOptions = {
+                    auth: {
+                        autoRefreshToken: true,
+                        persistSession: true,
+                        detectSessionInUrl: true
+                    }
+                };
+
+                // If window.supabase is already a client instance (has .from), reuse it so session persistence works
+                if (window.supabase && typeof window.supabase.from === 'function') {
+                    AdminApp.supabase = window.supabase;
+                }
+                // If window.supabase is the library (has createClient), create a client with proper auth options
+                else if (window.supabase && typeof window.supabase.createClient === 'function') {
+                    AdminApp.supabase = window.supabase.createClient(supabaseUrl, supabaseKey, clientOptions);
+                }
+                // Fallback to global `supabase` symbol (library) if present
+                else if (typeof supabase !== 'undefined' && typeof supabase.createClient === 'function') {
+                    AdminApp.supabase = supabase.createClient(supabaseUrl, supabaseKey, clientOptions);
+                }
+                // Try dynamic import as last resort
+                else {
                     try {
                         const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm');
-                        AdminApp.supabase = createClient(supabaseUrl, supabaseKey);
+                        AdminApp.supabase = createClient(supabaseUrl, supabaseKey, clientOptions);
                     } catch (err) {
                         console.warn('Dynamic import of Supabase failed, attempting global fallback:', err);
-                        if (typeof window.supabase !== 'undefined') {
+                        if (window.supabase && typeof window.supabase.from === 'function') {
                             AdminApp.supabase = window.supabase;
                         }
                     }
                 }
+
+                // Expose client on window for other modules
+                if (AdminApp.supabase) window.supabase = AdminApp.supabase;
 
                 if (!AdminApp.supabase) {
                     throw new Error('Supabase client not available');
@@ -1061,35 +1085,65 @@
         async function checkAdminAuth() {
             showLoading();
 
-            try {
-                const { data: { user }, error } = await AdminApp.supabase.auth.getUser();
+                try {
+                    const { data: { user }, error } = await AdminApp.supabase.auth.getUser();
 
-                if (error) {
-                    throw error;
-                }
+                    if (error) {
+                        throw error;
+                    }
 
-                if (!user) {
-                    redirectToLogin();
-                    return;
-                }
+                    if (!user) {
+                        console.warn('No auth user returned by supabase.auth.getUser()');
+                        redirectToLogin();
+                        return;
+                    }
 
-                // Check if user has admin role (match by uuid or email as fallback)
-                const identifierEmail = user.email || '';
-                const identifierUuid = user.id;
+                    console.log('checkAdminAuth: auth user', user);
 
-                const { data: userData, error: userError } = await AdminApp.supabase
-                    .from('users')
-                    .select('rank, uuid, email_address')
-                    .or(`uuid.eq.${identifierUuid},email_address.eq.${identifierEmail}`)
-                    .maybeSingle();
+                    // Check if user has admin role (match by uuid or email as fallback)
+                    const identifierEmail = (user.email || '').toLowerCase();
+                    const identifierUuid = user.id;
 
-                if (userError || !userData || userData.rank !== 'admin') {
-                    showNotification('Access denied. Admin privileges required.', 'error');
-                    setTimeout(() => redirectToLogin(), 2000);
-                    return;
-                }
+                    // Build query depending on available identifiers
+                    let query = AdminApp.supabase.from('users').select('rank, uuid, email_address');
+                    if (identifierUuid && identifierEmail) {
+                        query = query.or(`uuid.eq.${identifierUuid},email_address.eq.${identifierEmail}`);
+                    } else if (identifierUuid) {
+                        query = query.eq('uuid', identifierUuid);
+                    } else if (identifierEmail) {
+                        query = query.eq('email_address', identifierEmail);
+                    }
 
-                AdminApp.currentUser = user;
+                    const { data: userData, error: userError } = await query.maybeSingle();
+                    console.log('checkAdminAuth: userData', userData, 'error', userError);
+
+                    // If not found but we have an email, try a direct email lookup (case-insensitive)
+                    if ((!userData || !userData.rank) && identifierEmail) {
+                        try {
+                            const { data: byEmail, error: byEmailErr } = await AdminApp.supabase
+                                .from('users')
+                                .select('rank, uuid, email_address')
+                                .ilike('email_address', identifierEmail)
+                                .maybeSingle();
+                            if (byEmail && byEmail.rank) {
+                                console.log('checkAdminAuth: found by ilike email', byEmail);
+                                userData = byEmail; // override
+                            }
+                            if (byEmailErr) console.warn('checkAdminAuth: byEmailErr', byEmailErr);
+                        } catch (e) {
+                            console.warn('checkAdminAuth: fallback email lookup failed', e);
+                        }
+                    }
+
+                    const rankValue = (userData && userData.rank) ? String(userData.rank).toLowerCase() : '';
+                    if (!userData || !/admin/.test(rankValue)) {
+                        console.warn('Access denied: userData:', userData);
+                        showNotification('Access denied. Admin privileges required.', 'error');
+                        setTimeout(() => redirectToLogin(), 2000);
+                        return;
+                    }
+
+                    AdminApp.currentUser = user;
 
                 // Update UI with admin info (guard element existence)
                 const adminAvatarEl = document.getElementById('adminAvatar');
@@ -3093,6 +3147,65 @@
             tbody.innerHTML = html;
         }
 
+        // Global handler for editing a content item (called by action buttons)
+        async function editContent(postId) {
+            if (!postId) return;
+            try {
+                showLoading();
+                const { data: content, error } = await AdminApp.supabase
+                    .from('contents')
+                    .select('*')
+                    .eq('post_id', postId)
+                    .maybeSingle();
+
+                if (error) throw error;
+                if (!content) {
+                    showNotification('Content not found', 'error');
+                    return;
+                }
+
+                const contentFormEl = document.getElementById('contentForm');
+                if (document.getElementById('contentModalTitle')) document.getElementById('contentModalTitle').textContent = 'Edit Content';
+                if (document.getElementById('modalContentTitle')) document.getElementById('modalContentTitle').value = content.content_title || '';
+                if (document.getElementById('modalContentType')) document.getElementById('modalContentType').value = content.content_type || '';
+                if (document.getElementById('modalContentUserId')) document.getElementById('modalContentUserId').value = content.id || '';
+                if (document.getElementById('modalContentUrl')) document.getElementById('modalContentUrl').value = content.content_url || '';
+                if (document.getElementById('modalContentDescription')) document.getElementById('modalContentDescription').value = content.description || '';
+                if (document.getElementById('modalContentActions')) document.getElementById('modalContentActions').value = content.total_actions || 0;
+
+                if (contentFormEl) contentFormEl.dataset.contentId = postId;
+                showModal('contentModal');
+            } catch (err) {
+                console.error('editContent error:', err);
+                showNotification('Failed to load content for editing: ' + (err.message || err), 'error');
+            } finally {
+                hideLoading();
+            }
+        }
+
+        // Global handler for deleting a content item
+        async function deleteContent(postId) {
+            if (!postId) return;
+            if (!confirm('Are you sure you want to delete this content item?')) return;
+            try {
+                showLoading();
+                const { error } = await AdminApp.supabase
+                    .from('contents')
+                    .delete()
+                    .eq('post_id', postId);
+
+                if (error) throw error;
+
+                showNotification('Content deleted', 'success');
+                await loadContents();
+            } catch (err) {
+                console.error('deleteContent error:', err);
+                showNotification('Failed to delete content: ' + (err.message || err), 'error');
+            } finally {
+                hideLoading();
+            }
+        }
+
         // Show add content modal
         function showAddContentModal() {
             const contentModalTitleEl = document.getElementById('contentModalTitle');
@@ -3112,12 +3225,13 @@
             e.preventDefault();
 
             const contentId = e.target.dataset.contentId;
-            const title = document.getElementById('modalContentTitle').value;
+            const title = (document.getElementById('modalContentTitle') || {}).value || '';
             const type = document.getElementById('modalContentType').value;
             const userId = document.getElementById('modalContentUserId').value;
             const url = document.getElementById('modalContentUrl').value;
-            const description = document.getElementById('modalContentDescription').value;
-            const actions = document.getElementById('modalContentActions').value;
+            const description = (document.getElementById('modalContentDescription') || {}).value || '';
+            const actions = (document.getElementById('modalContentActions') || {}).value || '0';
+            const thumbnail = (document.getElementById('modalContentThumbnail') || {}).value || '';
 
             try {
                 showLoading();
@@ -3131,6 +3245,7 @@
 
                 if (url) contentData.content_url = url;
                 if (description) contentData.description = description;
+                if (thumbnail) contentData.thumbnail_url = thumbnail;
 
                 if (contentId) {
                     // Update existing content
@@ -3142,6 +3257,22 @@
                     if (error) throw error;
 
                     showNotification('Content updated successfully', 'success');
+                    // Also update dashboard_tasks entry if present
+                    try {
+                        await AdminApp.supabase
+                            .from('dashboard_tasks')
+                            .update({
+                                title: contentData.content_title,
+                                platform: contentData.content_type,
+                                reward_amount: contentData.total_actions,
+                                description: contentData.description || null,
+                                thumbnail_url: contentData.thumbnail_url || null,
+                                video_url: contentData.content_url || null
+                            })
+                            .eq('content_id', contentId);
+                    } catch (e) {
+                        // ignore if tasks row doesn't exist
+                    }
                 } else {
                     // Create new content
                     const { error } = await AdminApp.supabase
@@ -3150,11 +3281,46 @@
 
                     if (error) throw error;
 
-                    showNotification('Content created successfully', 'success');
+                    // If successful, attempt to also create a dashboard task for video posts
+                    try {
+                        // Get the created content (fetch by unique fields)
+                        const { data: createdData } = await AdminApp.supabase
+                            .from('contents')
+                            .select('*')
+                            .order('created_at', { ascending: false })
+                            .limit(1);
+
+                        const created = Array.isArray(createdData) ? createdData[0] : createdData;
+                        if (created && (contentData.content_type === 'youtube' || contentData.content_type === 'tiktok')) {
+                            await AdminApp.supabase.from('dashboard_tasks').insert([{
+                                content_id: created.post_id || null,
+                                title: contentData.content_title,
+                                platform: contentData.content_type,
+                                sponsor: null,
+                                reward_amount: contentData.total_actions || 0,
+                                description: contentData.description || null,
+                                thumbnail_url: contentData.thumbnail_url || null,
+                                video_url: contentData.content_url || null,
+                                created_at: new Date().toISOString()
+                            }]);
+                        }
+                    } catch (e) {
+                        console.warn('Failed to create dashboard task for content:', e);
+                    }
+
+                    // Set the dataset on the form to the created post id so user can continue editing if needed
+                    try {
+                        const contentFormEl = document.getElementById('contentForm');
+                        if (contentFormEl && created && created.post_id) {
+                            contentFormEl.dataset.contentId = created.post_id;
+                        }
+                    } catch (e) {}
+
+                    showNotification('Content created successfully. You can continue editing or close the modal.', 'success');
                 }
 
-                closeModal();
-                loadContents();
+                // Refresh contents list but keep modal open so user can test the new post
+                try { await loadContents(); } catch (e) { console.warn('loadContents after create failed', e); }
 
             } catch (error) {
                 console.error('Error saving content:', error);
@@ -3860,8 +4026,15 @@
             const modal = document.getElementById(modalId);
             const overlay = document.getElementById('modalOverlay');
 
-            modal.style.display = 'block';
-            overlay.style.display = 'flex';
+            if (overlay) {
+                // Move modal into overlay so overlay centers it (if not already moved)
+                if (!overlay.contains(modal)) {
+                    overlay.appendChild(modal);
+                }
+                overlay.style.display = 'flex';
+            }
+
+            if (modal) modal.style.display = 'block';
 
             // Add to body to prevent scrolling
             document.body.style.overflow = 'hidden';
@@ -3872,7 +4045,7 @@
             const overlay = document.getElementById('modalOverlay');
 
             modals.forEach(modal => modal.style.display = 'none');
-            overlay.style.display = 'none';
+            if (overlay) overlay.style.display = 'none';
 
             // Restore scrolling
             document.body.style.overflow = 'auto';
