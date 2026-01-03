@@ -163,8 +163,11 @@ menu {
   color: var(--dark-color);
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: start;
   transition: all 0.2s ease;
+  i {
+    margin: 0 8px 0 0;
+  }
 }
 
 .navLinks a:hover {
