@@ -3,50 +3,11 @@
 
 <head>
     <meta charset="UTF-8">
-    <!-- Content-Security-Policy meta removed for local development -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GLOBAL-WORM</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-    <script>
-        // Ensure filterContents exists early to avoid ReferenceError from inline handlers
-        if (typeof window.filterContents === 'undefined') {
-            window.filterContents = function() {
-                console.warn('filterContents called before AdminApp initialization — stub invoked.');
-                // If AdminApp is available, delegate to its implementation
-                try { if (window.AdminApp && typeof window.loadContents === 'function') { window.loadContents(); } } catch (e) {}
-            };
-        }
-    </script>
-    <script>
-        // Defensive override for document.getElementById to return a safe stub when missing
-        (function() {
-            const origGet = document.getElementById.bind(document);
-            function makeStub(id) {
-                const stub = document.createElement('div');
-                stub.id = id || '';
-                stub._isStub = true;
-                stub.textContent = '';
-                stub.value = '';
-                stub.classList = { add: ()=>{}, remove: ()=>{}, toggle: ()=>{}, contains: ()=>false };
-                stub.style = {};
-                stub.appendChild = ()=>{};
-                stub.addEventListener = ()=>{};
-                return stub;
-            }
-            document.getElementById = function(id) {
-                const el = origGet(id);
-                if (el) return el;
-                if (!document._missingIds) document._missingIds = new Set();
-                if (!document._missingIds.has(id)) {
-                    console.warn(`document.getElementById('${id}') returned null — returning safe stub.`);
-                    document._missingIds.add(id);
-                }
-                return makeStub(id);
-            };
-        })();
-    </script>
     
     <link rel="stylesheet" href="adstyles.css">
     <style>
@@ -993,50 +954,26 @@
 
         // Initialize the application
         document.addEventListener('DOMContentLoaded', async function () {
-            try {
-                // Initialize Supabase (try window.supabase first, then fall back to dynamic import)
-                const supabaseUrl = 'https://kwghulqonljulmvlcfnz.supabase.co';
-                const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt3Z2h1bHFvbmxqdWxtdmxjZm56Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM5NzcyMDcsImV4cCI6MjA3OTU1MzIwN30.hebcPqAvo4B23kx4gdWuXTJhmx7p8zSHHEYSkPzPhcM';
+            // Initialize Supabase
+            const supabaseUrl = 'https://kwghulqonljulmvlcfnz.supabase.co';
+            const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt3Z2h1bHFvbmxqdWxtdmxjZm56Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM5NzcyMDcsImV4cCI6MjA3OTU1MzIwN30.hebcPqAvo4B23kx4gdWuXTJhmx7p8zSHHEYSkPzPhcM';
 
-                if (typeof window.supabase !== 'undefined' && typeof window.supabase.createClient === 'function') {
-                    AdminApp.supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
-                } else if (typeof supabase !== 'undefined' && typeof supabase.createClient === 'function') {
-                    AdminApp.supabase = supabase.createClient(supabaseUrl, supabaseKey);
-                } else {
-                    try {
-                        const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm');
-                        AdminApp.supabase = createClient(supabaseUrl, supabaseKey);
-                    } catch (err) {
-                        console.warn('Dynamic import of Supabase failed, attempting global fallback:', err);
-                        if (typeof window.supabase !== 'undefined') {
-                            AdminApp.supabase = window.supabase;
-                        }
-                    }
-                }
+            AdminApp.supabase = supabase.createClient(supabaseUrl, supabaseKey);
 
-                if (!AdminApp.supabase) {
-                    throw new Error('Supabase client not available');
-                }
+            // Check authentication
+            await checkAdminAuth();
 
-                // Check authentication
-                await checkAdminAuth();
+            // Initialize UI
+            setupEventListeners();
 
-                // Initialize UI
-                try { setupEventListeners(); } catch (e) { console.error('setupEventListeners failed', e); }
+            // Setup mobile menu
+            setupMobileMenu();
 
-                // Setup mobile menu
-                try { setupMobileMenu(); } catch (e) { console.error('setupMobileMenu failed', e); }
+            // Load dashboard data
+            await loadDashboardData();
 
-                // Load dashboard data
-                try { await loadDashboardData(); } catch (e) { console.error('loadDashboardData failed', e); }
-
-                // Setup real-time subscriptions
-                try { setupRealtimeSubscriptions(); } catch (e) { console.error('setupRealtimeSubscriptions failed', e); }
-            } catch (err) {
-                console.error('Initialization error:', err);
-                const nc = document.getElementById('notificationContainer');
-                if (nc) nc.innerHTML = `<div class="notification error">Initialization failed: ${String(err)}</div>`;
-            }
+            // Setup real-time subscriptions
+            setupRealtimeSubscriptions();
         });
 
         // Setup mobile menu functionality
@@ -1048,28 +985,24 @@
             const menuItems = document.querySelectorAll('.menu-item');
 
             // Toggle sidebar
-            if (mobileMenuToggle && sidebar && mobileMenuOverlay) {
-                mobileMenuToggle.addEventListener('click', function () {
-                    sidebar.classList.add('active');
-                    mobileMenuOverlay.style.display = 'block';
-                    document.body.style.overflow = 'hidden';
-                });
+            mobileMenuToggle.addEventListener('click', function () {
+                sidebar.classList.add('active');
+                mobileMenuOverlay.style.display = 'block';
+                document.body.style.overflow = 'hidden';
+            });
 
-                // Close sidebar
-                if (sidebarClose) sidebarClose.addEventListener('click', closeMobileMenu);
-                mobileMenuOverlay.addEventListener('click', closeMobileMenu);
-            }
+            // Close sidebar
+            sidebarClose.addEventListener('click', closeMobileMenu);
+            mobileMenuOverlay.addEventListener('click', closeMobileMenu);
 
             // Close sidebar when clicking menu items on mobile
-            if (menuItems && menuItems.length) {
-                menuItems.forEach(item => {
-                    item.addEventListener('click', function () {
-                        if (window.innerWidth <= 768) {
-                            closeMobileMenu();
-                        }
-                    });
+            menuItems.forEach(item => {
+                item.addEventListener('click', function () {
+                    if (window.innerWidth <= 768) {
+                        closeMobileMenu();
+                    }
                 });
-            }
+            });
 
             // Close sidebar with escape key
             document.addEventListener('keydown', function (e) {
@@ -1111,15 +1044,12 @@
                     return;
                 }
 
-                // Check if user has admin role (match by uuid or email as fallback)
-                const identifierEmail = user.email || '';
-                const identifierUuid = user.id;
-
+                // Check if user has admin role
                 const { data: userData, error: userError } = await AdminApp.supabase
                     .from('users')
-                    .select('rank, uuid, email_address')
-                    .or(`uuid.eq.${identifierUuid},email_address.eq.${identifierEmail}`)
-                    .maybeSingle();
+                    .select('rank')
+                    .eq('uuid', user.id)
+                    .single();
 
                 if (userError || !userData || userData.rank !== 'admin') {
                     showNotification('Access denied. Admin privileges required.', 'error');
@@ -1129,13 +1059,9 @@
 
                 AdminApp.currentUser = user;
 
-                // Update UI with admin info (guard against missing element)
-                const avatarEl = document.getElementById('adminAvatar');
-                if (avatarEl) {
-                    avatarEl.textContent = user.email ? user.email.charAt(0).toUpperCase() : 'A';
-                } else {
-                    console.warn('adminAvatar element not found; skipping avatar update');
-                }
+                // Update UI with admin info
+                document.getElementById('adminAvatar').textContent =
+                    user.email ? user.email.charAt(0).toUpperCase() : 'A';
 
                 hideLoading();
 
@@ -1233,10 +1159,8 @@
                 'audit': 'System activity log'
             };
 
-            const pageTitleEl = document.getElementById('pageTitle');
-            if (pageTitleEl) pageTitleEl.textContent = titles[section] || 'Admin';
-            const pageDescEl = document.getElementById('pageDescription');
-            if (pageDescEl) pageDescEl.textContent = descriptions[section] || '';
+            document.getElementById('pageTitle').textContent = titles[section] || 'Admin';
+            document.getElementById('pageDescription').textContent = descriptions[section] || '';
 
             AdminApp.currentSection = section;
 
@@ -2065,13 +1989,11 @@
 
         // Show add user modal
         function showAddUserModal() {
-            const userModalTitleEl = document.getElementById('userModalTitle');
-            if (userModalTitleEl) userModalTitleEl.textContent = 'Add User';
-            const userFormEl = document.getElementById('userForm');
-            if (userFormEl) {
-                try { userFormEl.reset(); } catch(e) {}
-                userFormEl.dataset.userId = '';
-            }
+            document.getElementById('userModalTitle').textContent = 'Add User';
+            document.getElementById('userForm').reset();
+
+            // Clear any hidden IDs
+            document.getElementById('userForm').dataset.userId = '';
 
             showModal('userModal');
         }
@@ -2233,16 +2155,16 @@
 
                 if (error) throw error;
 
-                const userModalTitleEl = document.getElementById('userModalTitle');
-                if (userModalTitleEl) userModalTitleEl.textContent = 'Edit User';
-                const modalUserNameEl = document.getElementById('modalUserName'); if (modalUserNameEl) modalUserNameEl.value = user.user_name || '';
-                const modalUserEmailEl = document.getElementById('modalUserEmail'); if (modalUserEmailEl) modalUserEmailEl.value = user.email_address || '';
-                const modalUserStatusEl = document.getElementById('modalUserStatus'); if (modalUserStatusEl) modalUserStatusEl.value = user.status || 'active';
-                const modalUserRankEl = document.getElementById('modalUserRank'); if (modalUserRankEl) modalUserRankEl.value = user.rank || 'user';
-                const modalUserBalanceEl = document.getElementById('modalUserBalance'); if (modalUserBalanceEl) modalUserBalanceEl.value = user.total_income || 0;
-                const modalUserPasswordEl = document.getElementById('modalUserPassword'); if (modalUserPasswordEl) { modalUserPasswordEl.value = ''; modalUserPasswordEl.placeholder = 'Leave empty to keep current'; }
+                document.getElementById('userModalTitle').textContent = 'Edit User';
+                document.getElementById('modalUserName').value = user.user_name || '';
+                document.getElementById('modalUserEmail').value = user.email_address || '';
+                document.getElementById('modalUserStatus').value = user.status || 'active';
+                document.getElementById('modalUserRank').value = user.rank || 'user';
+                document.getElementById('modalUserBalance').value = user.total_income || 0;
+                document.getElementById('modalUserPassword').value = '';
+                document.getElementById('modalUserPassword').placeholder = 'Leave empty to keep current';
 
-                const userFormEl2 = document.getElementById('userForm'); if (userFormEl2) userFormEl2.dataset.userId = userId;
+                document.getElementById('userForm').dataset.userId = userId;
 
                 showModal('userModal');
 
@@ -3005,110 +2927,45 @@
             });
         }
 
-        // Load contents (robust: Supabase client preferred, REST fallback available)
+        // Load contents
         async function loadContents() {
+            showLoading();
+
             try {
-                if (typeof showLoading === 'function') showLoading();
-
-                const supabaseUrl = 'https://kwghulqonljulmvlcfnz.supabase.co';
-                const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt3Z2h1bHFvbmxqdWxtdmxjZm56Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM5NzcyMDcsImV4cCI6MjA3OTU1MzIwN30.hebcPqAvo4B23kx4gdWuXTJhmx7p8zSHHEYSkPzPhcM';
-
                 const { page, limit } = AdminApp.pagination.contents;
                 const offset = (page - 1) * limit;
 
-                // Preferred: use Supabase client if it appears functional
-                if (AdminApp.supabase && typeof AdminApp.supabase.from === 'function') {
-                    try {
-                        let query = AdminApp.supabase
-                            .from('contents')
-                            .select('*,users(user_name)', { count: 'exact' });
+                let query = AdminApp.supabase
+                    .from('contents')
+                    .select(`
+                        *,
+                        users (
+                            user_name
+                        )
+                    `, { count: 'exact' });
 
-                        if (AdminApp.filters && AdminApp.filters.contents && AdminApp.filters.contents.type) {
-                            query = query.eq('content_type', AdminApp.filters.contents.type);
-                        }
-
-                        const res = await query.order('created_at', { ascending: false }).range(offset, offset + limit - 1);
-                        const data = res.data || [];
-                        const count = res.count || (Array.isArray(data) ? data.length : 0);
-
-                        AdminApp.data.contents = data;
-                        AdminApp.pagination.contents.total = count || 0;
-
-                        if (typeof updateContentsTable === 'function') updateContentsTable();
-                        if (typeof updateContentsPagination === 'function') updateContentsPagination();
-                        return;
-                    } catch (err) {
-                        console.warn('Supabase client fetch failed, falling back to REST:', err);
-                    }
+                // Apply filters
+                if (AdminApp.filters.contents.type) {
+                    query = query.eq('content_type', AdminApp.filters.contents.type);
                 }
 
-                // REST fallback using PostgREST
-                try {
-                    const params = new URLSearchParams();
-                    // select users relationship
-                    params.append('select', '*,users(user_name)');
-                    params.append('order', 'created_at.desc');
-                    params.append('limit', String(limit));
-                    params.append('offset', String(offset));
-                    if (AdminApp.filters && AdminApp.filters.contents && AdminApp.filters.contents.type) {
-                        params.append('content_type', AdminApp.filters.contents.type);
-                    }
+                const { data, count, error } = await query
+                    .order('created_at', { ascending: false })
+                    .range(offset, offset + limit - 1);
 
-                    const url = `${supabaseUrl}/rest/v1/contents?${params.toString()}`;
-                    const resp = await fetch(url, {
-                        headers: {
-                            apikey: supabaseKey,
-                            Authorization: `Bearer ${supabaseKey}`,
-                            Prefer: 'count=exact'
-                        }
-                    });
+                if (error) throw error;
 
-                    if (!resp.ok) throw new Error(`REST fetch failed: ${resp.status} ${resp.statusText}`);
+                AdminApp.data.contents = data || [];
+                AdminApp.pagination.contents.total = count || 0;
 
-                    const data = await resp.json();
-                    let total = 0;
-                    const contentRange = resp.headers.get('content-range') || resp.headers.get('Content-Range');
-                    if (contentRange) {
-                        // format: items start-end/total
-                        const parts = contentRange.split('/');
-                        if (parts.length === 2) total = Number(parts[1]) || data.length;
-                    } else {
-                        total = data.length;
-                    }
-
-                    AdminApp.data.contents = data || [];
-                    AdminApp.pagination.contents.total = total || 0;
-
-                    if (typeof updateContentsTable === 'function') updateContentsTable();
-                    if (typeof updateContentsPagination === 'function') updateContentsPagination();
-                    return;
-                } catch (restErr) {
-                    console.error('REST fetch for contents failed:', restErr);
-                    throw restErr;
-                }
+                updateContentsTable();
+                updateContentsPagination();
 
             } catch (error) {
                 console.error('Error loading contents:', error);
-                if (typeof showNotification === 'function') showNotification('Error loading contents: ' + (error.message || String(error)), 'error');
+                showNotification('Error loading contents: ' + error.message, 'error');
             } finally {
-                if (typeof hideLoading === 'function') hideLoading();
-            }
-        }
-
-        // Filter contents by selected type
-        function filterContents() {
-            try {
-                const sel = document.getElementById('contentTypeFilter');
-                if (!sel) return;
-                const val = sel.value || '';
-                AdminApp.filters = AdminApp.filters || {};
-                AdminApp.filters.contents = AdminApp.filters.contents || {};
-                AdminApp.filters.contents.type = val || null;
-                // reload contents
-                AdminApp.pagination.contents.page = 1;
-                loadContents();
-            } catch (e) {
-                console.warn('filterContents error', e);
+                hideLoading();
             }
         }
 
@@ -3159,13 +3016,11 @@
 
         // Show add content modal
         function showAddContentModal() {
-            const contentModalTitleEl = document.getElementById('contentModalTitle');
-            if (contentModalTitleEl) contentModalTitleEl.textContent = 'Add Content';
-            const contentFormEl = document.getElementById('contentForm');
-            if (contentFormEl) {
-                try { contentFormEl.reset(); } catch(e) {}
-                contentFormEl.dataset.contentId = '';
-            }
+            document.getElementById('contentModalTitle').textContent = 'Add Content';
+            document.getElementById('contentForm').reset();
+
+            // Clear any hidden IDs
+            document.getElementById('contentForm').dataset.contentId = '';
 
             showModal('contentModal');
         }

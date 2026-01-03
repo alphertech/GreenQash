@@ -65,16 +65,25 @@
         
         try {
             // Create Supabase client
-            window.supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+            // create client; also set a global `supabase` var for code that expects it
+            const _client = (typeof supabase !== 'undefined' && supabase.createClient) ? supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
                 auth: {
                     autoRefreshToken: true,
                     persistSession: true,
                     detectSessionInUrl: true
                 }
-            });
-            
-            console.log('✓ Supabase client created');
-            console.log('URL:', SUPABASE_URL);
+            }) : (window.supabase && window.supabase.createClient ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null);
+
+            if (_client) {
+                window.supabase = _client;
+                // expose global name `supabase` for older code
+                try { window.supabase_global = _client; } catch (e) {}
+                try { supabase = _client; } catch (e) { window.supabase_alias = _client; }
+                console.log('✓ Supabase client created');
+                console.log('URL:', SUPABASE_URL);
+            } else {
+                throw new Error('Unable to create Supabase client');
+            }
             
             // Check if user is logged in
             checkAuth();
