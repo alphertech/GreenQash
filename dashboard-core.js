@@ -3386,3 +3386,325 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }, 2000);
 });
+
+
+
+
+/**
+ * Securely loads and displays top 10 highest earners
+ */
+async function loadAndDisplayTopEarners() {
+  // Secure configuration
+  const SECURE_CONFIG = Object.freeze({
+    LIMIT: 10,
+    CURRENCY: 'KES',
+    DATE_LOCALE: 'en-GB',
+    FALLBACK_USERNAME: 'User',
+    DEFAULT_RANK: 'user',
+    DEFAULT_STATUS: 'inactive',
+    REQUEST_TIMEOUT: 10000,
+    MAX_USERNAME_LENGTH: 50,
+    TABLE_ID: 'withdraw_history',
+    TITLE_SELECTOR: '.withdrawal-table h3'
+  });
+
+  // Input validation and sanitization
+  const SecureValidator = {
+    sanitizeText: function(text, maxLength) {
+      maxLength = maxLength || SECURE_CONFIG.MAX_USERNAME_LENGTH;
+      if (typeof text !== 'string') return SECURE_CONFIG.FALLBACK_USERNAME;
+      const trimmed = text.trim();
+      if (trimmed.length === 0) return SECURE_CONFIG.FALLBACK_USERNAME;
+      // Prevent XSS and limit length
+      return trimmed
+        .replace(/[<>"'&]/g, '')
+        .substring(0, maxLength);
+    },
+
+    sanitizeNumber: function(num, min, max) {
+      min = min || 0;
+      max = max || Number.MAX_SAFE_INTEGER;
+      const parsed = Number(num);
+      if (!Number.isFinite(parsed) || isNaN(parsed)) return min;
+      if (parsed < min) return min;
+      if (parsed > max) return max;
+      return Math.floor(parsed);
+    },
+
+    validateDate: function(dateString) {
+      const date = new Date(dateString);
+      return !isNaN(date.getTime()) ? date : new Date();
+    },
+
+    formatCurrency: function(amount) {
+      const safeAmount = this.sanitizeNumber(amount);
+      try {
+        return new Intl.NumberFormat('en-KE', {
+          style: 'currency',
+          currency: SECURE_CONFIG.CURRENCY,
+          minimumFractionDigits: 0
+        }).format(safeAmount);
+      } catch (error) {
+        return safeAmount.toLocaleString() + ' ' + SECURE_CONFIG.CURRENCY;
+      }
+    }
+  };
+
+  // DOM operations with error handling
+  const DOMOperations = {
+    getElement: function(selector, isId) {
+      isId = isId === undefined ? true : isId;
+      try {
+        const element = isId 
+          ? document.getElementById(selector)
+          : document.querySelector(selector);
+        if (!element) throw new Error('Element not found: ' + selector);
+        return element;
+      } catch (error) {
+        console.error('DOM Error:', error);
+        return null;
+      }
+    },
+
+    clearTableRows: function(table) {
+      if (!table || !table.deleteRow) return;
+      try {
+        while (table.rows.length > 1) {
+          table.deleteRow(1);
+        }
+      } catch (error) {
+        console.warn('Error clearing table:', error);
+      }
+    },
+
+    createSafeRowHTML: function(userData) {
+      const date = userData.date;
+      const username = userData.username;
+      const amount = userData.amount;
+      const rank = userData.rank;
+      const status = userData.status;
+      const userId = userData.userId;
+
+      return '<tr data-user-id="' + userId + '" role="row">' +
+        '<td data-label="Date Joined">' + date + '</td>' +
+        '<td data-label="Username" class="username-cell">' + username + '</td>' +
+        '<td data-label="Earnings" class="amount-cell">' + amount + '</td>' +
+        '<td data-label="Rank" class="rank-' + rank + '">' + rank + '</td>' +
+        '<td data-label="Status">' +
+          '<span class="status status-' + status.replace(/\s+/g, '-').toLowerCase() + '">' +
+            status +
+          '</span>' +
+        '</td>' +
+        '<td data-label="User ID" class="user-id">#' + userId + '</td>' +
+      '</tr>';
+    },
+
+    showLoadingState: function(table) {
+      const loadingRow = table.insertRow(-1);
+      loadingRow.innerHTML = 
+        '<td colspan="6" class="loading-state">' +
+          '<div class="spinner"></div>' +
+          'Loading top earners...' +
+        '</td>';
+    },
+
+    showErrorState: function(table, errorMessage) {
+      const errorRow = table.insertRow(-1);
+      errorRow.innerHTML = 
+        '<td colspan="6" class="error-state">' +
+          '<span class="error-icon">⚠️</span>' +
+          SecureValidator.sanitizeText(errorMessage, 100) +
+        '</td>';
+    }
+  };
+
+  // Main execution with comprehensive error handling
+  try {
+    // Validate Supabase client
+    if (typeof supabase !== 'object' || 
+        typeof supabase.from !== 'function' || 
+        typeof supabase.rpc !== 'function') {
+      throw new Error('Database client not properly initialized');
+    }
+
+    // Get DOM elements
+    const table = DOMOperations.getElement(SECURE_CONFIG.TABLE_ID);
+    const titleElement = DOMOperations.getElement(SECURE_CONFIG.TITLE_SELECTOR, false);
+    
+    if (!table) {
+      console.error('Table element not found');
+      return;
+    }
+
+    // Update UI state
+    DOMOperations.clearTableRows(table);
+    DOMOperations.showLoadingState(table);
+    
+    if (titleElement) {
+      titleElement.textContent = 'TOP 10 HIGHEST EARNERS';
+    }
+
+    // Update table headers
+    const headerRow = table.rows[0];
+    if (headerRow) {
+      headerRow.innerHTML = 
+        '<th scope="col" aria-sort="ascending">Date Joined</th>' +
+        '<th scope="col">Username</th>' +
+        '<th scope="col">All Time Earnings</th>' +
+        '<th scope="col">Rank</th>' +
+        '<th scope="col">Status</th>' +
+        '<th scope="col">User ID</th>';
+    }
+
+    // Execute secure database query
+    const query = supabase
+      .from('users')
+      .select(
+        'id, user_name, created_at, status, rank, earnings ( all_time_earn )'
+      )
+      .not('earnings.all_time_earn', 'is', null)
+      .order('earnings.all_time_earn', { 
+        ascending: false,
+        nullsLast: true,
+        referencedTable: 'earnings'
+      })
+      .limit(SECURE_CONFIG.LIMIT);
+
+    // Add timeout protection
+    const timeoutPromise = new Promise(function(resolve, reject) {
+      setTimeout(function() {
+        reject(new Error('Request timeout after ' + SECURE_CONFIG.REQUEST_TIMEOUT + 'ms'));
+      }, SECURE_CONFIG.REQUEST_TIMEOUT);
+    });
+
+    // Race between query and timeout
+    const queryPromise = query.then(function(response) {
+      if (response.error) throw response.error;
+      return response;
+    });
+
+    const response = await Promise.race([queryPromise, timeoutPromise]);
+    const users = response.data;
+
+    if (!users || !Array.isArray(users)) {
+      throw new Error('Invalid data received from server');
+    }
+
+    // Clear loading state
+    DOMOperations.clearTableRows(table);
+
+    // Handle empty results
+    if (users.length === 0) {
+      DOMOperations.showErrorState(table, 'No top earners found');
+      return;
+    }
+
+    // Process and render users
+    const tableBody = document.createDocumentFragment();
+    let rankCounter = 1;
+
+    users.forEach(function(user) {
+      // Validate and sanitize all user data
+      const userId = SecureValidator.sanitizeNumber(user.id);
+      const username = SecureValidator.sanitizeText(user.user_name);
+      const joinDate = SecureValidator.validateDate(user.created_at);
+      const userStatus = SecureValidator.sanitizeText(user.status || SECURE_CONFIG.DEFAULT_STATUS);
+      const userRank = SecureValidator.sanitizeText(user.rank || SECURE_CONFIG.DEFAULT_RANK);
+      
+      // Safely access earnings data
+      let earningsAmount = 0;
+      if (Array.isArray(user.earnings) && user.earnings[0]) {
+        earningsAmount = SecureValidator.sanitizeNumber(user.earnings[0].all_time_earn);
+      }
+
+      // Format display values
+      const formattedDate = joinDate.toLocaleDateString(SECURE_CONFIG.DATE_LOCALE, {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric'
+      });
+
+      const formattedAmount = SecureValidator.formatCurrency(earningsAmount);
+
+      // Create row element safely
+      const rowTemplate = document.createElement('template');
+      rowTemplate.innerHTML = DOMOperations.createSafeRowHTML({
+        date: formattedDate,
+        username: username,
+        amount: formattedAmount,
+        rank: userRank,
+        status: userStatus,
+        userId: userId
+      });
+      
+      const rowElement = rowTemplate.content.firstElementChild;
+
+      if (rowElement) {
+        // Add ranking badge for top 3
+        if (rankCounter <= 3) {
+          rowElement.classList.add('top-' + rankCounter);
+          rowElement.setAttribute('data-rank', rankCounter.toString());
+        }
+        
+        rowElement.setAttribute('aria-label', 'User ' + username + ' with earnings ' + formattedAmount);
+        tableBody.appendChild(rowElement);
+        rankCounter++;
+      }
+    });
+
+    // Append all rows efficiently
+    table.appendChild(tableBody);
+
+    // Add interactive features
+    var rows = table.querySelectorAll('tbody tr[data-user-id]');
+    rows.forEach(function(row) {
+      row.addEventListener('click', function() {
+        var userId = this.getAttribute('data-user-id');
+        console.log('Selected user ID:', userId);
+        // You could trigger a modal or details view here
+      });
+    });
+
+    // Dispatch custom event for analytics/other components
+    window.dispatchEvent(new CustomEvent('topEarners:loaded', {
+      detail: {
+        count: users.length,
+        timestamp: new Date().toISOString(),
+        source: 'users_table'
+      }
+    }));
+
+  } catch (error) {
+    console.error('Failed to load top earners:', error);
+    
+    var table = DOMOperations.getElement(SECURE_CONFIG.TABLE_ID);
+    if (table) {
+      DOMOperations.clearTableRows(table);
+      
+      var errorMessage = 'An unexpected error occurred';
+      if (error.name === 'AbortError' || error.message.includes('timeout')) {
+        errorMessage = 'Request timed out. Please try again.';
+      } else if (error.message.includes('network') || error.message.includes('fetch')) {
+        errorMessage = 'Network error. Please check your connection.';
+      } else if (error.message.includes('database') || error.message.includes('Supabase')) {
+        errorMessage = 'Database error. Please contact support.';
+      }
+      
+      DOMOperations.showErrorState(table, errorMessage);
+    }
+  }
+}
+
+// Usage
+document.addEventListener('DOMContentLoaded', function() {
+  // Add a small delay to ensure all assets are loaded
+  setTimeout(loadAndDisplayTopEarners, 100);
+});
+
+// Optional: Auto-refresh every 5 minutes
+// setInterval(loadAndDisplayTopEarners, 300000);
+
+// Export for module systems if needed
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { loadAndDisplayTopEarners };
+}

@@ -1,625 +1,941 @@
-// This will load content from admin panel
+// dashboard-content.js - Complete Implementation
+class DashboardContentManager {
+    constructor() {
+        this.supabase = null;
+        this.currentUser = null;
+        this.activeTimers = {};
+        this.taskCooldowns = {};
+        
+        this.init();
+    }
 
-(function() {
-    'use strict';
-    console.log('Dashboard Content Loader starting...');
-    class DashboardContentLoader {
-        constructor() {
-            this.supabase = null;
-            this._supabaseUrl = 'https://kwghulqonljulmvlcfnz.supabase.co';
-            this._supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt3Z2h1bHFvbmxqdWxtdmxjZm56Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM5NzcyMDcsImV4cCI6MjA3OTU1MzIwN30.hebcPqAvo4B23kx4gdWuXTJhmx7p8zSHHEYSkPzPhcM';
-            this.init();
-        }
-        async init() {
-            // Initialize Supabase
-            this.supabase = await this.initSupabase();
-            // Load content
-            await this.loadTasks();
-            await this.loadTrivia();
-            console.log('Dashboard content loaded');
-        }
-        async initSupabase() {
-            try {
-                // Use same credentials as admin
-                const supabaseUrl = 'https://kwghulqonljulmvlcfnz.supabase.co';
-                const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt3Z2h1bHFvbmxqdWxtdmxjZm56Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM5NzcyMDcsImV4cCI6MjA3OTU1MzIwN30.hebcPqAvo4B23kx4gdWuXTJhmx7p8zSHHEYSkPzPhcM';
-                // If a client is already exposed as window.supabase (from CDN or fallback), prefer it
-                if (window.supabase && typeof window.supabase.createClient === 'function') {
-                    try {
-                        return window.supabase.createClient(supabaseUrl, supabaseKey);
-                    } catch (e) {
-                        console.warn('window.supabase exists but createClient call failed', e);
-                    }
-                }
-
-                // If window.supabase is a client instance (has .from), reuse it
-                if (window.supabase && typeof window.supabase.from === 'function') {
-                    return window.supabase;
-                }
-
-                // Try dynamic import of the library
-                try {
-                    const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm');
-                    return createClient(supabaseUrl, supabaseKey);
-                } catch (impErr) {
-                    console.warn('Dynamic import failed, will poll for window.supabase as fallback', impErr);
-                }
-
-                // Poll for a short period to allow a local fallback script to load
-                const maxRetries = 6;
-                for (let i = 0; i < maxRetries; i++) {
-                    if (window.supabase && (typeof window.supabase.createClient === 'function' || typeof window.supabase.from === 'function')) {
-                        if (typeof window.supabase.createClient === 'function') return window.supabase.createClient(supabaseUrl, supabaseKey);
-                        return window.supabase;
-                    }
-                    await new Promise(r => setTimeout(r, 500));
-                }
-
-                throw new Error('Supabase client not available (CDN blocked and local fallback did not initialize in time)');
-            } catch (error) {
-                console.error('Failed to initialize Supabase:', error);
-                return null;
+    async init() {
+        try {
+            // Initialize Supabase from config
+            if (window.supabase && window.supabase.createClient) {
+                this.supabase = window.supabase;
+            } else if (typeof createSupabaseClient === 'function') {
+                this.supabase = createSupabaseClient();
+            } else {
+                console.error('Supabase not available');
+                return;
             }
-        }
-        async loadTasks() {
-            try {
-                // Prefer live DB results; `contents` is the source of tasks
-                let tasks = null;
-                if (this.supabase) {
-                    try {
-                        const { data, error } = await this.supabase
-                            .from('contents')
-                            .select('*')
-                            .order('created_at', { ascending: false })
-                            .limit(2000);
-                        if (!error && data) tasks = this.mapContentsToTasks(data || []);
-                        else console.warn('Supabase client returned error:', error);
-                    } catch (err) {
-                        console.warn('Supabase client fetch failed, will try REST fallback', err);
-                    }
-                }
 
-                // If no client or client failed, use REST API endpoint directly (no library required)
-                if (!tasks) {
-                    try {
-                        const data = await this.fetchContentsViaREST();
-                        tasks = this.mapContentsToTasks(data || []);
-                    } catch (err) {
-                        console.warn('REST fetch for contents failed:', err);
-                    }
-                }
-
-                if (tasks && tasks.length > 0) {
-                    try { localStorage.setItem('dashboard_tasks', JSON.stringify(tasks)); } catch (e) {}
-                    return this.renderTasks(tasks);
-                }
-
-                // Fallback to cached tasks if DB unavailable
-                const localTasks = localStorage.getItem('dashboard_tasks');
-                if (localTasks) {
-                    this.renderTasks(JSON.parse(localTasks));
-                    return;
-                }
-
-                this.showDefaultTasks();
-            } catch (error) {
-                console.log('Error loading tasks:', error.message);
-                this.showDefaultTasks();
+            // Check auth
+            const { data: { user } } = await this.supabase.auth.getUser();
+            if (!user) {
+                console.warn('User not authenticated');
+                window.location.href = 'index.html';
+                return;
             }
-        }
 
-        renderTasks(tasks) {
-            // Update visual count immediately
-            try { this.updateTaskCount(Array.isArray(tasks) ? tasks.length : 0); } catch (e) {}
-
-            const tiktokSection = document.querySelector('#users-section .video-earn') || document.querySelector('#tiktok-section .video-earn') || document.querySelector('.tiktok-tasks');
-            const youtubeSection = document.querySelector('#approvals-section .video-earn') || document.querySelector('#youtube-section .video-earn') || document.querySelector('.youtube-tasks');
+            this.currentUser = user;
             
-            if (!tiktokSection || !youtubeSection) return;
+            // Load user data first
+            await this.loadUserData();
+            
+            // Load content sections
+            this.setupEventListeners();
+            this.loadDashboardContent();
+            
+            // Setup navigation
+            this.setupNavigation();
+            
+            // Load initial sections
+            this.showSection('dashboard');
+            
+        } catch (error) {
+            console.error('Initialization error:', error);
+        }
+    }
 
-            // Clear existing content
-            tiktokSection.innerHTML = '';
-            youtubeSection.innerHTML = '';
+    async loadUserData() {
+        try {
+            const { data: userData, error } = await this.supabase
+                .from('users')
+                .select('*')
+                .eq('uuid', this.currentUser.id)
+                .single();
 
-            // Normalize platform and render into appropriate containers
-            tasks = (tasks || []).map(t => ({ ...t, platform: this.normalizePlatform(t.platform || ''), raw: t.raw || t }));
+            if (error) throw error;
 
-            // Ensure a generic fallback container exists
-            let genericSection = document.querySelector('.other-tasks');
-            if (!genericSection) {
-                genericSection = document.createElement('div');
-                genericSection.className = 'other-tasks';
-                try { youtubeSection.parentNode.insertBefore(genericSection, youtubeSection.nextSibling); } catch (e) { document.body.appendChild(genericSection); }
+            // Update UI with user data
+            this.updateUserUI(userData);
+            
+            // Load earnings
+            await this.loadEarnings();
+            
+        } catch (error) {
+            console.error('Error loading user data:', error);
+        }
+    }
+
+    updateUserUI(userData) {
+        // Update all user name elements
+        document.querySelectorAll('#user_name').forEach(el => {
+            if (el.tagName === 'INPUT') {
+                el.value = userData.user_name || 'User';
+            } else {
+                el.textContent = userData.user_name || 'User';
             }
+        });
 
-            tasks.forEach(task => {
-                const html = this.createTaskHTML(task);
-                if (task.platform === 'tiktok') {
-                    tiktokSection.innerHTML += html;
-                } else if (task.platform === 'youtube') {
-                    youtubeSection.innerHTML += html;
-                } else {
-                    genericSection.innerHTML += html;
+        // Update email
+        document.querySelectorAll('#email_address').forEach(el => {
+            if (el.tagName === 'INPUT') {
+                el.value = userData.email_address || '';
+            } else {
+                el.textContent = userData.email_address || '';
+            }
+        });
+
+        // Update phone
+        if (userData.phone_number) {
+            document.querySelectorAll('#phone_number').forEach(el => {
+                el.textContent = userData.phone_number;
+            });
+        }
+
+        // Update inviter if exists
+        if (userData.inviter_id) {
+            this.loadInviterInfo(userData.inviter_id);
+        }
+
+        // Update referral link
+        this.generateReferralLink(userData.id);
+    }
+
+    async loadEarnings() {
+        try {
+            const { data: earnings, error } = await this.supabase
+                .from('earnings')
+                .select('*')
+                .eq('id', this.currentUser.id)
+                .single();
+
+            if (error) throw error;
+
+            // Update dashboard stats
+            this.updateEarningsUI(earnings);
+            
+        } catch (error) {
+            console.error('Error loading earnings:', error);
+        }
+    }
+
+    updateEarningsUI(earnings) {
+        // Update all earning displays
+        const updates = {
+            'total_income': earnings.all_time_earn || 0,
+            'youtube': earnings.youtube || 0,
+            'tiktok': earnings.tiktok || 0,
+            'trivia': earnings.trivia || 0,
+            'refferal': earnings.refferal || 0,
+            'bonus': earnings.bonus || 0
+        };
+
+        Object.entries(updates).forEach(([id, amount]) => {
+            document.querySelectorAll(`#${id}`).forEach(el => {
+                if (el.classList.contains('stat-value')) {
+                    el.textContent = `UGX ${amount.toLocaleString()}`;
+                } else if (el.tagName === 'SPAN') {
+                    el.textContent = `UGX ${amount.toLocaleString()}`;
                 }
             });
+        });
+    }
 
-            // Add claim and view listeners after render
-            this.addClaimButtonListeners();
-
-            // Ensure badge reflects current number
-            try { this.updateTaskCount(tasks.length); } catch (e) {}
+    generateReferralLink(userId) {
+        const baseUrl = window.location.origin;
+        const referralLink = `${baseUrl}/index.html?ref=${userId}`;
+        
+        const linkInput = document.getElementById('link');
+        if (linkInput) {
+            linkInput.value = referralLink;
+            this.setupShareButtons(referralLink);
         }
+    }
 
-        createTaskHTML(task) {
-            const platform = (task.platform || '').toString();
-            const platformName = platform === 'tiktok' ? 'TikTok' : (platform === 'youtube' ? 'YouTube' : (platform || 'Other'));
-            const platformIcon = platform === 'tiktok' ? 'fab fa-tiktok' : (platform === 'youtube' ? 'fab fa-youtube' : 'fas fa-broadcast-tower');
-            const platformColor = platform === 'tiktok' ? '#25F4EE' : (platform === 'youtube' ? '#FF0000' : '#777');
+    setupShareButtons(link) {
+        const message = `Join Skylink and start earning money from TikTok and YouTube! Use my referral link: ${link}`;
+        
+        // WhatsApp
+        document.getElementById('shareWhatsApp')?.addEventListener('click', (e) => {
+            e.preventDefault();
+            window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
+        });
 
-            const src = Object.assign({}, task.raw || {}, task || {});
-            const videoUrl = (this.getField(src, ['video_url', 'content_url', 'url', 'link', 'video_link']) || '') + '';
-            let thumbnail = this.getField(src, ['thumbnail_url', 'thumbnail', 'thumb', 'image_url', 'image', 'cover']) || '';
-            const idVal = this.getField(src, ['id', 'task_id', 'content_id', 'post_id']) || task.id || '';
-            const rewardVal = this.getField(src, ['reward_amount', 'reward', 'amount']) || task.reward_amount || 0;
+        // Facebook
+        document.getElementById('shareFacebook')?.addEventListener('click', (e) => {
+            e.preventDefault();
+            window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(link)}`, '_blank');
+        });
 
-            try {
-                if (!thumbnail && videoUrl) {
-                    const vid = this.extractYouTubeID(videoUrl);
-                    if (vid) thumbnail = `https://img.youtube.com/vi/${vid}/maxresdefault.jpg`;
-                }
-            } catch (e) { thumbnail = thumbnail || ''; }
+        // Twitter
+        document.getElementById('shareTwitter')?.addEventListener('click', (e) => {
+            e.preventDefault();
+            window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(message)}&url=${encodeURIComponent(link)}`, '_blank');
+        });
 
-            if (!thumbnail) thumbnail = 'https://via.placeholder.com/600x400?text=' + encodeURIComponent(platformName + ' Video');
+        // Telegram
+        document.getElementById('shareTelegram')?.addEventListener('click', (e) => {
+            e.preventDefault();
+            window.open(`https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(message)}`, '_blank');
+        });
 
-            return `
-                <div class="vidSection">
+        // Email
+        document.getElementById('shareEmail')?.addEventListener('click', (e) => {
+            e.preventDefault();
+            window.location.href = `mailto:?subject=Join%20Skylink&body=${encodeURIComponent(message)}`;
+        });
+
+        // SMS
+        document.getElementById('shareSMS')?.addEventListener('click', (e) => {
+            e.preventDefault();
+            window.location.href = `sms:?body=${encodeURIComponent(message)}`;
+        });
+
+        // Copy Link
+        document.getElementById('CopyLink')?.addEventListener('click', () => {
+            navigator.clipboard.writeText(link).then(() => {
+                this.showNotification('Link copied successfully!', 'success');
+            });
+        });
+    }
+
+    async loadDashboardContent() {
+        try {
+            // Load all active content
+            const { data: contents, error } = await this.supabase
+                .from('dashboard_contents')
+                .select('*')
+                .eq('is_active', true)
+                .order('created_at', { ascending: false });
+
+            if (error) throw error;
+
+            // Render content by platform
+            this.renderTikTokContent(contents.filter(c => c.platform === 'tiktok'));
+            this.renderYouTubeContent(contents.filter(c => c.platform === 'youtube'));
+            this.renderTriviaContent(contents.filter(c => c.platform === 'trivia'));
+            
+            // Load user completions
+            await this.loadUserCompletions();
+            
+        } catch (error) {
+            console.error('Error loading content:', error);
+        }
+    }
+
+    renderTikTokContent(tiktokPosts) {
+        const container = document.querySelector('.video-earn');
+        if (!container || !tiktokPosts.length) return;
+
+        let html = '';
+        
+        tiktokPosts.forEach((post, index) => {
+            const completed = this.taskCooldowns[post.id] || false;
+            
+            html += `
+                <div class="vidSection" id="tiktok-${post.id}">
                     <div class="vhead">
                         <div class="leftInfo">
-                            <h3>${task.title || 'Untitled'}</h3>
-                            <h5>Sponsored by ${task.sponsor || 'Partner'}</h5>
+                            <h3>${post.title}</h3>
+                            <h5>Sponsored by ${post.sponsor || 'Skylink'}</h5>
                         </div>
                         <div class="rightInfo">
-                            <h6>Reward: UGX ${rewardVal}</h6>
+                            <h6>Reward: UGX ${post.reward_amount}</h6>
                         </div>
                     </div>
                     <div class="body">
                         <div class="post">
-                               <img src="${thumbnail}" 
-                                   alt="${task.title || ''}" style="width: 100%; border-radius: 8px;" onerror="this.onerror=null;this.src='https://via.placeholder.com/600x400?text=Image+Unavailable'">
+                            <img src="${post.thumbnail_url || 'https://via.placeholder.com/600x400?text=TikTok+Video'}" 
+                                 alt="${post.title}" 
+                                 onclick="dashboardManager.openVideoModal('${post.content_url}', 'tiktok')">
                         </div>
                     </div>
                     <div class="vfoot">
                         <div class="vdetails">
-                            <p>${task.description || 'Complete this task to earn your reward.'}</p>
-                            <h5>Posted: ${new Date(task.created_at).toLocaleDateString()}</h5>
+                            <p>${post.description || 'Like this video and stay for at least 30 seconds to earn your reward.'}</p>
+                            <h5>Posted: ${new Date(post.created_at).toLocaleDateString()}</h5>
                             <div class="buttons">
-                                <button class="claim-btn-${platform}" data-task-id="${idVal}" data-amount="${rewardVal}" data-video-url="${videoUrl || ''}" data-watch-seconds="${task.watch_seconds || 30}">
-                                    <i class="${platformIcon}" style="color: ${platformColor};"></i> Claim ${platformName}
+                                <button class="claim-btn-tiktok" 
+                                        data-post-id="${post.id}"
+                                        ${completed ? 'disabled style="opacity:0.5;"' : ''}>
+                                    ${completed ? 'Already Claimed' : 'Claim Reward'}
                                 </button>
-                                <button class="view-btn" data-video-url="${videoUrl || ''}" data-thumbnail="${thumbnail}">
-                                    <i class="fas fa-external-link-alt"></i> View Content
+                                <button class="follow_page" onclick="dashboardManager.followAccount('${post.sponsor || 'default'}', 'tiktok')">
+                                    Follow
                                 </button>
-                                ${platform === 'tiktok' ? `<button class="follow-btn" data-follow-url="${task.follow_url || task.video_url || ''}">Follow on TikTok</button>` : ''}
-                                ${platform === 'youtube' ? `<button class="subscribe-btn" data-subscribe-url="${task.follow_url || task.video_url || ''}">Subscribe</button>` : ''}
+                                <button class="like_content" onclick="dashboardManager.likeContent('${post.id}', 'tiktok')">
+                                    Like
+                                </button>
+                                <button class="view-video" onclick="dashboardManager.openVideoModal('${post.content_url}', 'tiktok')">
+                                    View Video
+                                </button>
                             </div>
                         </div>
                     </div>
                 </div>
             `;
-        }
+        });
 
-        showDefaultTasks() {
-            // Default tasks if none are loaded
-            const defaultTasks = [
-                {
-                    id: 1,
-                    platform: 'tiktok',
-                    title: 'Like this TikTok video',
-                    sponsor: 'Nike',
-                    reward_amount: 250,
-                    description: 'Like this video and stay for at least 30 seconds to earn your reward.',
-                    thumbnail_url: 'https://via.placeholder.com/600x400?text=TikTok+Video',
-                    created_at: new Date().toISOString()
-                },
-                {
-                    id: 2,
-                    platform: 'youtube',
-                    title: 'Watch this YouTube video',
-                    sponsor: 'Coca-Cola',
-                    reward_amount: 250,
-                    description: 'Watch this video for at least 1 minute and like it to earn your reward.',
-                    thumbnail_url: 'https://via.placeholder.com/600x400?text=YouTube+Video',
-                    created_at: new Date().toISOString()
+        // Insert after TikTok section header
+        const tiktokSection = document.querySelector('#users-section .video-earn');
+        if (tiktokSection) {
+            tiktokSection.innerHTML = html;
+        } else {
+            const section = document.getElementById('users-section');
+            if (section) {
+                const existing = section.querySelector('.video-earn');
+                if (existing) existing.remove();
+                
+                const videoEarnDiv = document.createElement('div');
+                videoEarnDiv.className = 'video-earn';
+                videoEarnDiv.innerHTML = html;
+                
+                const header = section.querySelector('.section-header');
+                if (header) {
+                    header.insertAdjacentElement('afterend', videoEarnDiv);
                 }
-            ];
-
-            this.renderTasks(defaultTasks);
-        }
-
-        // Map `contents` table rows into the task object shape used by the renderer
-        mapContentsToTasks(rows) {
-            if (!Array.isArray(rows)) return [];
-            return rows.map(r => {
-                const video_url = this.getField(r, ['video_url', 'content_url', 'url', 'link', 'video_link', 'video']) || '';
-                const thumbnail_url = this.getField(r, ['thumbnail_url', 'thumbnail', 'thumb', 'image_url', 'image', 'cover']) || '';
-                let platform = this.getField(r, ['platform', 'type', 'source']) || '';
-                const title = this.getField(r, ['title', 'name', 'headline']) || r.title || 'Untitled';
-                const sponsor = this.getField(r, ['sponsor', 'brand']) || r.sponsor || '';
-                const reward_amount = this.getField(r, ['reward_amount', 'reward', 'amount']) || r.reward_amount || 0;
-                const description = this.getField(r, ['description', 'desc', 'body']) || r.description || '';
-                const created_at = this.getField(r, ['created_at', 'created']) || r.created_at || new Date().toISOString();
-                const follow_url = this.getField(r, ['follow_url', 'follow', 'follow_link']) || r.follow_url || video_url || '';
-                const watch_seconds = parseInt(this.getField(r, ['watch_seconds', 'watch_time', 'required_seconds']) || r.watch_seconds || 30, 10);
-                const id = this.getField(r, ['id', 'content_id', 'post_id']) || r.id || '';
-
-                // If platform not provided, infer from video_url
-                let normalized = this.normalizePlatform(platform || '');
-                if (!normalized || normalized === 'other') {
-                    const lowerUrl = (video_url || '').toString().toLowerCase();
-                    if (/tiktok\.com|vm\.tiktok\.com|tiktok:|tikTok/i.test(lowerUrl)) normalized = 'tiktok';
-                    else if (/youtube\.com|youtu\.be|youtube:/i.test(lowerUrl)) normalized = 'youtube';
-                }
-
-                return {
-                    id,
-                    platform: normalized,
-                    title,
-                    sponsor,
-                    reward_amount,
-                    description,
-                    created_at,
-                    thumbnail_url,
-                    video_url,
-                    follow_url,
-                    watch_seconds,
-                    raw: r
-                };
-            });
-        }
-
-        // Fetch contents directly via Supabase REST (PostgREST) API - avoids needing the client library
-        async fetchContentsViaREST() {
-            const url = `${this._supabaseUrl}/rest/v1/contents?select=*&order=created_at.desc&limit=2000`;
-            const res = await fetch(url, {
-                headers: {
-                    apikey: this._supabaseKey,
-                    Authorization: `Bearer ${this._supabaseKey}`
-                }
-            });
-            if (!res.ok) throw new Error(`REST fetch failed: ${res.status} ${res.statusText}`);
-            return res.json();
-        }
-
-        async fetchTriviaViaREST() {
-            const url = `${this._supabaseUrl}/rest/v1/dashboard_trivia?select=*&eq=is_active.true&order=created_at.desc&limit=5`;
-            const res = await fetch(url, {
-                headers: {
-                    apikey: this._supabaseKey,
-                    Authorization: `Bearer ${this._supabaseKey}`
-                }
-            });
-            if (!res.ok) throw new Error(`REST fetch failed: ${res.status} ${res.statusText}`);
-            return res.json();
-        }
-
-        addClaimButtonListeners() {
-            // Attach to any button with class like 'claim-btn-<platform>'
-            document.querySelectorAll('[class*="claim-btn-"]').forEach(btn => {
-                btn.removeEventListener('click', btn._claimHandler);
-                const handler = (e) => {
-                    const el = e.currentTarget;
-                    const taskId = el.dataset.taskId;
-                    const amount = el.dataset.amount;
-                    const videoUrl = el.dataset.videoUrl || '';
-                    const watchSeconds = parseInt(el.dataset.watchSeconds || el.dataset.watchSeconds || '30', 10);
-                    if (videoUrl) {
-                        if (/youtube\.com|youtu\.be/.test(videoUrl)) {
-                            this.showVideoModal({ id: taskId, amount, video_url: videoUrl, watch_seconds: watchSeconds, embed: 'youtube' });
-                        } else if (/\.mp4$|video\//i.test(videoUrl)) {
-                            this.showVideoModal({ id: taskId, amount, video_url: videoUrl, watch_seconds: watchSeconds, embed: 'video' });
-                        } else if (/tiktok\.com/.test(videoUrl)) {
-                            window.open(videoUrl, '_blank');
-                            this.showNotification && this.showNotification('Opened TikTok in new tab. Click claim when done.', 'info');
-                        } else {
-                            window.open(videoUrl || '#', '_blank');
-                            this.showNotification && this.showNotification('Opened content in new tab. Click claim when done.', 'info');
-                        }
-                    } else {
-                        this.claimTask(taskId, amount);
-                    }
-                };
-                btn.addEventListener('click', handler);
-                btn._claimHandler = handler;
-            });
-        }
-
-        updateTaskCount(n) {
-            try {
-                const el = document.getElementById('task-count');
-                if (el) el.textContent = String(n || 0);
-            } catch (e) {}
-        }
-
-        // Extract YouTube video ID robustly from common URL formats
-        // Returns null if no valid id found
-        extractYouTubeID(url) {
-            if (!url || typeof url !== 'string') return null;
-            const patterns = [
-                /(?:v=)([A-Za-z0-9_-]{11})/, // watch?v=
-                /(?:youtu\.be\/)([A-Za-z0-9_-]{11})/, // youtu.be/
-                /(?:embed\/)([A-Za-z0-9_-]{11})/ // /embed/
-            ];
-            for (const re of patterns) {
-                const m = url.match(re);
-                if (m && m[1]) return m[1];
             }
-            return null;
-        }
-
-        // Helper to get first existing field from object
-        getField(obj, keys) {
-            if (!obj || !keys) return null;
-            for (const k of keys) {
-                if (obj[k] !== undefined && obj[k] !== null && obj[k] !== '') return obj[k];
-            }
-            return null;
-        }
-
-        normalizePlatform(p) {
-            if (!p) return 'other';
-            const s = p.toString().toLowerCase().replace(/[^a-z0-9]/g, '');
-            if (s.includes('youtube') || s === 'yt') return 'youtube';
-            if (s.includes('tiktok') || s.includes('tik') || s.includes('tt')) return 'tiktok';
-            return 'other';
-        }
-
-        async claimTask(taskId, amount) {
-            try {
-                const amt = Number(amount) || 0;
-                if (typeof this.showNotification === 'function') {
-                    this.showNotification(`Task claimed! You earned UGX ${amt}.`, 'success');
-                } else {
-                    // Fallback UX for environments without showNotification
-                    alert(`Task claimed! You earned UGX ${amt}.`);
-                }
-                // Record claim locally for now. Persisting to the backend can be
-                // implemented later if desired (REST or Supabase client).
-                console.log('claimTask:', { taskId, amount: amt });
-                return { success: true, taskId, amount: amt };
-            } catch (err) {
-                console.error('Error in claimTask:', err);
-                return { success: false, error: err };
-            }
-        }
-
-        async loadTrivia() {
-            try {
-                // Check for trivia in localStorage
-                const localTrivia = localStorage.getItem('dashboard_trivia');
-                if (localTrivia) {
-                    this.renderTrivia(JSON.parse(localTrivia));
-                    return;
-                }
-
-                let trivia = null;
-                if (this.supabase) {
-                    try {
-                        const { data, error } = await this.supabase
-                            .from('dashboard_trivia')
-                            .select('*')
-                            .eq('is_active', true)
-                            .order('created_at', { ascending: false })
-                            .limit(5);
-                        if (!error && data && data.length > 0) trivia = data;
-                    } catch (err) {
-                        console.warn('Supabase trivia fetch failed, will try REST fallback', err);
-                    }
-                }
-
-                if (!trivia) {
-                    try {
-                        trivia = await this.fetchTriviaViaREST();
-                    } catch (err) {
-                        console.warn('REST fetch for trivia failed:', err);
-                    }
-                }
-
-                if (trivia && trivia.length > 0) {
-                    try { localStorage.setItem('dashboard_trivia', JSON.stringify(trivia)); } catch (e) {}
-                    this.renderTrivia(trivia);
-                } else {
-                    this.showDefaultTrivia();
-                }
-            } catch (error) {
-                console.log('Error loading trivia:', error.message);
-                this.showDefaultTrivia();
-            }
-        }
-
-        renderTrivia(questions) {
-            const quizForm = document.getElementById('quizForm');
-            if (!quizForm) return;
-
-            // Clear existing questions (keep first 5 default ones or replace all)
-            const existingQuestions = quizForm.querySelectorAll('.question');
-            if (existingQuestions.length > 0) {
-                // Replace questions starting from the first one
-                questions.slice(0, Math.min(5, questions.length)).forEach((q, index) => {
-                    if (existingQuestions[index]) {
-                        existingQuestions[index].innerHTML = this.createTriviaHTML(q, index + 1);
-                    }
-                });
-            }
-        }
-
-        createTriviaHTML(question, number) {
-            const options = question.options || {};
-            
-            let optionsHTML = '';
-            Object.entries(options).forEach(([key, value]) => {
-                optionsHTML += `
-                    <label><input type="radio" name="q${number}" value="${key}"> ${value}</label>
-                `;
-            });
-
-            return `
-                <p>${number}. ${question.question}</p>
-                <div class="options">
-                    ${optionsHTML}
-                </div>
-            `;
-        }
-
-        // Create and show a video modal which enforces watch_seconds before enabling claim
-        showVideoModal(task) {
-            // Ensure a single modal exists
-            let modal = document.getElementById('taskVideoModal');
-            if (!modal) {
-                modal = document.createElement('div');
-                modal.id = 'taskVideoModal';
-                modal.className = 'modal-overlay';
-                modal.style.cssText = 'position:fixed;left:0;top:0;right:0;bottom:0;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;z-index:99999;';
-                modal.innerHTML = `
-                    <div class="modal" id="taskVideoCard" style="background:#fff;border-radius:8px;max-width:900px;width:95%;max-height:90%;overflow:auto;padding:12px;">
-                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-                            <h3 style="margin:0">Watch Video to Claim</h3>
-                            <button id="videoModalClose" style="background:none;border:none;font-size:20px;cursor:pointer">&times;</button>
-                        </div>
-                        <div class="modal-body" id="taskVideoBody" style="text-align:center;">
-                            <!-- content inserted dynamically -->
-                        </div>
-                    </div>
-                `;
-                document.body.appendChild(modal);
-                modal.querySelector('#videoModalClose').addEventListener('click', () => this._cleanupVideoModal());
-            }
-
-            const overlay = modal;
-            overlay.style.display = 'flex';
-            const body = modal.querySelector('#taskVideoBody');
-            if (!body) return;
-
-            // Prepare UI depending on embed type
-            const required = parseInt(task.watch_seconds || task.duration_seconds || 30, 10) || 30;
-            body.innerHTML = `
-                <div id="taskVideoHost" style="max-width:100%;">
-                </div>
-                <div style="margin-top:10px;display:flex;gap:8px;align-items:center;justify-content:center;">
-                    <button id="claimAfterWatch" disabled class="btn">Claim Reward</button>
-                    <div id="watchTimer">Remain: <span id="watchRemain">${required}</span>s</div>
-                </div>
-            `;
-
-            const host = body.querySelector('#taskVideoHost');
-            const claimBtn = modal.querySelector('#claimAfterWatch');
-            const watchRemainEl = modal.querySelector('#watchRemain');
-
-            // cleanup any previous state
-            this._cleanupVideoModal();
-
-            // Handler to finalize claim
-            const finalizeClaim = async () => {
-                try {
-                    claimBtn.disabled = true;
-                    await this.claimTask(task.id || task.task_id || null, task.amount || task.reward_amount || 0);
-                    this._cleanupVideoModal();
-                } catch (e) {
-                    console.error('claim failed', e);
-                    claimBtn.disabled = false;
-                }
-            };
-
-            // mp4/html5 video
-            if ((task.embed === 'video' || /\.mp4$|video\//i.test(task.video_url || ''))) {
-                const v = document.createElement('video');
-                v.id = 'taskVideoPlayer';
-                v.controls = true;
-                v.preload = 'auto';
-                v.style.maxWidth = '100%';
-                v.src = task.video_url;
-                host.appendChild(v);
-
-                let requiredSeconds = required;
-                watchRemainEl.textContent = requiredSeconds;
-                claimBtn.disabled = true;
-
-                const onTime = () => {
-                    const watched = Math.floor(v.currentTime || 0);
-                    const remain = Math.max(requiredSeconds - watched, 0);
-                    watchRemainEl.textContent = remain;
-                    if (watched >= requiredSeconds) claimBtn.disabled = false;
-                };
-
-                v.addEventListener('timeupdate', onTime);
-                claimBtn.addEventListener('click', finalizeClaim, { once: true });
-
-                this._videoModalState = { type: 'video', player: v, onTime, finalizeClaim, overlay };
-                v.play().catch(()=>{});
-                return;
-            }
-
-            // YouTube iframe fallback (no API) – use elapsed timer since iframe added
-            const ytId = this.extractYouTubeID(task.video_url || '');
-            if (ytId) {
-                const iframe = document.createElement('iframe');
-                iframe.width = '800'; iframe.height = '450';
-                iframe.src = `https://www.youtube.com/embed/${ytId}?rel=0&autoplay=1`;
-                iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
-                iframe.setAttribute('frameborder','0');
-                iframe.style.maxWidth = '100%';
-                host.appendChild(iframe);
-
-                let elapsed = 0;
-                watchRemainEl.textContent = required;
-                claimBtn.disabled = true;
-                this._videoModalState = { type: 'iframe', iframe, overlay };
-
-                this._videoModalState._timer = setInterval(() => {
-                    elapsed++;
-                    const remain = Math.max(required - elapsed, 0);
-                    watchRemainEl.textContent = remain;
-                    if (elapsed >= required) {
-                        claimBtn.disabled = false;
-                        clearInterval(this._videoModalState._timer);
-                    }
-                }, 1000);
-
-                claimBtn.addEventListener('click', finalizeClaim, { once: true });
-                return;
-            }
-
-            // Fallback: open new tab and allow manual claim
-            host.innerHTML = `<p>Content cannot be embedded. <a href="${task.video_url || '#'}" target="_blank">Open in new tab</a></p>`;
-            claimBtn.disabled = false;
-            claimBtn.addEventListener('click', finalizeClaim, { once: true });
-            this._videoModalState = { type: 'link', overlay };
-        }
-
-        _cleanupVideoModal() {
-            const s = this._videoModalState;
-            if (!s) return;
-            try {
-                if (s.type === 'video' && s.player) {
-                    try { s.player.pause(); } catch(e){}
-                    try { s.player.removeEventListener('timeupdate', s.onTime); } catch(e){}
-                }
-                if (s.type === 'iframe' && s._timer) {
-                    try { clearInterval(s._timer); } catch(e){}
-                }
-                if (s.overlay) s.overlay.style.display = 'none';
-            } catch (e) { console.warn('Error cleaning video modal', e); }
-            this._videoModalState = null;
-        }
-
-        showDefaultTrivia() {
-            // Default trivia questions are already in the HTML
-            console.log('Using default trivia questions');
         }
     }
 
-    // Initialize when DOM is ready
-    document.addEventListener('DOMContentLoaded', function() {
-        window.dashboardContentLoader = new DashboardContentLoader();
-    });
+    renderYouTubeContent(youtubePosts) {
+        const container = document.querySelector('#approvals-section .video-earn');
+        if (!container || !youtubePosts.length) return;
 
-})();
+        let html = '';
+        
+        youtubePosts.forEach((post) => {
+            const completed = this.taskCooldowns[post.id] || false;
+            
+            html += `
+                <div class="vidSection" id="youtube-${post.id}">
+                    <div class="vhead">
+                        <div class="leftInfo">
+                            <h3>${post.title}</h3>
+                            <h5>Sponsored by ${post.sponsor || 'Skylink'}</h5>
+                        </div>
+                        <div class="rightInfo">
+                            <h6>Reward: UGX ${post.reward_amount}</h6>
+                        </div>
+                    </div>
+                    <div class="body">
+                        <div class="post">
+                            <img src="${post.thumbnail_url || 'https://via.placeholder.com/600x400?text=YouTube+Video'}" 
+                                 alt="${post.title}"
+                                 onclick="dashboardManager.openVideoModal('${post.content_url}', 'youtube')">
+                        </div>
+                    </div>
+                    <div class="vfoot">
+                        <div class="vdetails">
+                            <p>${post.description || 'Watch this video for at least 1 minute to earn your reward.'}</p>
+                            <h5>Posted: ${new Date(post.created_at).toLocaleDateString()}</h5>
+                            <div class="buttons">
+                                <button class="claim-btn-youtube" 
+                                        data-post-id="${post.id}"
+                                        ${completed ? 'disabled style="opacity:0.5;"' : ''}>
+                                    ${completed ? 'Already Claimed' : 'Claim Reward'}
+                                </button>
+                                <button class="subscribe_src_channel" onclick="dashboardManager.subscribeChannel('${post.sponsor || 'default'}')">
+                                    Subscribe
+                                </button>
+                                <button class="like_src_content" onclick="dashboardManager.likeContent('${post.id}', 'youtube')">
+                                    Like
+                                </button>
+                                <button class="view-video" onclick="dashboardManager.openVideoModal('${post.content_url}', 'youtube')">
+                                    Watch Video
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+
+        const youtubeSection = document.querySelector('#approvals-section .video-earn');
+        if (youtubeSection) {
+            youtubeSection.innerHTML = html;
+        }
+    }
+
+    renderTriviaContent(triviaPosts) {
+        const container = document.querySelector('#content-section #quizForm');
+        if (!container || !triviaPosts.length) return;
+
+        // Take the first active trivia or create default
+        const trivia = triviaPosts[0];
+        
+        let html = '';
+        
+        if (trivia.content_type === 'quiz') {
+            try {
+                const questions = JSON.parse(trivia.requirements || '[]');
+                
+                questions.forEach((q, index) => {
+                    html += `
+                        <div class="question">
+                            <p>${index + 1}. ${q.question}</p>
+                            <div class="options">
+                                ${Object.entries(q.options || {}).map(([key, value]) => `
+                                    <label><input type="radio" name="q${index + 1}" value="${key}"> ${value}</label>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                html += `
+                    <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">
+                        Submit Answers (Reward: UGX ${trivia.reward_amount})
+                    </button>
+                `;
+                
+                container.innerHTML = html;
+                
+                // Update trivia form handler
+                container.onsubmit = (e) => {
+                    e.preventDefault();
+                    this.submitTriviaAnswers(trivia.id, questions);
+                };
+                
+            } catch (error) {
+                console.error('Error parsing trivia:', error);
+            }
+        }
+    }
+
+    async loadUserCompletions() {
+        try {
+            const { data: completions, error } = await this.supabase
+                .from('user_task_completions')
+                .select('content_id, status, completed_at')
+                .eq('user_id', this.currentUser.id);
+
+            if (error) throw error;
+
+            // Mark tasks as completed
+            completions.forEach(comp => {
+                if (comp.status === 'completed' || comp.status === 'claimed') {
+                    this.taskCooldowns[comp.content_id] = true;
+                    
+                    // Update UI
+                    const claimBtn = document.querySelector(`[data-post-id="${comp.content_id}"]`);
+                    if (claimBtn) {
+                        claimBtn.disabled = true;
+                        claimBtn.textContent = 'Already Claimed';
+                        claimBtn.style.opacity = '0.5';
+                    }
+                }
+            });
+            
+        } catch (error) {
+            console.error('Error loading completions:', error);
+        }
+    }
+
+    // VIDEO WATCHING WITH TIMER
+    openVideoModal(videoUrl, platform) {
+        // Parse video ID from URL
+        let embedUrl = videoUrl;
+        
+        if (platform === 'youtube') {
+            const videoId = this.extractYouTubeId(videoUrl);
+            embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1`;
+        } else if (platform === 'tiktok') {
+            // TikTok embed handling
+            embedUrl = videoUrl.replace('https://www.tiktok.com/', 'https://www.tiktok.com/embed/');
+        }
+
+        const modalHtml = `
+            <div class="video-modal" style="
+                position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+                background: rgba(0,0,0,0.9); z-index: 9999; display: flex;
+                align-items: center; justify-content: center;
+            ">
+                <div style="position: relative; width: 90%; max-width: 800px;">
+                    <button onclick="dashboardManager.closeVideoModal()" style="
+                        position: absolute; top: -40px; right: 0; background: #e74c3c;
+                        color: white; border: none; padding: 10px 20px; cursor: pointer;
+                        border-radius: 5px; z-index: 10000;
+                    ">Close</button>
+                    
+                    <div style="position: relative; padding-bottom: 56.25%; height: 0;">
+                        <iframe src="${embedUrl}" 
+                                style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"
+                                frameborder="0" allowfullscreen allow="autoplay">
+                        </iframe>
+                    </div>
+                    
+                    <div id="video-timer" style="
+                        background: #2c3e50; color: white; padding: 15px;
+                        text-align: center; margin-top: 10px; border-radius: 5px;
+                    ">
+                        <h4 style="margin: 0 0 10px 0;">Watch Timer</h4>
+                        <div id="timer-display" style="font-size: 24px; font-weight: bold;">00:30</div>
+                        <p style="margin: 10px 0 0 0; font-size: 14px;">
+                            Watch for 30 seconds to unlock reward
+                        </p>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        const modal = document.createElement('div');
+        modal.innerHTML = modalHtml;
+        modal.id = 'videoModal';
+        document.body.appendChild(modal);
+
+        // Start timer
+        this.startVideoTimer(30); // 30 seconds minimum
+    }
+
+    startVideoTimer(seconds) {
+        let timeLeft = seconds;
+        const timerDisplay = document.getElementById('timer-display');
+        
+        const timer = setInterval(() => {
+            timeLeft--;
+            
+            const minutes = Math.floor(timeLeft / 60);
+            const secs = timeLeft % 60;
+            timerDisplay.textContent = `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            
+            if (timeLeft <= 0) {
+                clearInterval(timer);
+                timerDisplay.innerHTML = '<span style="color: #2ecc71;">✓ Ready to Claim!</span>';
+                
+                // Enable claim button if exists
+                const modal = document.getElementById('videoModal');
+                if (modal) {
+                    const postId = modal.dataset.postId;
+                    if (postId) {
+                        this.enableClaimButton(postId);
+                    }
+                }
+            }
+        }, 1000);
+
+        // Store timer reference
+        this.activeTimers['video'] = timer;
+    }
+
+    closeVideoModal() {
+        const modal = document.getElementById('videoModal');
+        if (modal) {
+            modal.remove();
+            
+            // Clear timer
+            if (this.activeTimers['video']) {
+                clearInterval(this.activeTimers['video']);
+                delete this.activeTimers['video'];
+            }
+        }
+    }
+
+    extractYouTubeId(url) {
+        const regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/;
+        const match = url.match(regExp);
+        return (match && match[7].length === 11) ? match[7] : null;
+    }
+
+    // CLAIM REWARD FUNCTION
+    async claimReward(postId, platform) {
+        try {
+            // Get post details
+            const { data: post, error: postError } = await this.supabase
+                .from('dashboard_contents')
+                .select('*')
+                .eq('id', postId)
+                .single();
+
+            if (postError) throw postError;
+
+            // Check if already completed
+            const { data: existing, error: checkError } = await this.supabase
+                .from('user_task_completions')
+                .select('*')
+                .eq('user_id', this.currentUser.id)
+                .eq('content_id', postId)
+                .single();
+
+            if (!checkError && existing) {
+                this.showNotification('You have already claimed this reward!', 'warning');
+                return;
+            }
+
+            // Record completion
+            const { error: completionError } = await this.supabase
+                .from('user_task_completions')
+                .insert({
+                    user_id: this.currentUser.id,
+                    content_id: postId,
+                    platform: platform,
+                    status: 'completed',
+                    reward_earned: post.reward_amount,
+                    completed_at: new Date().toISOString()
+                });
+
+            if (completionError) throw completionError;
+
+            // Update user earnings
+            const earningsColumn = platform === 'tiktok' ? 'tiktok' : 
+                                  platform === 'youtube' ? 'youtube' : 'trivia';
+            
+            const { data: currentEarnings } = await this.supabase
+                .from('earnings')
+                .select(earningsColumn, 'all_time_earn')
+                .eq('id', this.currentUser.id)
+                .single();
+
+            const newAmount = (currentEarnings[earningsColumn] || 0) + post.reward_amount;
+            const newTotal = (currentEarnings.all_time_earn || 0) + post.reward_amount;
+
+            await this.supabase
+                .from('earnings')
+                .update({
+                    [earningsColumn]: newAmount,
+                    all_time_earn: newTotal
+                })
+                .eq('id', this.currentUser.id);
+
+            // Update UI
+            this.taskCooldowns[postId] = true;
+            
+            const claimBtn = document.querySelector(`[data-post-id="${postId}"]`);
+            if (claimBtn) {
+                claimBtn.disabled = true;
+                claimBtn.textContent = 'Claimed!';
+                claimBtn.style.opacity = '0.5';
+            }
+
+            // Update earnings display
+            this.updateEarningsDisplay(earningsColumn, newAmount);
+            this.updateEarningsDisplay('total_income', newTotal);
+
+            this.showNotification(`Successfully claimed UGX ${post.reward_amount}!`, 'success');
+
+        } catch (error) {
+            console.error('Error claiming reward:', error);
+            this.showNotification('Error claiming reward. Please try again.', 'error');
+        }
+    }
+
+    updateEarningsDisplay(type, amount) {
+        const element = document.getElementById(type);
+        if (element) {
+            element.textContent = `UGX ${amount.toLocaleString()}`;
+        }
+    }
+
+    // TRIVIA SUBMISSION
+    async submitTriviaAnswers(triviaId, questions) {
+        try {
+            let correctCount = 0;
+            
+            questions.forEach((q, index) => {
+                const selected = document.querySelector(`input[name="q${index + 1}"]:checked`);
+                if (selected && selected.value === q.correct_answer) {
+                    correctCount++;
+                }
+            });
+
+            // Minimum 3 correct answers to earn reward
+            if (correctCount >= 3) {
+                // Get trivia post
+                const { data: trivia, error } = await this.supabase
+                    .from('dashboard_contents')
+                    .select('reward_amount')
+                    .eq('id', triviaId)
+                    .single();
+
+                if (error) throw error;
+
+                // Record completion
+                await this.supabase
+                    .from('user_task_completions')
+                    .insert({
+                        user_id: this.currentUser.id,
+                        content_id: triviaId,
+                        platform: 'trivia',
+                        status: 'completed',
+                        reward_earned: trivia.reward_amount,
+                        completed_at: new Date().toISOString()
+                    });
+
+                // Update earnings
+                const { data: currentEarnings } = await this.supabase
+                    .from('earnings')
+                    .select('trivia, all_time_earn')
+                    .eq('id', this.currentUser.id)
+                    .single();
+
+                const newTrivia = (currentEarnings.trivia || 0) + trivia.reward_amount;
+                const newTotal = (currentEarnings.all_time_earn || 0) + trivia.reward_amount;
+
+                await this.supabase
+                    .from('earnings')
+                    .update({
+                        trivia: newTrivia,
+                        all_time_earn: newTotal
+                    })
+                    .eq('id', this.currentUser.id);
+
+                this.updateEarningsDisplay('trivia', newTrivia);
+                this.updateEarningsDisplay('total_income', newTotal);
+
+                this.showNotification(`You got ${correctCount}/5 correct! Earned UGX ${trivia.reward_amount}`, 'success');
+            } else {
+                this.showNotification(`Only ${correctCount}/5 correct. Need 3+ correct answers to earn reward.`, 'warning');
+            }
+
+        } catch (error) {
+            console.error('Error submitting trivia:', error);
+            this.showNotification('Error submitting answers. Please try again.', 'error');
+        }
+    }
+
+    // EVENT LISTENERS SETUP
+    setupEventListeners() {
+        // Delegate event handling for dynamically created buttons
+        document.addEventListener('click', (e) => {
+            // TikTok claim buttons
+            if (e.target.classList.contains('claim-btn-tiktok')) {
+                const postId = e.target.dataset.postId;
+                if (postId && !this.taskCooldowns[postId]) {
+                    this.claimReward(postId, 'tiktok');
+                }
+            }
+            
+            // YouTube claim buttons
+            if (e.target.classList.contains('claim-btn-youtube')) {
+                const postId = e.target.dataset.postId;
+                if (postId && !this.taskCooldowns[postId]) {
+                    this.claimReward(postId, 'youtube');
+                }
+            }
+        });
+
+        // Refresh buttons
+        document.getElementById('refresh-tiktok')?.addEventListener('click', () => {
+            this.loadDashboardContent();
+            this.showNotification('TikTok tasks refreshed!', 'info');
+        });
+
+        document.getElementById('refresh-youtube')?.addEventListener('click', () => {
+            this.loadDashboardContent();
+            this.showNotification('YouTube tasks refreshed!', 'info');
+        });
+
+        // Logout
+        document.getElementById('logout')?.addEventListener('click', async (e) => {
+            e.preventDefault();
+            await this.supabase.auth.signOut();
+            window.location.href = 'index.html';
+        });
+    }
+
+    setupNavigation() {
+        const navLinks = document.querySelectorAll('#navLinks a[data-section]');
+        
+        navLinks.forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const section = link.dataset.section;
+                this.showSection(section);
+                
+                // Close mobile menu if open
+                const sideMenu = document.getElementById('sideMenu');
+                if (sideMenu?.classList.contains('active')) {
+                    sideMenu.classList.remove('active');
+                    document.querySelector('.overlay').style.display = 'none';
+                }
+            });
+        });
+    }
+
+    showSection(sectionName) {
+        // Hide all sections
+        document.querySelectorAll('.admin-section').forEach(section => {
+            section.classList.remove('active');
+        });
+
+        // Show selected section
+        const targetSection = document.getElementById(`${sectionName}-section`);
+        if (targetSection) {
+            targetSection.classList.add('active');
+            
+            // Load section-specific data
+            switch(sectionName) {
+                case 'withdrawals':
+                    this.loadDownlines();
+                    break;
+                case 'stats':
+                    this.loadWithdrawalHistory();
+                    break;
+            }
+        }
+    }
+
+    async loadDownlines() {
+        try {
+            const { data: downlines, error } = await this.supabase
+                .from('refferals')
+                .select(`
+                    referred:users!refferals_referred_id_fkey (
+                        user_name,
+                        email_address,
+                        created_at,
+                        status
+                    )
+                `)
+                .eq('inviter_id', this.currentUser.id);
+
+            if (error) throw error;
+
+            const tbody = document.querySelector('#downlines-table tbody');
+            if (tbody) {
+                let html = '';
+                
+                downlines.forEach(ref => {
+                    const user = ref.referred;
+                    if (user) {
+                        html += `
+                            <tr>
+                                <td>${user.user_name || 'N/A'}</td>
+                                <td>${user.email_address || 'N/A'}</td>
+                                <td>${new Date(user.created_at).toLocaleDateString()}</td>
+                                <td><span class="status-active">${user.status || 'active'}</span></td>
+                                <td>Level 1</td>
+                                <td>UGX 7,000</td>
+                            </tr>
+                        `;
+                    }
+                });
+                
+                tbody.innerHTML = html || '<tr><td colspan="6">No referrals yet</td></tr>';
+                
+                // Update summary
+                document.getElementById('l1Users').textContent = downlines.length;
+                document.getElementById('referral').textContent = `UGX ${(downlines.length * 7000).toLocaleString()}`;
+            }
+            
+        } catch (error) {
+            console.error('Error loading downlines:', error);
+        }
+    }
+
+    async loadWithdrawalHistory() {
+        try {
+            const { data: withdrawals, error } = await this.supabase
+                .from('withdrawal_requests')
+                .select('*')
+                .eq('id', this.currentUser.id)
+                .order('created_at', { ascending: false });
+
+            if (error) throw error;
+
+            const tbody = document.querySelector('#withdraw_history');
+            if (tbody) {
+                let html = '<tr><th>Date</th><th>ID</th><th>Amount</th><th>Wallet</th><th>Method</th><th>Status</th></tr>';
+                
+                withdrawals.forEach(w => {
+                    html += `
+                        <tr>
+                            <td>${new Date(w.created_at).toLocaleDateString()}</td>
+                            <td>${w.request_id || 'N/A'}</td>
+                            <td>UGX ${w.amount?.toLocaleString() || 0}</td>
+                            <td>${w.wallet_type || 'N/A'}</td>
+                            <td>${w.payment_method || 'N/A'}</td>
+                            <td><span class="status-${w.status}">${w.status}</span></td>
+                        </tr>
+                    `;
+                });
+                
+                tbody.innerHTML = html;
+                
+                // Update pending count
+                const pending = withdrawals.filter(w => w.status === 'pending').length;
+                document.getElementById('pendingWithdrawals').textContent = pending;
+            }
+            
+        } catch (error) {
+            console.error('Error loading withdrawals:', error);
+        }
+    }
+
+    showNotification(message, type = 'info') {
+        const notification = document.createElement('div');
+        notification.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 25px;
+            background: ${type === 'success' ? '#2ecc71' : 
+                        type === 'error' ? '#e74c3c' : 
+                        type === 'warning' ? '#f39c12' : '#3498db'};
+            color: white;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            z-index: 10000;
+            animation: slideInRight 0.3s ease;
+        `;
+        notification.textContent = message;
+        document.body.appendChild(notification);
+
+        setTimeout(() => {
+            notification.style.animation = 'slideOutRight 0.3s ease';
+            setTimeout(() => notification.remove(), 300);
+        }, 5000);
+    }
+
+    // Helper functions (attach to window for inline onclick)
+    followAccount(sponsor, platform) {
+        this.showNotification(`Following ${sponsor} on ${platform}...`, 'info');
+        // In real implementation, this would open the social media profile
+    }
+
+    likeContent(postId, platform) {
+        this.showNotification(`Liked content on ${platform}`, 'info');
+    }
+
+    subscribeChannel(channel) {
+        this.showNotification(`Subscribed to ${channel}`, 'info');
+    }
+}
+
+// Initialize on DOM ready
+document.addEventListener('DOMContentLoaded', () => {
+    window.dashboardManager = new DashboardContentManager();
+});
+
+// Make functions available for inline onclick
+window.dashboardManager = {
+    openVideoModal: function(url, platform) {
+        if (window.dashboardManager) {
+            window.dashboardManager.openVideoModal(url, platform);
+        }
+    },
+    closeVideoModal: function() {
+        if (window.dashboardManager) {
+            window.dashboardManager.closeVideoModal();
+        }
+    },
+    followAccount: function(sponsor, platform) {
+        if (window.dashboardManager) {
+            window.dashboardManager.followAccount(sponsor, platform);
+        }
+    },
+    likeContent: function(postId, platform) {
+        if (window.dashboardManager) {
+            window.dashboardManager.likeContent(postId, platform);
+        }
+    },
+    subscribeChannel: function(channel) {
+        if (window.dashboardManager) {
+            window.dashboardManager.subscribeChannel(channel);
+        }
+    }
+};

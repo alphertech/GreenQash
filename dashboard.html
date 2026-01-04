@@ -2,11 +2,35 @@
 <html lang="en">
 
 <head>
+    <script src="block-youtube-api.js"></script>
+    <script src="simple-video-player.js"></script>
     <meta charset="UTF-8">
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: https://via.placeholder.com https:; font-src 'self' https://cdnjs.cloudflare.com https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0 webfonts.gstatic.com data:; connect-src 'self' http://127.0.0.1:5502 ws://127.0.0.1:5502 https: wss: wss://kwghulqonljulmvlcfnz.supabase.co https://kwghulqonljulmvlcfnz.supabase.co;">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SkyLink</title>
+    <!-- Replace your CSP line with this -->
+    <meta http-equiv="Content-Security-Policy" content="
+        default-src 'self' https:;
+        script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com https://www.youtube.com https://s.ytimg.com;
+        style-src 'self' 'unsafe-inline' https:;
+        img-src 'self' data: https: http: * blob:;
+        font-src 'self' https://cdnjs.cloudflare.com https://fonts.gstatic.com data:;
+        connect-src 'self' https://kwghulqonljulmvlcfnz.supabase.co wss://kwghulqonljulmvlcfnz.supabase.co;
+        frame-src 'self' https://www.youtube.com https://youtube.com https://www.youtube-nocookie.com https://*.youtube.com https://*.tiktok.com;
+        media-src *;
+    ">
     <!-- In dashboard.html head -->
+    <!-- Load YouTube IFrame API -->
+    <script src="https://www.youtube.com/iframe_api"></script>
+    
+    <!-- Load Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <!-- Load Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
+    
+    <!-- Load our dashboard -->
+    <script src="dashboard-real.js"></script>
     <script>
         // Simple inline check
         console.log('Dashboard loading...');
@@ -54,6 +78,8 @@
     <!-- Load Supabase directly from working CDN -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/supabase.min.js"></script>
     <!-- Local fallback if CDN is blocked/unavailable -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
+    <script src="dashboard-loader.js"></script>
     <script>
         // After attempting to load CDN, ensure a Supabase client is available.
         // If not, load a small local fallback so the app doesn't crash.
@@ -89,6 +115,7 @@
     
     <!-- Load our scripts -->
     <script src="config.js"></script>
+    <script src="cleanup-fx.js"></script>
     <script src="init-supabase.js"></script>
     <script src="admin.js"></script>
     <script src="dashboard-core.js"></script>
@@ -194,10 +221,6 @@
         </menu>
 
         <div class="admin-content">
-            <!-- Task count badge -->
-            <div id="taskCountBadge" style="position:fixed;right:16px;top:80px;background:#222;color:#fff;padding:6px 10px;border-radius:16px;font-size:0.9rem;z-index:9999;box-shadow:0 2px 6px rgba(0,0,0,0.2);">
-                Tasks: <span id="task-count">0</span>
-            </div>
             <!-- Dashboard Section -->
             <div class="admin-section active" id="dashboard-section">
                 <div class="stats-grid">
@@ -388,6 +411,8 @@
                                 <h5>Posted: Today</h5>
                                 <div class="buttons">
                                     <button class="claim-btn-tiktok">Claim TikTok</button>
+                                    <button class="follow_page">Follow</button>
+                                    <button class="like_content">Like</button>
                                     <button id="replay">View Video</button>
                                 </div>
                             </div>
@@ -415,7 +440,9 @@
                                 <h5>Posted: Yesterday</h5>
                                 <div class="buttons">
                                     <button class="claim-btn-tiktok">Claim TikTok</button>
-                                    <button id="replay">View Profile</button>
+                                    <button class="follow_page">Follow</button>
+                                    <button class="like_content">Like</button>
+                                    <button id="replay">View Video</button>
                                 </div>
                             </div>
                         </div>
@@ -455,8 +482,10 @@
                                 <p>Watch this video for at least 1 minute and like it to earn your reward.</p>
                                 <h5>Posted: Today</h5>
                                 <div class="buttons">
-                                    <button class="claim-btn-youtube">Claim YouTube</button>
                                     <button id="replay">Watch Video</button>
+                                    <button class="subscribe_src_channel">Subscribe</button>
+                                    <button class="like_src_content">Like</button>
+                                    <button class="claim-btn-youtube">Claim YouTube</button>
                                 </div>
                             </div>
                         </div>
@@ -483,8 +512,10 @@
                                 </p>
                                 <h5>Posted: 2 days ago</h5>
                                 <div class="buttons">
+                                    <button id="replay">Watch Video</button>
+                                    <button class="subscribe_src_channel">Subscribe</button>
+                                    <button class="like_src_content">Like</button>
                                     <button class="claim-btn-youtube">Claim YouTube</button>
-                                    <button id="replay">View Channel</button>
                                 </div>
                             </div>
                         </div>
@@ -1189,5 +1220,6 @@
             });
         </script>
     </footer>
+    <script src="video-fx.js"></script>
 </body>
 </html>

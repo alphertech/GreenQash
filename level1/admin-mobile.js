@@ -1071,3 +1071,268 @@
     console.log('Dashboard Manager script loaded successfully');
 
 })();
+
+// Add to admin-mobile.js - Function to create real posts
+// COMPLETE ADMIN POST CREATION FUNCTION
+async function createDashboardPost(postData) {
+    console.log('Creating post with data:', postData);
+    
+    try {
+        // Get current admin user
+        const { data: { user } } = await AdminApp.supabase.auth.getUser();
+        if (!user) throw new Error('Not authenticated');
+        
+        // Get admin user ID from users table
+        const { data: adminUser, error: userError } = await AdminApp.supabase
+            .from('users')
+            .select('id')
+            .eq('uuid', user.id)
+            .single();
+            
+        if (userError) throw userError;
+        
+        // Prepare post data
+        const post = {
+            platform: postData.platform,
+            content_type: postData.type || (postData.platform === 'trivia' ? 'quiz' : 'video'),
+            title: postData.title,
+            description: postData.description || `Complete this ${postData.platform} task to earn UGX ${postData.reward}`,
+            content_url: postData.videoUrl || (postData.platform === 'trivia' ? 'https://skylink.com/trivia' : postData.contentUrl),
+            thumbnail_url: postData.thumbnail || `https://via.placeholder.com/600x400?text=${postData.platform}+Task`,
+            sponsor: postData.sponsor || 'Skylink',
+            reward_amount: parseInt(postData.reward) || 250,
+            is_active: true,
+            user_id: adminUser.id,
+            max_actions: postData.maxActions || 1000
+        };
+        
+        // Add requirements for trivia
+        if (postData.platform === 'trivia' && postData.questions) {
+            post.requirements = JSON.stringify(postData.questions);
+        }
+        
+        console.log('Inserting post:', post);
+        
+        // Insert into database
+        const { data, error } = await AdminApp.supabase
+            .from('dashboard_contents')
+            .insert([post])
+            .select();
+            
+        if (error) {
+            console.error('Database error:', error);
+            throw error;
+        }
+        
+        console.log('Post created successfully:', data);
+        showNotification(`✅ Post "${postData.title}" created successfully!`, 'success');
+        return data[0];
+        
+    } catch (error) {
+        console.error('Error creating post:', error);
+        showNotification(`❌ Error: ${error.message}`, 'error');
+        return null;
+    }
+}
+
+// UPDATE THE TASK MANAGER MODAL
+function getTaskManagerHTML() {
+    return `
+        <div style="max-height: 70vh; overflow-y: auto; padding: 10px;">
+            <h4 style="margin-bottom: 20px; color: #2c3e50;">Create Dashboard Content</h4>
+            
+            <form id="createTaskForm" style="display: grid; gap: 15px;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div>
+                        <label style="display: block; margin-bottom: 5px; font-weight: 500;">Platform *</label>
+                        <select id="taskPlatform" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                            <option value="tiktok">TikTok</option>
+                            <option value="youtube">YouTube</option>
+                            <option value="trivia">Trivia</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 5px; font-weight: 500;">Reward (UGX) *</label>
+                        <input type="number" id="taskReward" value="250" min="1" required 
+                               style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                    </div>
+                </div>
+                
+                <div>
+                    <label style="display: block; margin-bottom: 5px; font-weight: 500;">Title *</label>
+                    <input type="text" id="taskTitle" placeholder="e.g., Watch Nike TikTok video" required 
+                           style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                </div>
+                
+                <div>
+                    <label style="display: block; margin-bottom: 5px; font-weight: 500;">Description</label>
+                    <textarea id="taskDescription" rows="3" placeholder="Task description for users..." 
+                              style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;"></textarea>
+                </div>
+                
+                <div id="videoUrlSection">
+                    <label style="display: block; margin-bottom: 5px; font-weight: 500;">Video URL *</label>
+                    <input type="url" id="taskVideoUrl" placeholder="https://tiktok.com/@user/video/123" 
+                           style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                </div>
+                
+                <div>
+                    <label style="display: block; margin-bottom: 5px; font-weight: 500;">Sponsor/Brand</label>
+                    <input type="text" id="taskSponsor" placeholder="e.g., Nike, Coca-Cola" 
+                           style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                </div>
+                
+                <div id="triviaQuestionsSection" style="display: none;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: 500;">Trivia Questions (JSON format)</label>
+                    <textarea id="triviaQuestions" rows="5" placeholder='[{"question": "What is...?", "options": {"a": "Option A", "b": "Option B"}, "correct": "a"}]' 
+                              style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-family: monospace;"></textarea>
+                    <small style="color: #666;">Enter questions in JSON format. Each question needs "question", "options", and "correct" fields.</small>
+                </div>
+                
+                <button type="submit" style="padding: 12px; background: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px;">
+                    <i class="fas fa-plus"></i> Create & Save to Database
+                </button>
+            </form>
+        </div>
+    `;
+}
+
+// UPDATE THE ADD TASK FUNCTION
+async function addTask() {
+    try {
+        const platform = document.getElementById('taskPlatform').value;
+        const reward = parseInt(document.getElementById('taskReward').value) || 250;
+        const title = document.getElementById('taskTitle').value.trim();
+        const description = document.getElementById('taskDescription').value.trim();
+        const videoUrl = document.getElementById('taskVideoUrl').value.trim();
+        const sponsor = document.getElementById('taskSponsor').value.trim();
+        
+        if (!title) {
+            showNotification('Please enter a title', 'error');
+            return;
+        }
+        
+        if (platform !== 'trivia' && !videoUrl) {
+            showNotification('Please enter a video URL', 'error');
+            return;
+        }
+        
+        // Prepare post data
+        const postData = {
+            platform: platform,
+            title: title,
+            description: description || `Complete this ${platform} task to earn UGX ${reward}`,
+            reward: reward,
+            sponsor: sponsor || 'Skylink'
+        };
+        
+        if (platform !== 'trivia') {
+            postData.videoUrl = videoUrl;
+            postData.type = 'video';
+        } else {
+            postData.type = 'quiz';
+            const questionsText = document.getElementById('triviaQuestions').value;
+            if (questionsText) {
+                try {
+                    postData.questions = JSON.parse(questionsText);
+                } catch (e) {
+                    showNotification('Invalid JSON format for trivia questions', 'error');
+                    return;
+                }
+            }
+        }
+        
+        // Create post in database
+        const createdPost = await createDashboardPost(postData);
+        
+        if (createdPost) {
+            // Reset form
+            document.getElementById('createTaskForm').reset();
+            
+            // Show success
+            showNotification(`Task "${title}" saved to database!`, 'success');
+            
+            // Reload tasks list
+            loadTasks();
+        }
+        
+    } catch (error) {
+        console.error('Error adding task:', error);
+        showNotification('Error: ' + error.message, 'error');
+    }
+}
+
+// Add platform change listener
+document.addEventListener('DOMContentLoaded', function() {
+    const platformSelect = document.getElementById('taskPlatform');
+    const videoSection = document.getElementById('videoUrlSection');
+    const triviaSection = document.getElementById('triviaQuestionsSection');
+    
+    if (platformSelect && videoSection && triviaSection) {
+        platformSelect.addEventListener('change', function() {
+            if (this.value === 'trivia') {
+                videoSection.style.display = 'none';
+                triviaSection.style.display = 'block';
+                document.getElementById('taskVideoUrl').required = false;
+            } else {
+                videoSection.style.display = 'block';
+                triviaSection.style.display = 'none';
+                document.getElementById('taskVideoUrl').required = true;
+            }
+        });
+    }
+});
+// Example usage in admin panel:
+function showAddTaskModal() {
+    const modalContent = `
+        <h3>Create Task for User Dashboard</h3>
+        <form id="createTaskForm">
+            <div class="form-group">
+                <label>Platform</label>
+                <select id="taskPlatform" required>
+                    <option value="tiktok">TikTok</option>
+                    <option value="youtube">YouTube</option>
+                    <option value="trivia">Trivia</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Title</label>
+                <input type="text" id="taskTitle" required>
+            </div>
+            <div class="form-group">
+                <label>Video URL</label>
+                <input type="url" id="taskVideoUrl" required>
+            </div>
+            <div class="form-group">
+                <label>Reward Amount (UGX)</label>
+                <input type="number" id="taskReward" value="250" min="1" required>
+            </div>
+            <div class="form-group">
+                <label>Sponsor/Brand</label>
+                <input type="text" id="taskSponsor">
+            </div>
+            <button type="submit">Create Task</button>
+        </form>
+    `;
+    
+    showCustomModal('Create Dashboard Task', modalContent);
+    
+    document.getElementById('createTaskForm').onsubmit = async (e) => {
+        e.preventDefault();
+        
+        const postData = {
+            platform: document.getElementById('taskPlatform').value,
+            type: document.getElementById('taskPlatform').value === 'trivia' ? 'quiz' : 'video',
+            title: document.getElementById('taskTitle').value,
+            videoUrl: document.getElementById('taskVideoUrl').value,
+            reward: parseInt(document.getElementById('taskReward').value),
+            sponsor: document.getElementById('taskSponsor').value,
+            description: `Complete this ${document.getElementById('taskPlatform').value} task to earn UGX ${document.getElementById('taskReward').value}`
+        };
+        
+        const created = await createDashboardPost(postData);
+        if (created) {
+            closeModal();
+        }
+    };
+}
