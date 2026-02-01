@@ -1,39 +1,33 @@
-// dashboard-core.js - UPDATED FOR YOUR SCHEMA
+// dashboard-core.js - from endtime schema for data fetching and display
 (function() {
-    console.log('Dashboard core starting...');
-    
+    console.log('Hi from dashboard core! Skylink Loading...');
     let currentUser = null;
     let userProfile = null;
     let earningsData = null;
-    let userId = null; // This will be the BIGINT ID from users table
+    let userId = null;
     
     // Wait for everything to be ready
     function initDashboard() {
-        console.log('Initializing dashboard...');
-        
+        console.log('Initializing dashboard...'); 
         // Check if we have Supabase
         if (!window.supabase) {
             console.log('Waiting for Supabase...');
-            setTimeout(initDashboard, 500);
+            setTimeout(initDashboard, 400);
             return;
-        }
-        
+        } 
         // Get current user
         window.supabase.auth.getUser().then(({ data: { user }, error }) => {
             if (error) {
                 console.error('Error getting user:', error);
                 return;
-            }
-            
+            }      
             if (!user) {
                 console.log('No user found, redirecting to login...');
                 window.location.href = 'index.html';
                 return;
             }
-            
             currentUser = user;
             console.log('Auth user found:', user.email, 'UUID:', user.id);
-            
             // Load user data
             loadUserData(user);
             
@@ -66,7 +60,7 @@
             }
             
             userProfile = profile;
-            userId = profile.id; // This is the BIGINT ID we need for other tables
+            userId = profile.id; 
             console.log('User profile loaded. ID:', userId, 'Username:', profile.user_name);
             
             // STEP 2: Get earnings data using the BIGINT id
@@ -152,9 +146,11 @@
         }
         // DISPLAY PHONE NUMBER - ADD THIS LINE
         const phoneElement = document.getElementById('phone_number');
-        if (phoneElement && userProfile?.phone_number) {
-            phoneElement.textContent = String(userProfile.phone_number);
+        if (phoneElement && paymentInfo?.phone_number) {
+            phoneElement.textContent = String(paymentInfo.phone_number);
         }
+
+        //display inviter
         
         console.log('Setting username to:', username);
         
@@ -172,7 +168,6 @@
     
     function updateEmail() {
         const email = currentUser?.email || userProfile?.email_address || '';
-        
         document.querySelectorAll('#email_address, .emailAdress').forEach(element => {
             if (element.tagName === 'INPUT' || element.tagName === 'TEXTAREA') {
                 element.value = email;
@@ -184,7 +179,7 @@
     
     function updateEarningsStats() {
         if (!earningsData) {
-            console.log('No earnings data to display, showing zeros');
+            console.log('No earnings data to display');
             
             // Show zeros if no earnings data
             const defaultStats = {
@@ -3386,10 +3381,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }, 2000);
 });
-
-
-
-
 /**
  * Securely loads and displays top 10 highest earners
  */

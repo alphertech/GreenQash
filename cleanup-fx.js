@@ -292,7 +292,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function claimVideoReward() {
-        showNotification('✅ Reward claimed!', 'success');
+        showNotification(' Reward claimed!', 'success');
         closeVideoPlayer();
     }
     
@@ -344,5 +344,5 @@ document.addEventListener('DOMContentLoaded', function() {
     setTimeout(setupVideoButtons, 1000);
     setInterval(setupVideoButtons, 5000);
     
-    console.log('✅ Cleanup Fix loaded');
+    console.log(' Cleanup Fix loaded');
 });

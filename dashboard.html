@@ -7,7 +7,7 @@
     <meta charset="UTF-8">
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: https://via.placeholder.com https:; font-src 'self' https://cdnjs.cloudflare.com https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0 webfonts.gstatic.com data:; connect-src 'self' http://127.0.0.1:5502 ws://127.0.0.1:5502 https: wss: wss://kwghulqonljulmvlcfnz.supabase.co https://kwghulqonljulmvlcfnz.supabase.co;">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SkyLink</title>
+    <title>SkyLink || User Dashboard</title>
     <!-- Replace your CSP line with this -->
     <meta http-equiv="Content-Security-Policy" content="
         default-src 'self' https:;
@@ -19,22 +19,17 @@
         frame-src 'self' https://www.youtube.com https://youtube.com https://www.youtube-nocookie.com https://*.youtube.com https://*.tiktok.com;
         media-src *;
     ">
-    <!-- In dashboard.html head -->
     <!-- Load YouTube IFrame API -->
     <script src="https://www.youtube.com/iframe_api"></script>
-    
     <!-- Load Font Awesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    
     <!-- Load Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
-    
     <!-- Load our dashboard -->
     <script src="dashboard-real.js"></script>
     <script>
         // Simple inline check
-        console.log('Dashboard loading...');
-        
+        console.log('Dashboard loading...');  
     </script>
     <script>
         // Defensive override: ensure code that calls document.getElementById(id).textContent
@@ -129,15 +124,15 @@
 <body>
     <header>
         <div class="header-left">
-            <!-- <div class="header-logo">🌱</div> -->
             <span class="header-title" style="font-size: 20px; margin: 0; padding: 0;">SKY-LINK</span>
+            <h6 style="margin-top: -10px; font-style: italic;">Beyond Extremes</h6>
         </div>
         <div class="user-infor">
-            <div class="png-zone"></div>
+            <div class="png-zone">User</div>
             <div class="userIdentification" >
-                <p id="user_name"></p>
+                <p id="user_name">Mr Sky</p>
                 <div class="center">
-                    <h4>Invited by: <span id="inviter_name"></span></h4>
+                    <h4>Invited by: <br><span id="inviter_name">John Doe</span></h4>
                 </div>
             </div>
         </div>
@@ -390,7 +385,7 @@
                     </div>
                 </div>
                 <div class="video-earn">
-                    <div class="vidSection">
+                    <!-- <div class="vidSection">
                         <div class="vhead">
                             <div class="leftInfo">
                                 <h3>Like this TikTok video</h3>
@@ -417,36 +412,7 @@
                                 </div>
                             </div>
                         </div>
-                    </div>
-                    
-                    <div class="vidSection">
-                        <div class="vhead">
-                            <div class="leftInfo">
-                                <h3>Follow this account</h3>
-                                <h5>Sponsored by Adidas</h5>
-                            </div>
-                            <div class="rightInfo">
-                                <h6>Reward: UGX 250</h6>
-                            </div>
-                        </div>
-                        <div class="body">
-                            <div class="post">
-                                <img src="https://via.placeholder.com/600x400?text=TikTok+Profile" alt="TikTok Profile">
-                            </div>
-                        </div>
-                        <div class="vfoot">
-                            <div class="vdetails">
-                                <p>Follow this account and stay following for at least 7 days to earn your reward.</p>
-                                <h5>Posted: Yesterday</h5>
-                                <div class="buttons">
-                                    <button class="claim-btn-tiktok">Claim TikTok</button>
-                                    <button class="follow_page">Follow</button>
-                                    <button class="like_content">Like</button>
-                                    <button id="replay">View Video</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                    </div> -->
                 </div>
 
                 
@@ -462,7 +428,7 @@
                 </div>
 
                 <div class="video-earn">
-                    <div class="vidSection">
+                    <!-- <div class="vidSection">
                         <div class="vhead">
                             <div class="leftInfo">
                                 <h3>Watch this YouTube video</h3>
@@ -489,37 +455,7 @@
                                 </div>
                             </div>
                         </div>
-                    </div>
-                    
-                    <div class="vidSection">
-                        <div class="vhead">
-                            <div class="leftInfo">
-                                <h3>Subscribe to this channel</h3>
-                                <h5>Sponsored by Pepsi</h5>
-                            </div>
-                            <div class="rightInfo">
-                                <h6>Reward: UGX 250</h6>
-                            </div>
-                        </div>
-                        <div class="body">
-                            <div class="post">
-                                <img src="https://via.placeholder.com/600x400?text=YouTube+Channel" alt="YouTube Channel">
-                            </div>
-                        </div>
-                        <div class="vfoot">
-                            <div class="vdetails">
-                                <p>Subscribe to this channel and stay subscribed for at least 14 days to earn your reward.
-                                </p>
-                                <h5>Posted: 2 days ago</h5>
-                                <div class="buttons">
-                                    <button id="replay">Watch Video</button>
-                                    <button class="subscribe_src_channel">Subscribe</button>
-                                    <button class="like_src_content">Like</button>
-                                    <button class="claim-btn-youtube">Claim YouTube</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                    </div> -->
                 </div>
             </div>
 
@@ -534,7 +470,7 @@
 
                 <form id="quizForm">
                     <!-- Question 1 -->
-                    <div class="question">
+                    <!-- <div class="question">
                         <p>1. What is the capital of France?</p>
                         <div class="options">
                             <label><input type="radio" name="q1" value="a"> London</label>
@@ -542,52 +478,7 @@
                             <label><input type="radio" name="q1" value="c"> Paris</label>
                             <label><input type="radio" name="q1" value="d"> Madrid</label>
                         </div>
-                    </div>
-
-                    <!-- Question 2 -->
-                    <div class="question">
-                        <p>2. Which planet is known as the Red Planet?</p>
-                        <div class="options">
-                            <label><input type="radio" name="q2" value="a"> Venus</label>
-                            <label><input type="radio" name="q2" value="b"> Mars</label>
-                            <label><input type="radio" name="q2" value="c"> Jupiter</label>
-                            <label><input type="radio" name="q2" value="d"> Saturn</label>
-                        </div>
-                    </div>
-
-                    <!-- Question 3 -->
-                    <div class="question">
-                        <p>3. Who painted the Mona Lisa?</p>
-                        <div class="options">
-                            <label><input type="radio" name="q3" value="a"> Vincent van Gogh</label>
-                            <label><input type="radio" name="q3" value="b"> Pablo Picasso</label>
-                            <label><input type="radio" name="q3" value="c"> Leonardo da Vinci</label>
-                            <label><input type="radio" name="q3" value="d"> Michelangelo</label>
-                        </div>
-                    </div>
-
-                    <!-- Question 4 -->
-                    <div class="question">
-                        <p>4. What is the largest mammal in the world?</p>
-                        <div class="options">
-                            <label><input type="radio" name="q4" value="a"> Elephant</label>
-                            <label><input type="radio" name="q4" value="b"> Blue Whale</label>
-                            <label><input type="radio" name="q4" value="c"> Giraffe</label>
-                            <label><input type="radio" name="q4" value="d"> Polar Bear</label>
-                        </div>
-                    </div>
-
-                    <!-- Question 5 -->
-                    <div class="question">
-                        <p>5. Which element has the chemical symbol 'O'?</p>
-                        <div class="options">
-                            <label><input type="radio" name="q5" value="a"> Gold</label>
-                            <label><input type="radio" name="q5" value="b"> Oxygen</label>
-                            <label><input type="radio" name="q5" value="c"> Osmium</label>
-                            <label><input type="radio" name="q5" value="d"> Silver</label>
-                        </div>
-                    </div>
-
+                    </div> -->
                     <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">Submit
                         Answers</button>
                 </form>
@@ -734,14 +625,6 @@
                             <th>Method</th>
                             <th>Status</th>                        
                         </tr>
-                        <!-- <tr>
-                            <td>22/12/2025</td>
-                            <td>001</td>
-                            <td>70000</td>
-                            <td>Trivia</td>
-                            <td>Crypto</td>
-                            <td>Pending</td>
-                        </tr> -->
                     </table>
                 </div>
                 <div class="leaderboards">
@@ -776,6 +659,14 @@
                             </div>
                     </div>
                 </div>
+                <div class="vidSection" style="color: white; background-color: #2c3e50;">
+                    <p>
+                        Some of the all time top earners are displayed in top earner's table above
+                    </p>
+                    <p>
+                        All your withdrawal requests are summerised in the withdraw history time.
+                    </p>
+                </div>
             </div>
 
             <!-- Chats Section -->
@@ -804,12 +695,11 @@
         <!-- Activation -->
         <div class="admin-section" id="activation-section">
             <div class="section-header">
-                <h2 class="section-title">Activation</h2>
+                <h1 class="section-title">Activation</h1>
             </div>
             <div class="vidSection">
                 <section class="help">
-                    <h3>QUICK ASSISTANCE</h3>
-                    <h3>How it's done here</h3>
+                    <h3>About SKYLINK</h3>
                     <p>Get paid through doing simple tasks. Watching Tiktok videos, Youtube videos, inviting
                         friends,
                         answering simple trivia questions, making whatsapp posts and getting views, liking
@@ -825,13 +715,8 @@
 
                     <h3>More solution</h3>
                     <p>Incase this is not what you are looking for, get more solutions from your Upline
-                        admin or
-                        Email
-                        user
-                        zero at admin@greenqash.com</p>
-                    <button id="helpbtn">GET HELP</button>
-                    <p id="sendMessage"></p>
-
+                        admin or Email user zero at admin@greenqash.com.
+                    </p>
                 </section>
                 <hr>
 
@@ -842,15 +727,16 @@
                     <details>
                         <summary>View earning details</summary>
                         <p>
-                            Earn 7,000 Ugx when someone joins using your invitation link.<br>
+                            Earn 7,000 Ugx when someone who joined using your invitation link activates their account.<br>
                             Earn 4,000 Ugx when the person you invited also invites another.<br>
-                            Activate with Ugx 20,000 only
+                            Activate with Ugx 20,000 only which is paid once.<br>
+                            Additionally, a heavy reward awaits to whoever makes it to 50 active invites.
                         </p>
                     </details>
                     <button id="how2a">How to Activate</button>
                     <details>
-                        <summary>Follow this</summary>
-                        <h3>MTN Mobile Money</h3>
+                        <summary style="color: green; font-weight: 700;">Manual Proceedure (Applicable in Uganda only)</summary>
+                        <h4>MTN Mobile Money</h4>
                         <p>1. Dial *165#</p>
                         <p>2. Select Option 3 (Pay Bill)</p>
                         <p>3. Enter Business Number: 000000</p>
@@ -858,7 +744,7 @@
                         <p>5. Enter Reference: ${username}</p>
                         <p>6. Confirm transaction</p>
                         <hr>
-                        <h3>Airtel Money</h3>
+                        <h4>Airtel Money</h4>
                         <p>1. Dial *165#</p>
                         <p>2. Select Option 3 (Pay Bill)</p>
                         <p>3. Enter Business Number: 000000</p>
@@ -871,7 +757,22 @@
 
                 </section>
             </div>
-
+            <div class="vidSection">
+                <h3>
+                    More of our services!
+                </h3>
+                <p>
+                    We develop and sell platforms like this one. Email your order to alphertech@gmail.com to get your site ready
+                    within 3 weeks at cheap affordable price!
+                </p>
+                <p>
+                    Or Whatsapp us at +256 72727 2252. We will reply instantly for business.
+                </p>
+                <p>
+                    We will be glad to work with you. Also work begins immediately the first deposit of 40% is cleared. Then the
+                    last fee expected on work completion.
+                </p>
+            </div>
         </div>
 
         <!-- Upcoming Events Section -->
@@ -1119,70 +1020,36 @@
                         <p>Invited by</p>
                         <span id="inviter">Self</span>
                     </div>
-                    <div class="data_card">
-                        <p>Email</p>
-                        <span id="email_address">default@gmail.com</span>
-                    </div>
-                    <div class="data_card">
-                        <p>Payment Address</p>
-                        <span id="phone_number">0712345678</span>
-                    </div>
-                    <div class="data_card">
-                        <p>Total Refferrals</p>
-                        <span id="invited">2</span>
-                    </div>
-                    <div class="data_card">
-                        <p>Total Earned</p>
-                        <span id="total_income">0</span>
-                    </div>
-                    <div class="data_card">
-                        <p>Total Withdrawn</p>
-                        <span id="withdrawn">0</span>
-                    </div>
                     <div class="data_card" style="margin-top: 40px; display: block; color: white; background-color: black; padding: 10px; border-radius: 5px;">
                         <h4>Adverts and Sponsors</h4>
-                        <p>DFB Agencies</p>
-                        <p>Alpher Network</p>
+                        <p class="advert">DFB Agencies</p>
+                        <p class="advert">Alpher Network</p>
+                        <p class="advert">code with FarmBoy18</p>
                     </div>
                     <div class="data_card"></div>
-
-                    <!-- <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
-                        <div>
-                            <p style="color: #7f8c8d; font-size: 0.9rem;" id="" >Username</p>
-                            <p style="font-weight: 500;" id="user_name" aria-readonly="true">user123</p>
-                        </div>
-                        <div>
-                            <p style="color: #7f8c8d; font-size: 0.9rem;">Email</p>
-                            <p style="font-weight: 500;" class="emailAdress" id="email_address" aria-readonly="true">user@example.com</p>
-                        </div>
-                    </div>
-
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
-                        <div>
-                            <p style="color: #7f8c8d; font-size: 0.9rem;">Phone</p>
-                            <p style="font-weight: 500;" class="phoneNumber" id="phone_number" ></p>
-                        </div>
-                    </div>
-
-                    <div>
-                        <p style="color: #7f8c8d; font-size: 0.9rem;">Payment Method</p>
-                        <p style="font-weight: 500;" id="payment_method">PayPal (user@example.com)</p>
-                    </div>
                 </div>
-
-                <div>
-                    <h4 style="margin-bottom: 1rem;">Account Stats</h4>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                        <div>
-                            <p style="color: #7f8c8d; font-size: 0.9rem;">ALL TIME EARNINGS</p>
-                            <p style="font-weight: 500;" id="all_time_earn" >0</p>
-                        </div>
-                        <div>
-                            <p style="color: #7f8c8d; font-size: 0.9rem;" id="withdra">Withdrawn</p>
-                            <p style="font-weight: 500;" id="withdrawn" >0</p>
-                        </div>
-                    </div>
-                </div> -->
+            </div>
+            <div class="vidSection">
+                <div class="data_card">
+                    <p>Email</p>
+                    <span id="email_address">default@gmail.com</span>
+                </div>
+                <div class="data_card">
+                    <p>Payment Address</p>
+                    <span id="phone_number">0712345678</span>
+                </div>
+                <div class="data_card">
+                    <p>Total Refferrals</p>
+                    <span id="invited">2</span>
+                </div>
+                <div class="data_card">
+                    <p>Total Earned</p>
+                    <span id="total_income">0</span>
+                </div>
+                <div class="data_card">
+                    <p>Total Withdrawn</p>
+                    <span id="withdrawn">0</span>
+                </div>
             </div>
         </div>
         </div>
@@ -1199,8 +1066,8 @@
                 <p id="confirmation-message">Are you sure you want to perform this action?</p>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-danger close-modal">Cancel</button>
-                <button class="btn btn-primary" id="confirm-action">Confirm</button>
+                <button class="btn btn-danger close-modal">No</button>
+                <button class="btn btn-primary" id="confirm-action">Yes</button>
             </div>
         </div>
     </div>
@@ -1220,6 +1087,6 @@
             });
         </script>
     </footer>
-    <script src="video-fx.js"></script>
+    <!-- <script src="video-fx.js"></script> ........... disconnected with success -->
 </body>
 </html>

@@ -1,4 +1,4 @@
-// Admin Configuration
+/* Admin Configuration
 const ADMIN_CONFIG = {
     // Admin credentials (in production, use proper authentication)
     adminUsers: [
@@ -6,7 +6,7 @@ const ADMIN_CONFIG = {
             username: 'admin',
             password: 'admin123', // Change this in production
             role: 'superadmin',
-            email: 'admin@skylink.com'
+            email: 'digitalfarmboy@gmail.com'
         },
         {
             username: 'content',
@@ -86,3 +86,4 @@ if (!isAdmin() && window.location.pathname.includes('admin-posting')) {
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = { ADMIN_CONFIG, isAdmin };
 }
+*/

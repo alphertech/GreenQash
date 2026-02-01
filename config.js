@@ -7,24 +7,16 @@ window.SUPABASE_CONFIG = {
 
 console.log('Configuration loaded:', window.SUPABASE_CONFIG.url ? '✓' : '✗');
 
-
-// Admin Configuration
 // Admin Configuration
 const ADMIN_CONFIG = {
     // Admin credentials (in production, use proper authentication)
     adminUsers: [
         {
-            username: 'Holly Marmaid',
+            username: 'SKY ADMINISTRATOR',
             password: 'peronmsst', 
             role: 'superadmin',
             email: 'alphetech@gmail.com'
         },
-        {
-            username: 'content',
-            password: 'content123',
-            role: 'content_manager',
-            email: 'content@skylink.com'
-        }
     ],
     
     // Content categories
@@ -43,19 +35,13 @@ const ADMIN_CONFIG = {
     platforms: [
         'youtube',
         'tiktok',
-        'instagram',
-        'facebook',
-        'twitter'
     ],
     
     // Default rewards
     defaultRewards: {
         youtube: 250,
         tiktok: 250,
-        instagram: 200,
-        facebook: 200,
-        trivia: 400,
-        text: 100
+        trivia: 200,
     },
     
     // API endpoints (if using server)

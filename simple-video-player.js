@@ -26,7 +26,7 @@ class SimpleVideoPlayer {
             '.watch-btn',
             '.video-btn'
         ];
-        
+      
         videoButtons.forEach(selector => {
             document.querySelectorAll(selector).forEach(btn => {
                 // Remove any existing onclick

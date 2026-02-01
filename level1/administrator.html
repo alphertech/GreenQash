@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <!-- Content-Security-Policy meta removed for local development -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GLOBAL-WORM</title>
+    <title>SKY-ADMIN</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
@@ -47,166 +47,7 @@
             };
         })();
     </script>
-    
     <link rel="stylesheet" href="adstyles.css">
-    <style>
-        /* Mobile menu overlay */
-        .mobile-menu-overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            z-index: 998;
-        }
-        #logoutBtn {
-            background-color: white;
-            color: #2c3e50;
-            padding: 10px 2px;
-            position: fixed;
-            top: 15px;
-            right: 15px;
-            border-radius: 15px 0 15px 0;
-            border-style: groove;
-            outline-color: #2c3e50;
-            border-color: #2c3e50;
-            font-size: 10px;
-            z-index: 999;
-        }
-
-        /* Mobile menu toggle button */
-        .mobile-menu-toggle {
-            display: none;
-            position: fixed;
-            top: 10px;
-            left: 10px;
-            z-index: 1000;
-            background: white;
-            color: #2c3e50;
-            border-style: groove;
-            border-radius: 0 15px 0 15px;
-            width: 40px;
-            height: 40px;
-            cursor: pointer;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.8rem;
-            outline-color: #2c3e50;
-        }
-
-        /* Close button for sidebar on mobile */
-        .sidebar-close {
-            display: none;
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            background: none;
-            border: none;
-            color: white;
-            font-size: 0.8rem;
-            cursor: pointer;
-            z-index: 1001;
-        }
-
-        /* Responsive styles */
-        @media (max-width: 768px) {
-            .mobile-menu-toggle {
-                display: flex;
-            }
-
-            .sidebar {
-                transform: translateX(-100%);
-                transition: transform 0.3s ease;
-                z-index: 999;
-                position: fixed;
-                height: 100vh;
-                overflow-y: auto;
-            }
-
-            .sidebar.active {
-                transform: translateX(0);
-            }
-
-            .sidebar-close {
-                display: block;
-            }
-
-            .main-content {
-                margin-left: 0;
-                width: 100%;
-            }
-
-            .header {
-                padding-left: 70px;
-            }
-
-            .stats-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .charts-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .quick-actions {
-                grid-template-columns: repeat(2, 1fr);
-            }
-
-            .filters {
-                flex-direction: column;
-                gap: 10px;
-            }
-
-            .filter-group {
-                width: 100%;
-            }
-
-            table {
-                display: block;
-                overflow-x: auto;
-                white-space: nowrap;
-            }
-
-            .action-buttons {
-                flex-direction: column;
-                gap: 5px;
-            }
-
-            .action-btn {
-                width: 35px;
-                height: 35px;
-            }
-        }
-
-        @media (max-width: 480px) {
-            .quick-actions {
-                grid-template-columns: 1fr;
-            }
-
-            .mobile-menu-toggle {
-                top: 15px;
-                left: 15px;
-                width: 35px;
-                height: 35px;
-            }
-
-            .header h1 {
-                font-size: 0.8rem;
-            }
-
-            .section-title {
-                font-size: 0.6rem;
-            }
-        }
- 
-        /* Ensure tables are scrollable on mobile */
-        .table-container {
-            overflow-x: auto;
-        }
-        
-    </style>
 </head>
 
 <body>
@@ -229,7 +70,7 @@
             <i class="fas fa-times"></i>
         </button>
         <div class="logo">
-            <h2>HOLLY-<span>MARMAID</span></h2>
+            <h2>SKY-<span>ADMIN</span></h2>
         </div>
         <ul class="menu" id="menu">
             <li class="menu-item active" data-section="dashboard">
@@ -281,9 +122,9 @@
         <div class="header">
             <div>
                 <h2></h2>
-                <h1 id="pageTitle">HOLLY-<span>MARMAID</span></h1>
+                <h1 id="pageTitle">Sky-<span>Admin</span></h1>
                 <hr>
-                <p id="pageDescription">Welcome back, Mr. James!</p>
+                <p id="pageDescription">Welcome back, Mr. Admin!</p>
             </div>
             <div class="admin-info">
                 <!-- <div class="admin-avatar" id="adminAvatar">A</div> -->
