@@ -1,7 +1,7 @@
 :root {
-  --primary-color: #2ecc71;
-  --secondary-color: #27ae60;
-  --dark-color: #2c3e50;
+  --primary-color: #01210e;
+  --secondary-color: #044921;
+  --dark-color: #034726;
   --light-color: #ecf0f1;
   --danger-color: #e74c3c;
   --warning-color: #f39c12;
@@ -304,18 +304,19 @@ menu {
 }
 
 .section-header {
+    width: 100%;
   display: flex;
-  justify-content: space-between;
+  justify-content: space-around;
   align-items: center;
   margin-bottom: 1rem;
   flex-wrap: wrap;
 }
 
 .section-title {
-  background-color: #333;
+    text-decoration: underline;  
   padding: 5px;
   border-radius: 10px 0;
-  color: #e0e0e0;
+  color: #333;
   font-size: 1rem;
   margin-right: 1rem;
   font-weight: 600;
@@ -332,12 +333,8 @@ menu {
 }
 
 .btn-primary {
-  position: absolute;
-  z-index: 999;
-  right: 10px;
   border-radius: 0 10px;
   margin: 0;
-  top: 130px;
   background-color: #333;
   color: white;
 }
@@ -526,10 +523,10 @@ button#comment {
 }
 .advert {
   background-color: #2c3e50;
-  margin: 10px 5px;
-  padding: 5px;
+  margin: 5px;
+  padding: 2px;
   border-radius: 2px;
-  animation: addAnimation 5s linear infinite;
+  /* animation: addAnimation 5s linear infinite; */
 }
 
 footer {
@@ -1028,4 +1025,8 @@ text-align: justify;
 .social-btn {
   margin: 10px;
   width: 60px;
+}
+.vidSection li {
+    list-style: none;
+    text-align: center;
 }
